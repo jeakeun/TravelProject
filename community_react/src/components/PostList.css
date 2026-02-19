@@ -1,0 +1,79 @@
+.post-list-container {
+    max-width: 1000px;
+    margin: 50px auto;
+    padding: 0 20px;
+}
+
+.list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.write-btn {
+    background: #2c3e50;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.post-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-top: 2px solid #2c3e50;
+    /* 상단 포인트 컬러 */
+}
+
+.post-table th {
+    background: #f8f9fa;
+    padding: 15px;
+    border-bottom: 1px solid #ddd;
+    font-size: 14px;
+}
+
+.post-table td {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    text-align: center;
+    font-size: 14px;
+}
+
+/* 제목 왼쪽 정렬 및 링크 스타일 */
+.td-title {
+    text-align: left !important;
+    padding-left: 20px !important;
+}
+
+.td-title a {
+    text-decoration: none;
+    color: #333;
+    display: flex;
+    align-items: center;
+}
+
+.td-title a:hover {
+    text-decoration: underline;
+}
+
+/* 🚩 댓글 개수 배지 스타일 */
+.comment-count-badge {
+    color: #e74c3c;
+    /* 빨간색 강조 */
+    font-weight: bold;
+    font-size: 13px;
+    margin-left: 6px;
+}
+
+.no-data {
+    padding: 50px !important;
+    color: #999;
+}
+
+.loading-text {
+    text-align: center;
+    margin-top: 100px;
+    font-weight: bold;
+}

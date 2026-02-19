@@ -1,0 +1,420 @@
+/* [1. 전체 페이지 루트 및 상단 레이아웃] */
+.recommend-page-root {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 1250px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Pretendard', sans-serif;
+    margin-top: 80px;
+}
+
+.top-combined-section {
+    display: flex;
+    gap: 30px;
+    width: 100%;
+    margin-bottom: 60px;
+    align-items: stretch;
+}
+
+.main-cards-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.sub-cards-flex {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+}
+
+.featured-post,
+.recommend-sub-card {
+    position: relative;
+    width: 100%;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.recommend-sub-card {
+    flex: 1;
+}
+
+.featured-post:hover,
+.recommend-sub-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.main-img-box,
+.sub-card-img-box {
+    position: relative;
+    width: 100%;
+}
+
+.main-img-box {
+    height: 320px;
+}
+
+.sub-card-img-box {
+    height: 150px;
+}
+
+.main-img-box img,
+.sub-card-img-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.rank-badge {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: #e74c3c;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    z-index: 10;
+}
+
+.featured-info,
+.sub-card-body {
+    padding: 20px;
+}
+
+.card-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.card-desc {
+    font-size: 0.95rem;
+    color: #666;
+    margin-bottom: 12px;
+}
+
+.post-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #f5f5f5;
+}
+
+.post-user {
+    font-size: 0.85rem;
+    color: #888;
+    font-weight: 600;
+}
+
+.post-icons {
+    display: flex;
+    gap: 12px;
+}
+
+.stat-icon {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: #999;
+}
+
+.stat-icon.heart {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+/* [2. 우측 랭킹 사이드바 고정] */
+.ranking-section {
+    width: 320px;
+    flex-shrink: 0;
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #eee;
+    height: fit-content;
+    position: sticky;
+    top: 100px;
+}
+
+.rank-list {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.rank-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    padding: 8px;
+}
+
+.rank-item:hover {
+    transform: scale(1.03);
+    background-color: #f8f9fa;
+}
+
+.rank-thumb-box {
+    width: 55px;
+    height: 55px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.rank-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.rank-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.rank-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rank-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #888;
+    margin-top: 4px;
+}
+
+.rank-num-badge {
+    color: #e74c3c;
+    font-weight: 800;
+}
+
+/* [3. 하단 리스트 테이블] */
+.bottom-list-wrapper {
+    width: 100%;
+    border-top: 2px solid #2c3e50;
+    padding-top: 40px;
+}
+
+.list-data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.list-data-table th {
+    padding: 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+    font-size: 14px;
+}
+
+.list-data-table td {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    text-align: center;
+}
+
+.list-data-table tr {
+    cursor: pointer;
+}
+
+.list-data-table tr:hover td {
+    background-color: #fcfcfc;
+}
+
+.img-td img {
+    width: 100px;
+    height: 65px;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.title-td {
+    text-align: left !important;
+    padding-left: 20px !important;
+}
+
+.stats-td {
+    text-align: right !important;
+    padding-right: 30px !important;
+}
+
+.stats-container {
+    display: inline-flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.stat-item.comment {
+    color: #888;
+}
+
+.stat-item.likes {
+    color: #e74c3c;
+}
+
+/* [4. 하단 페이지네이션 및 검색 영역 수정] */
+.list-pagination-area {
+    margin-top: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+    width: 100%;
+}
+
+.page-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.page-buttons button {
+    width: 38px;
+    height: 38px;
+    border: 1px solid #ddd;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page-buttons button.active {
+    background: #2c3e50;
+    color: #fff;
+    border-color: #2c3e50;
+}
+
+/* 🚩 배치 최적화: 검색창을 더 왼쪽으로 밀어 정중앙 정렬 */
+.footer-action-row {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 10px;
+    position: relative;
+}
+
+.search-footer {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    /* 🚩 카테고리와 검색창 사이 분리 간격 */
+    margin-right: 120px;
+    /* 🚩 뭉치 전체를 왼쪽으로 밀어 검색창을 중앙에 맞춤 */
+}
+
+.search-select-box {
+    height: 46px;
+    padding: 0 15px;
+    border: 1px solid #ddd;
+    border-radius: 30px;
+    /* 둥근 디자인 유지 */
+    background-color: #fff;
+    font-size: 0.9rem;
+    color: #333;
+    outline: none;
+    cursor: pointer;
+}
+
+.search-input-wrapper {
+    display: flex;
+    align-items: center;
+    height: 46px;
+    border: 1px solid #ddd;
+    border-radius: 30px;
+    padding: 3px 5px 3px 15px;
+    background: #fff;
+}
+
+.search-input-wrapper input {
+    padding: 8px;
+    border: none;
+    outline: none;
+    width: 250px;
+    font-size: 0.9rem;
+}
+
+.btn-search {
+    padding: 8px 22px;
+    background: #2c3e50;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.btn-write-footer {
+    position: absolute;
+    right: 0;
+    padding: 12px 25px;
+    background: #2c3e50;
+    color: #fff;
+    border: none;
+    border-radius: 30px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* [5. 상단바 및 사이드메뉴 고정] */
+header,
+.navbar {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    height: 70px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    padding: 0 40px;
+    z-index: 1000;
+}
+
+header a,
+.navbar a {
+    color: #fff;
+    text-decoration: none;
+}
+
+.side-menu-wrapper,
+aside {
+    position: sticky;
+    top: 100px;
+    height: fit-content;
+}

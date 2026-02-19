@@ -1,0 +1,134 @@
+.comments-wrapper {
+    margin-top: 50px;
+    padding: 20px;
+    border-top: 1px solid #eee;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.comment-count {
+    font-weight: bold;
+    font-size: 1.1rem;
+    margin-bottom: 15px;
+}
+
+/* 입력 영역 */
+.comment-input-area {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 30px;
+}
+
+.comment-input-area textarea {
+    flex: 1;
+    height: 90px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    resize: none;
+    font-size: 14px;
+    outline: none;
+}
+
+.submit-btn {
+    width: 90px;
+    height: 90px;
+    background: #2c3e50;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* 대댓글 전용 스타일 */
+.reply-input-container {
+    flex-direction: column;
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+.reply-input-container textarea {
+    height: 70px;
+    background: #fff;
+    margin-bottom: 10px;
+}
+
+.reply-button-group {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.reply-button-group .submit-btn {
+    width: 70px;
+    height: 35px;
+    font-size: 12px;
+}
+
+.btn-cancel {
+    padding: 0 15px;
+    height: 35px;
+    background: #e0e0e0;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+/* 리스트 및 시간 */
+.comment-item {
+    padding: 20px 0;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+.reply-item {
+    margin-left: 45px;
+    padding: 15px;
+    border-left: 2px solid #ddd;
+    background: #fcfcfc;
+    margin-top: 5px;
+    border-radius: 0 8px 8px 0;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.author {
+    font-weight: bold;
+    margin-right: 12px;
+    font-size: 15px;
+}
+
+.date {
+    color: #999;
+    font-size: 13px;
+}
+
+/* 🚩 시간 디자인 */
+
+.comment-content {
+    font-size: 15px;
+    line-height: 1.6;
+    color: #333;
+    white-space: pre-wrap;
+    margin: 8px 0;
+}
+
+.comment-actions button {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 12px;
+}
+
+.delete-btn:hover {
+    color: #e74c3c;
+}

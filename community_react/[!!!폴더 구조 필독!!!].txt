@@ -1,0 +1,27 @@
+project/
+│
+├─ public/
+│   ├─ index.html            <- React 루트 HTML, 절대 삭제하지 말 것
+│   └─ favicon.ico / assets  <- 브라우저에 직접 노출되는 이미지, 폰트 등
+│
+├─ src/
+│   ├─ assets/               <- 이미지, 아이콘, CSS 모듈 등
+│   │   ├─ images/
+│   │   └─ styles/
+│   │       └─ global.css    <- 전체 공통 스타일
+│   │
+│   ├─ components/           <- 페이지 내 재사용 컴포넌트
+│   │   └─ Header.jsx, Footer.jsx 등
+│   │
+│   ├─ pages/                <- 페이지 단위 컴포넌트
+│   │   ├─ Main.jsx          <- 메인 페이지
+│   │   ├─ Board.jsx         <- 게시판 페이지
+│   │   ├─ Login.jsx
+│   │   └─ Signup.jsx
+│   │
+│   ├─ App.js                <- 라우터 연결
+│   ├─ index.js              <- 루트 렌더링
+│   └─ index.css             <- 전역 스타일
+│
+├─ package.json
+└─ README.md

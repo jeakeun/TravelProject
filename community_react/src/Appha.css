@@ -1,0 +1,188 @@
+/* 1. 전체 컨테이너: 사이드바와 게시판을 묶어 화면 중앙 정렬 */
+.container {
+  display: flex;
+  width: 100%;
+  max-width: 1550px; /* 게시글 확대를 위해 전체 너비 확장 */
+  margin: 0 auto;    /* 화면 정중앙 배치 */
+  padding: 40px 20px;
+  gap: 50px;         /* 사이드바와 콘텐츠 사이의 최적의 여백 */
+}
+
+/* 2. 사이드바: 왼쪽 위치를 안정감 있게 고정 */
+.sidebar {
+  width: 220px;      
+  flex-shrink: 0;
+  text-align: left;
+}
+
+.sidebar ul {
+  list-style: none;
+  padding: 0;
+}
+
+.sidebar li {
+  padding: 12px 15px;
+  cursor: pointer;
+  color: #888;
+  font-size: 1rem;   
+  transition: all 0.2s;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.sidebar li.active {
+  color: #2c3e50; 
+  font-weight: 800;  
+  background-color: #f1f4f7;
+}
+
+.sidebar li:hover {
+  background-color: #f8f9fa;
+  color: #2c3e50;
+  transform: translateX(5px);
+}
+
+/* 3. 메인 콘텐츠: 남은 영역을 꽉 채워 게시물 확대 */
+.main-content {
+  flex: 1;           
+  display: flex;
+  flex-direction: column;
+}
+
+/* 게시판 그리드: 게시물 좌우 크기를 대폭 확대 */
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); 
+  gap: 40px;         /* 카드 사이 간격을 넓혀서 더 큼직하게 배치 */
+  margin-bottom: 60px;
+  width: 100%;       
+}
+
+.photo-card {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 15px; 
+  overflow: hidden;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  width: 100%;       
+}
+
+.photo-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 30px rgba(52, 73, 94, 0.1);
+}
+
+.img-placeholder img {
+  width: 100%;
+  height: 320px;     /* 카드가 커진 만큼 이미지 높이도 확대 */
+  object-fit: cover;
+}
+
+.photo-info {
+  padding: 22px;     
+}
+
+.photo-title {
+  font-size: 1.25rem; 
+  margin-bottom: 12px;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+/* 4. 페이지네이션: 블루 그레이 & 딥 네이비 테마 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 30px;
+  width: 100%;
+}
+
+.pagination-btn {
+  min-width: 40px;
+  height: 40px;
+  border: 1px solid #d1d8e0;
+  background: #fff;
+  color: #4b6584; 
+  cursor: pointer;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.pagination-btn.active {
+  background: #34495e; 
+  color: #fff;
+  border-color: #34495e;
+}
+
+/* 5. 글쓰기 버튼: 🚩 페이지네이션 active와 동일한 딥 네이비로 변경 */
+.write-btn {
+  background-color: #34495e !important; 
+  color: #fff !important;
+  padding: 12px 35px !important;
+  border-radius: 25px !important;
+  border: none !important;
+  cursor: pointer;
+  font-weight: 700 !important;
+  font-size: 0.95rem !important;
+  box-shadow: 0 4px 10px rgba(52, 73, 94, 0.2);
+  transition: all 0.3s ease;
+}
+
+.write-btn:hover {
+  background-color: #2c3e50 !important;
+  transform: translateY(-2px);
+}
+
+/* 6. 게시물 검색창: 디자인 및 중앙 정렬 */
+.search-container {
+  display: flex;
+  justify-content: center;
+  margin: 60px 0;
+  width: 100%;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d1d8e0;
+  border-radius: 50px;
+  padding: 5px 5px 5px 20px;
+  width: 100%;
+  max-width: 450px; 
+  transition: all 0.3s ease;
+}
+
+.search-box:focus-within {
+  border-color: #34495e;
+  box-shadow: 0 0 10px rgba(52, 73, 94, 0.1);
+}
+
+.search-box input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.95rem;
+  color: #2c3e50;
+}
+
+.search-box button {
+  background: #4b6584; 
+  color: #fff;
+  border: none;
+  border-radius: 40px;
+  padding: 10px 22px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.search-box button:hover {
+  background: #34495e;
+}
