@@ -43,7 +43,7 @@ function OpenSignupModal({ setShowSignup }) {
   return <Main />;
 }
 
-function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, user, onLogin, onLogout }) {
+function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, user, onLogin, onLogout, currentLang, setCurrentLang }) {
 
   return (
     <div className="App">
@@ -51,7 +51,7 @@ function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, user
       {showLogin && <Login onClose={() => setShowLogin(false)} onLogin={onLogin} />}
       {showSignup && <Signup onClose={() => setShowSignup(false)} />}
       <main style={{ paddingTop: "70px", minHeight: "100vh" }}>
-        <Outlet context={{ user, setShowLogin, setShowSignup, onLogout }} />
+        <Outlet context={{ user, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang }} />
       </main>
     </div>
   );
@@ -146,6 +146,9 @@ function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
 
+  // ✅ 언어 상태
+  const [currentLang, setCurrentLang] = useState("KR");
+
   // ✅ 유저 상태 (localStorage에서 복원)
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('user');
@@ -167,7 +170,7 @@ function App() {
     <Router>
       <Routes>
         {/* ===== 라우터 영역 ===== */}
-        <Route element={<GlobalLayout showLogin={showLogin} setShowLogin={setShowLogin} showSignup={showSignup} setShowSignup={setShowSignup} user={user} onLogin={handleLogin} onLogout={handleLogout} />}>
+        <Route element={<GlobalLayout showLogin={showLogin} setShowLogin={setShowLogin} showSignup={showSignup} setShowSignup={setShowSignup} user={user} onLogin={handleLogin} onLogout={handleLogout} currentLang={currentLang} setCurrentLang={setCurrentLang} />}>
           <Route path="/" element={<Main />} />
           <Route path="/login" element={<OpenLoginModal setShowLogin={setShowLogin} />} />
           <Route path="/signup" element={<OpenSignupModal setShowSignup={setShowSignup} />} />
