@@ -24,7 +24,6 @@ function OpenLoginModal({ setShowLogin }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    setShowSignup(false);
     setShowLogin(true);
     // URL은 /login으로 들어왔지만, 화면은 메인으로 두고 싶으면 아래처럼 처리
     navigate("/", { replace: true });
@@ -37,7 +36,6 @@ function OpenSignupModal({ setShowSignup }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    setShowLogin(false);
     setShowSignup(true);
     navigate("/", { replace: true });
   }, [setShowSignup, navigate]);
@@ -55,17 +53,16 @@ function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup }) {
         </div>
 
         <div className="header-right">
-          {/* ✅ 네가 만든 버튼 */}
           <button onClick={() => setShowLogin(true)}>로그인</button>
           <button onClick={() => setShowSignup(true)}>회원가입</button>
-
-          {/* ✅ 네가 만든 팝업 위치(버튼 바로 밑) */}
-          {showLogin && <Login onClose={() => setShowLogin(false)} />}
-          {showSignup && <Signup onClose={() => setShowSignup(false)} />}
         </div>
       </header>
+
+      {/* 팝업은 header 바깥에 렌더링 (header의 z-index 스태킹 컨텍스트에 갇히지 않도록) */}
+      {showLogin && <Login onClose={() => setShowLogin(false)} />}
+      {showSignup && <Signup onClose={() => setShowSignup(false)} />}
       <main style={{ paddingTop: "70px", minHeight: "100vh" }}>
-        <Outlet />
+        <Outlet context={{ setShowLogin, setShowSignup }} />
       </main>
     </div>
   );

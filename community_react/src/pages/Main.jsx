@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from "react";
 import "./Main.css";
-import { Link } from "react-router-dom";
+import { Link, useOutletContext } from "react-router-dom";
 
 function Main() {
   // 1. 상태 관리
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState("KR");
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const outletContext = useOutletContext() || {};
+  const { setShowLogin, setShowSignup } = outletContext;
 
   // 2. 다국어 데이터
   const translations = {
@@ -112,8 +114,8 @@ function Main() {
                 </ul>
               )}
             </div>
-            <Link to="/login" className="menu-link">{t.user_login}</Link>
-            <Link to="/signup" className="menu-link">{t.user_signup}</Link>
+            <span className="menu-link" style={{ cursor: "pointer" }} onClick={() => setShowLogin && setShowLogin(true)}>{t.user_login}</span>
+            <span className="menu-link" style={{ cursor: "pointer" }} onClick={() => setShowSignup && setShowSignup(true)}>{t.user_signup}</span>
           </div>
         </header>
 
