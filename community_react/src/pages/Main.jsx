@@ -8,7 +8,7 @@ function Main() {
   const [currentLang, setCurrentLang] = useState("KR");
   const [carouselIndex, setCarouselIndex] = useState(0);
   const outletContext = useOutletContext() || {};
-  const { setShowLogin, setShowSignup } = outletContext;
+  const { user, setShowLogin, setShowSignup, onLogout } = outletContext;
 
   // 2. 다국어 데이터
   const translations = {
@@ -114,8 +114,17 @@ function Main() {
                 </ul>
               )}
             </div>
-            <span className="menu-link" style={{ cursor: "pointer" }} onClick={() => setShowLogin && setShowLogin(true)}>{t.user_login}</span>
-            <span className="menu-link" style={{ cursor: "pointer" }} onClick={() => setShowSignup && setShowSignup(true)}>{t.user_signup}</span>
+            {user ? (
+              <>
+                <span className="menu-link">{user.mb_Uid}님</span>
+                <span className="menu-link" style={{ cursor: "pointer" }} onClick={() => onLogout && onLogout()}>로그아웃</span>
+              </>
+            ) : (
+              <>
+                <span className="menu-link" style={{ cursor: "pointer" }} onClick={() => setShowLogin && setShowLogin(true)}>{t.user_login}</span>
+                <span className="menu-link" style={{ cursor: "pointer" }} onClick={() => setShowSignup && setShowSignup(true)}>{t.user_signup}</span>
+              </>
+            )}
           </div>
         </header>
 

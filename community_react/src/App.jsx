@@ -43,7 +43,7 @@ function OpenSignupModal({ setShowSignup }) {
   return <Main />;
 }
 
-function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup }) {
+function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, user, onLogin, onLogout }) {
 
   return (
     <div className="App">
@@ -53,16 +53,25 @@ function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup }) {
         </div>
 
         <div className="header-right">
-          <button onClick={() => setShowLogin(true)}>로그인</button>
-          <button onClick={() => setShowSignup(true)}>회원가입</button>
+          {user ? (
+            <>
+              <span>{user.mb_Uid}님</span>
+              <button onClick={onLogout}>로그아웃</button>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setShowLogin(true)}>로그인</button>
+              <button onClick={() => setShowSignup(true)}>회원가입</button>
+            </>
+          )}
         </div>
       </header>
 
       {/* 팝업은 header 바깥에 렌더링 (header의 z-index 스태킹 컨텍스트에 갇히지 않도록) */}
-      {showLogin && <Login onClose={() => setShowLogin(false)} />}
+      {showLogin && <Login onClose={() => setShowLogin(false)} onLogin={onLogin} />}
       {showSignup && <Signup onClose={() => setShowSignup(false)} />}
       <main style={{ paddingTop: "70px", minHeight: "100vh" }}>
-        <Outlet context={{ setShowLogin, setShowSignup }} />
+        <Outlet context={{ user, setShowLogin, setShowSignup, onLogout }} />
       </main>
     </div>
   );
@@ -157,11 +166,28 @@ function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
 
+  // ✅ 유저 상태 (localStorage에서 복원)
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('user');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const handleLogin = useCallback((userData) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setShowLogin(false);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    setUser(null);
+    localStorage.removeItem('user');
+  }, []);
+
   return (
     <Router>
       <Routes>
         {/* ===== 라우터 영역 ===== */}
-        <Route element={<GlobalLayout showLogin={showLogin} setShowLogin={setShowLogin} showSignup={showSignup} setShowSignup={setShowSignup} />}>
+        <Route element={<GlobalLayout showLogin={showLogin} setShowLogin={setShowLogin} showSignup={showSignup} setShowSignup={setShowSignup} user={user} onLogin={handleLogin} onLogout={handleLogout} />}>
           <Route path="/" element={<Main />} />
           <Route path="/login" element={<OpenLoginModal setShowLogin={setShowLogin} />} />
           <Route path="/signup" element={<OpenSignupModal setShowSignup={setShowSignup} />} />

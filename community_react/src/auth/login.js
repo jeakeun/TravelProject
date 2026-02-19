@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "./login.css";
 
-function Login({ onClose }) {
+function Login({ onClose, onLogin }) {
   const [id, setId] = useState("");
   const [pw, setPw] = useState("");
 
@@ -24,12 +24,11 @@ function Login({ onClose }) {
         body: JSON.stringify({ id, pw }),
       });
 
-      const message = await response.text();
-
       if (response.ok) {
-        alert(message);
-        onClose();
+        const userData = await response.json();
+        onLogin(userData);
       } else {
+        const message = await response.text();
         alert(message);
       }
     } catch (error) {
