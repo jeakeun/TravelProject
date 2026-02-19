@@ -16,8 +16,8 @@ import FreeBoard from './pages/FreeBoard';
 import RecommendMain from './components/recommend/RecommendMain';
 
 //로그인, 회원가입 임포트
-import Login from './member/login';
-import Signup from './member/signup';
+import Login from './auth/login';
+import Signup from './auth/signup';
 
 // ✅ 라우트 진입 시 팝업을 자동으로 열어주는 래퍼
 function OpenLoginModal({ setShowLogin }) {
