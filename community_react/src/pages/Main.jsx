@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import "./style.css"; 
 import "./Main.css";
 import { Link } from "react-router-dom";
 
@@ -7,9 +6,9 @@ function Main() {
   // 1. 상태 관리
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [currentLang, setCurrentLang] = useState("KR");
-  const [carouselIndex, setCarouselIndex] = useState(0); // 카러셀 순서 제어용
+  const [carouselIndex, setCarouselIndex] = useState(0);
 
- // 2. 다국어 데이터 (KR, EN, JP, CH 전체 포함)
+  // 2. 다국어 데이터
   const translations = {
     KR: {
       nav_news: "새소식", nav_board: "여행게시판", nav_cs: "고객센터", nav_mypage: "마이페이지", nav_admin: "관리자페이지",
@@ -38,13 +37,15 @@ function Main() {
     JP: {
       nav_news: "ニュース", nav_board: "掲示板", nav_cs: "サポート", nav_mypage: "マイページ", nav_admin: "管理者",
       user_login: "ログイン", user_signup: "会員登録",
-      menu_news_title: "ニュース", news_notice: "お知らせ", news_event: "イベント", news_letter: "ニュースレター",
+      menu_news_title: "ニュース", news_notice: "お知らせ", news_event: "イベント", news_letter: "ニュースレ터",
       menu_board_title: "旅行掲示板", board_rec: "おすすめ掲示板", board_review: "レビュー掲示板", board_free: "自由掲示板", board_qna: "Q&A",
-      menu_cs_title: "カスタマーセンター", cs_faq: "よくある質問", cs_inquiry: "1:1 お問い合わせ", cs_guide: "利用ガイド",
+      menu_cs_title: "カスタマーセンター", 
+      cs_faq: "よくある質問", 
+      cs_inquiry: "1:1 お問い合わせ", cs_guide: "利用ガイド",
       promo_title: "今、最も人気の旅行先", promo_desc: "リアルタイムで最も検索されている旅行先を確認してください。",
       rank_main_title: "今月の旅行先ランキング",
       dest1_name: "01. バリ、インドネシア", dest1_desc: "神々の島で楽しむ完璧な休息",
-      dest2_name: "02. アイスランド", dest2_desc: "大自然の驚異、オーロラハンティング",
+      dest2_name: "02. アイスランド", dest2_desc: "大自然の驚異、オーロラハン팅",
       dest3_name: "03. 京都、日本", dest3_desc: "伝統と現代が共存する静かな都市"
     },
     CH: {
@@ -62,11 +63,11 @@ function Main() {
   };
   const t = translations[currentLang] || translations["KR"];
 
-  // 3. 카러셀 로직 (버튼 클릭 시 인덱스 변경)
+  // 3. 카러셀 로직
   const handlePrev = () => setCarouselIndex((prev) => (prev === 0 ? 2 : prev - 1));
   const handleNext = () => setCarouselIndex((prev) => (prev === 2 ? 0 : prev + 1));
 
-  // 4. 스크롤 이벤트
+  // 4. 스크롤 이벤트 (헤더 투명도 조절)
   useEffect(() => {
     const handleScroll = () => {
       const header = document.querySelector('header');
@@ -77,7 +78,6 @@ function Main() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // 카러셀 클래스 결정 함수
   const getCarouselClass = (idx) => {
     if (idx === carouselIndex) return "carousel-item active";
     if (idx === (carouselIndex + 1) % 3) return "carousel-item next";
@@ -86,68 +86,71 @@ function Main() {
 
   return (
     <div className="main-container">
-      {/* ===== 헤더 ===== */}
-      <header>
-        <Link to="/" className="logo">TRAVEL</Link>
-        <nav>
-          <ul className="nav-list">
-            <li className="nav-item"><Link to="/">{t.nav_news}</Link></li>
-            <li className="nav-item"><Link to="/destination">{t.nav_board}</Link></li>
-            <li className="nav-item"><Link to="/">{t.nav_cs}</Link></li>
-            <li className="nav-item"><Link to="/">{t.nav_mypage}</Link></li>
-            <li className="nav-item"><Link to="/">{t.nav_admin}</Link></li>
-          </ul>
-        </nav>
+      {/* ===== 네비게이션 영역 (헤더 + 메가메뉴) ===== */}
+      <div className="nav-area">
+        <header>
+          <Link to="/" className="logo">TRAVEL</Link>
+          <nav>
+            <ul className="nav-list">
+              <li className="nav-item"><Link to="/">{t.nav_news}</Link></li>
+              <li className="nav-item"><Link to="/destination">{t.nav_board}</Link></li>
+              <li className="nav-item"><Link to="/">{t.nav_cs}</Link></li>
+              <li className="nav-item"><Link to="/">{t.nav_mypage}</Link></li>
+              <li className="nav-item"><Link to="/">{t.nav_admin}</Link></li>
+            </ul>
+          </nav>
 
-        <div className="user-menu">
-          <div className="lang-selector" onClick={() => setIsLangOpen(!isLangOpen)}>
-            <span className="current-lang">{currentLang} ▾</span>
-            {isLangOpen && (
-              <ul className="lang-dropdown">
-                <li onClick={() => setCurrentLang("KR")}>한국어 (KR)</li>
-                <li onClick={() => setCurrentLang("EN")}>English (EN)</li>
-                
+          <div className="user-menu">
+            <div className="lang-selector" onClick={() => setIsLangOpen(!isLangOpen)}>
+              <span className="current-lang">{currentLang} ▾</span>
+              {isLangOpen && (
+                <ul className="lang-dropdown">
+                  <li onClick={() => {setCurrentLang("KR"); setIsLangOpen(false);}}>한국어 (KR)</li>
+                  <li onClick={() => {setCurrentLang("EN"); setIsLangOpen(false);}}>English (EN)</li>
+                  <li onClick={() => {setCurrentLang("JP"); setIsLangOpen(false);}}>日本語 (JP)</li>
+                  <li onClick={() => {setCurrentLang("CH"); setIsLangOpen(false);}}>中国语 (CH)</li>
+                </ul>
+              )}
+            </div>
+            <Link to="/login" className="menu-link">{t.user_login}</Link>
+            <Link to="/signup" className="menu-link">{t.user_signup}</Link>
+          </div>
+        </header>
+
+        {/* ===== 메가 메뉴 ===== */}
+        <div className="mega-menu-wrapper">
+          <div className="mega-menu-content">
+            <div className="menu-column">
+              <h3>{t.menu_news_title}</h3>
+              <ul>
+                <li><Link to="/">{t.news_notice}</Link></li>
+                <li><Link to="/">{t.news_event}</Link></li>
+                <li><Link to="/">{t.news_letter}</Link></li>
               </ul>
-            )}
-          </div>
-          <Link to="/login" className="menu-link">{t.user_login}</Link>
-          <Link to="/signup" className="menu-link">{t.user_signup}</Link>
-        </div>
-      </header>
-
-      {/* ===== 메가 메뉴 (헤더 호버 시 보임) ===== */}
-      <div className="mega-menu-wrapper">
-        <div className="mega-menu-content">
-          <div className="menu-column">
-            <h3>{t.menu_news_title}</h3>
-            <ul>
-              <li><Link to="/">{t.news_notice}</Link></li>
-              <li><Link to="/">{t.news_event}</Link></li>
-              <li><Link to="/">{t.news_letter}</Link></li>
-            </ul>
-          </div>
-          <div className="menu-column">
-            <h3>{t.menu_board_title}</h3>
-            <ul>
-              <li><Link to="/destination">{t.board_rec}</Link></li>
-              <li><Link to="/">{t.board_review}</Link></li>
-              <li><Link to="/">{t.board_free}</Link></li>
-              <li><Link to="/">{t.board_qna}</Link></li>
-            </ul>
-          </div>
-          <div className="menu-column">
-            <h3>{t.menu_cs_title}</h3>
-            <ul>
-              <li><Link to="/">{t.cs_faq}</Link></li>
-              <li><Link to="/">{t.cs_inquiry}</Link></li>
-              <li><Link to="/">{t.cs_guide}</Link></li>
-            </ul>
-          </div>
-          <div className="menu-promo">
-            <h4>{t.promo_title}</h4>
-            <p>{t.promo_desc}</p>
-            <div className="promo-tag">
-              <span>#발리</span> <span>#아이슬란드</span> <span>#교토</span>
+            </div>
+            <div className="menu-column">
+              <h3>{t.menu_board_title}</h3>
+              <ul>
+                <li><Link to="/destination">{t.board_rec}</Link></li>
+                <li><Link to="/">{t.board_review}</Link></li>
+                <li><Link to="/">{t.board_free}</Link></li>
+                <li><Link to="/">{t.board_qna}</Link></li>
+              </ul>
+            </div>
+            <div className="menu-column">
+              <h3>{t.menu_cs_title}</h3>
+              <ul>
+                <li><Link to="/">{t.cs_faq}</Link></li>
+                <li><Link to="/">{t.cs_inquiry}</Link></li>
+                <li><Link to="/">{t.cs_guide}</Link></li>
+              </ul>
+            </div>
+            <div className="menu-promo">
+              <h4>{t.promo_title}</h4>
+              <p>{t.promo_desc}</p>
+              <div className="promo-tag">
+                <span>#발리</span> <span>#아이슬란드</span> <span>#교토</span>
+              </div>
             </div>
           </div>
         </div>
