@@ -15,7 +15,7 @@ body {
     top: 0;
     left: 0;
     width: 100%;
-    z-index: 2000;
+    z-index: 1000;
 }
 
 header {
@@ -97,6 +97,7 @@ nav {
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
     visibility: hidden;
     border-top: 1px solid rgba(0,0,0,0.05);
+    z-index: 500;
 }
 
 .nav-area:hover .mega-menu-wrapper {

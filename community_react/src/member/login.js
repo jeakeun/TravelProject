@@ -18,21 +18,19 @@ function Login({ onClose }) {
     }
 
     try {
-      const response = await fetch("http://localhost:8080/api/auth/login", {
+      const response = await fetch("http://localhost:8080/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ id, pw }),
       });
 
+      const message = await response.text();
+
       if (response.ok) {
-        const data = await response.json();
-        // 서버에서 받은 AccessToken 저장
-        localStorage.setItem("accessToken", data.accessToken);
-        alert("로그인 성공");
+        alert(message);
         onClose();
       } else {
-        alert("아이디 또는 비밀번호가 일치하지 않습니다.");
+        alert(message);
       }
     } catch (error) {
       alert("서버와 통신 중 오류가 발생했습니다.");
