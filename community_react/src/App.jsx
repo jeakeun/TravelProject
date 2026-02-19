@@ -47,26 +47,6 @@ function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, user
 
   return (
     <div className="App">
-      <header className="header">
-        <div className="header-left">
-          <Link to="/" className="logo">TravelCommunity</Link>
-        </div>
-
-        <div className="header-right">
-          {user ? (
-            <>
-              <span>{user.mb_Uid}님</span>
-              <button onClick={onLogout}>로그아웃</button>
-            </>
-          ) : (
-            <>
-              <button onClick={() => setShowLogin(true)}>로그인</button>
-              <button onClick={() => setShowSignup(true)}>회원가입</button>
-            </>
-          )}
-        </div>
-      </header>
-
       {/* 팝업은 header 바깥에 렌더링 (header의 z-index 스태킹 컨텍스트에 갇히지 않도록) */}
       {showLogin && <Login onClose={() => setShowLogin(false)} onLogin={onLogin} />}
       {showSignup && <Signup onClose={() => setShowSignup(false)} />}

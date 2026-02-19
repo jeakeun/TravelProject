@@ -8,22 +8,22 @@ const Post = () => {
 	return (
 		<div>
 			{/* ===== 헤더 ===== */}
-						<header>
-							<Link to="/" className="logo">TRAVEL</Link>
-			
-							<nav>
-								<Link to="/destination">여행지</Link>
-								<Link to="/board">추천</Link>       {/* 클릭 시 Board 페이지로 이동 */}
-								<Link to="/community">커뮤니티</Link>
-								<Link to="/ranking">랭킹</Link>
-							</nav>
-			
-							<div className="user-menu">
-								<span>KR ▾</span>
-								<span>로그인</span>
-								<span>회원가입</span>
-							</div>
-						</header>
+			<header>
+				<Link to="/" className="logo">TRAVEL</Link>
+
+				<nav>
+					<Link to="/destination">여행지</Link>
+					<Link to="/board">추천</Link>       {/* 클릭 시 Board 페이지로 이동 */}
+					<Link to="/community">커뮤니티</Link>
+					<Link to="/ranking">랭킹</Link>
+				</nav>
+
+				<div className="user-menu">
+					<span>KR ▾</span>
+					<span>로그인</span>
+					<span>회원가입</span>
+				</div>
+			</header>
 
 			{/* ===== 메인 ===== */}
 			<main className="container">
