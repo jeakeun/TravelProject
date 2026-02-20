@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/axios';
 import './PostList.css';
 
 const PostList = () => {
@@ -12,7 +12,7 @@ const PostList = () => {
         const fetchPosts = async () => {
             try {
                 // API 주소는 실제 프로젝트 설정에 맞게 수정하세요.
-                const response = await axios.get('http://localhost:8080/api/posts');
+                const response = await api.get('http://localhost:8080/api/posts');
                 // 최신글이 위로 오도록 정렬 (서버에서 정렬해서 보내주면 생략 가능)
                 const sortedPosts = response.data.sort((a, b) => b.postId - a.postId);
                 setPosts(sortedPosts);

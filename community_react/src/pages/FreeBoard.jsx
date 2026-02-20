@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/axios';
 import './FreeBoard.css'; 
 
 const FreeBoard = ({ goToDetail }) => {
@@ -17,7 +17,7 @@ const FreeBoard = ({ goToDetail }) => {
         const fetchLatestPosts = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get('http://localhost:8080/api/posts');
+                const response = await api.get('http://localhost:8080/api/posts');
                 // 자유 게시판 카테고리 필터링 및 최신순 정렬
                 const freeData = response.data
                     .filter(p => p.category?.trim() === "자유 게시판")

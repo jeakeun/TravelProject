@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 import './Board.css';
 import { Link, useNavigate } from "react-router-dom";
 
@@ -9,7 +9,7 @@ function Board() {
 
 	useEffect(() => {
 		// API 호출 (실패 시 더미 데이터 사용)
-		axios.get('http://localhost:8080/api/photos')
+		api.get('http://localhost:8080/api/photos')
 			.then(res => setPhotos(res.data))
 			.catch(() => {
 				setPhotos([

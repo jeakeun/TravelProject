@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Routes, Route, Outlet, useNavigate, useLocation, Navigate, BrowserRouter as Router } from 'react-router-dom';
-import axios from 'axios';
+
+// ✅ axios 대신 공통 api 사용
+import api from './api/axios';
 
 // 스타일 임포트
 import "./pages/Main.css";
@@ -24,72 +26,42 @@ import ResetPassword from "./auth/ResetPassword";
 /* ✅ 라우트 진입 시 팝업을 자동으로 열어주는 래퍼 */
 function OpenLoginModal({ setShowLogin, setShowSignup, setShowFindPw, setShowResetPw }) {
   const navigate = useNavigate();
-
   useEffect(() => {
-    // ✅ 겹침 방지
-    setShowSignup(false);
-    setShowFindPw(false);
-    setShowResetPw(false);
-    setShowLogin(true);
-
+    setShowSignup(false); setShowFindPw(false); setShowResetPw(false); setShowLogin(true);
     navigate("/", { replace: true });
   }, [setShowLogin, setShowSignup, setShowFindPw, setShowResetPw, navigate]);
-
   return <Main />;
 }
 
 function OpenSignupModal({ setShowSignup, setShowLogin, setShowFindPw, setShowResetPw }) {
   const navigate = useNavigate();
-
   useEffect(() => {
-    // ✅ 겹침 방지
-    setShowLogin(false);
-    setShowFindPw(false);
-    setShowResetPw(false);
-    setShowSignup(true);
-
+    setShowLogin(false); setShowFindPw(false); setShowResetPw(false); setShowSignup(true);
     navigate("/", { replace: true });
   }, [setShowSignup, setShowLogin, setShowFindPw, setShowResetPw, navigate]);
-
   return <Main />;
 }
 
 function OpenFindPwModal({ setShowFindPw, setShowLogin, setShowSignup, setShowResetPw }) {
   const navigate = useNavigate();
-
   useEffect(() => {
-    // ✅ 겹침 방지
-    setShowLogin(false);
-    setShowSignup(false);
-    setShowResetPw(false);
-    setShowFindPw(true);
-
+    setShowLogin(false); setShowSignup(false); setShowResetPw(false); setShowFindPw(true);
     navigate("/", { replace: true });
   }, [setShowFindPw, setShowLogin, setShowSignup, setShowResetPw, navigate]);
-
   return <Main />;
 }
 
 function GlobalLayout({
-  showLogin,
-  setShowLogin,
-  showSignup,
-  setShowSignup,
-  showFindPw,
-  setShowFindPw,
-  showResetPw,
-  setShowResetPw,
-  resetPwId,
-  setResetPwId,
-  user,
-  onLogin,
-  onLogout,
-  currentLang,
-  setCurrentLang
+  showLogin, setShowLogin,
+  showSignup, setShowSignup,
+  showFindPw, setShowFindPw,
+  showResetPw, setShowResetPw,
+  resetPwId, setResetPwId,
+  user, onLogin, onLogout,
+  currentLang, setCurrentLang
 }) {
   return (
     <div className="App">
-      {/* ✅ 팝업은 header 바깥에 렌더링 */}
       {showLogin && (
         <Login
           onClose={() => setShowLogin(false)}
@@ -109,9 +81,7 @@ function GlobalLayout({
         />
       )}
 
-      {showSignup && (
-        <Signup onClose={() => setShowSignup(false)} />
-      )}
+      {showSignup && <Signup onClose={() => setShowSignup(false)} />}
 
       {showFindPw && (
         <FindPassword
@@ -121,7 +91,6 @@ function GlobalLayout({
             setShowResetPw(false);
             setShowLogin(true);
           }}
-          // ✅ 아이디 + 이메일이 둘 다 일치하면 비번 변경 팝업으로 이동
           onGoResetPassword={(id) => {
             setResetPwId(id);
             setShowFindPw(false);
@@ -144,26 +113,17 @@ function GlobalLayout({
       )}
 
       <main style={{ paddingTop: "70px", minHeight: "100vh" }}>
-        <Outlet
-          context={{
-            user,
-            setShowLogin,
-            setShowSignup,
-            setShowFindPw,
-            setShowResetPw,
-            onLogout,
-            currentLang,
-            setCurrentLang
-          }}
-        />
+        <Outlet context={{
+          user,
+          setShowLogin, setShowSignup, setShowFindPw, setShowResetPw,
+          onLogout,
+          currentLang, setCurrentLang
+        }} />
       </main>
     </div>
   );
 }
 
-/**
- * 2. 커뮤니티 전용 레이아웃
- */
 function CommunityContainer() {
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -189,7 +149,10 @@ function CommunityContainer() {
   const loadPosts = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:8080/api/posts');
+
+      // ✅ api 사용 (토큰 자동첨부 + 만료 시 refresh 재시도)
+      const response = await api.get('/api/posts');
+
       const cleanData = response.data.map(post => ({
         ...post,
         id: post.postId,
@@ -247,36 +210,69 @@ function CommunityContainer() {
   );
 }
 
-/**
- * 3. 최종 App 컴포넌트
- */
 function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
   const [showFindPw, setShowFindPw] = useState(false);
   const [showResetPw, setShowResetPw] = useState(false);
-
   const [resetPwId, setResetPwId] = useState("");
 
   const [currentLang, setCurrentLang] = useState("KR");
+
+  // ✅ 자동로그인 체크 중인지 확인(깜빡임 방지)
+  const [isVerifying, setIsVerifying] = useState(true);
 
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('user');
     return saved ? JSON.parse(saved) : null;
   });
 
+  // ✅ 로그인 성공 시(서버가 {member, accessToken}을 내려주는 구조)
   const handleLogin = useCallback((data) => {
-    // data = { member, accessToken }
     setUser(data.member);
     localStorage.setItem("user", JSON.stringify(data.member));
-    localStorage.setItem("accessToken", data.accessToken); // ✅ 토큰 저장(선택)
+    localStorage.setItem("accessToken", data.accessToken);
     setShowLogin(false);
   }, []);
 
+  // ✅ 로그아웃(프론트 기준)
   const handleLogout = useCallback(() => {
     setUser(null);
-    localStorage.removeItem('user');
+    localStorage.removeItem("user");
+    localStorage.removeItem("accessToken");
   }, []);
+
+  // ✅ A안: 앱 시작 시 1회 refresh 시도해서 자동로그인 반영
+  useEffect(() => {
+    const tryAutoLogin = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/auth/refresh", {
+          method: "POST",
+          credentials: "include",
+        });
+
+        if (res.ok) {
+          const data = await res.json(); // { member, accessToken }
+          setUser(data.member);
+          localStorage.setItem("user", JSON.stringify(data.member));
+          localStorage.setItem("accessToken", data.accessToken);
+        } else {
+          // 자동로그인 실패면 정리
+          handleLogout();
+        }
+      } catch (e) {
+        console.error("자동 로그인 요청 에러:", e);
+        // 네트워크 에러면 기존 상태 유지(원하면 handleLogout() 호출해도 됨)
+      } finally {
+        setIsVerifying(false);
+      }
+    };
+
+    tryAutoLogin();
+  }, [handleLogout]);
+
+  // ✅ 깜빡임 방지
+  if (isVerifying) return null;
 
   return (
     <Router>
@@ -284,62 +280,41 @@ function App() {
         <Route
           element={
             <GlobalLayout
-              showLogin={showLogin}
-              setShowLogin={setShowLogin}
-              showSignup={showSignup}
-              setShowSignup={setShowSignup}
-              showFindPw={showFindPw}
-              setShowFindPw={setShowFindPw}
-              showResetPw={showResetPw}
-              setShowResetPw={setShowResetPw}
-              resetPwId={resetPwId}
-              setResetPwId={setResetPwId}
-              user={user}
-              onLogin={handleLogin}
-              onLogout={handleLogout}
-              currentLang={currentLang}
-              setCurrentLang={setCurrentLang}
+              showLogin={showLogin} setShowLogin={setShowLogin}
+              showSignup={showSignup} setShowSignup={setShowSignup}
+              showFindPw={showFindPw} setShowFindPw={setShowFindPw}
+              showResetPw={showResetPw} setShowResetPw={setShowResetPw}
+              resetPwId={resetPwId} setResetPwId={setResetPwId}
+              user={user} onLogin={handleLogin} onLogout={handleLogout}
+              currentLang={currentLang} setCurrentLang={setCurrentLang}
             />
           }
         >
           <Route path="/" element={<Main />} />
-
-          <Route
-            path="/login"
-            element={
-              <OpenLoginModal
-                setShowLogin={setShowLogin}
-                setShowSignup={setShowSignup}
-                setShowFindPw={setShowFindPw}
-                setShowResetPw={setShowResetPw}
-              />
-            }
-          />
-
-          <Route
-            path="/signup"
-            element={
-              <OpenSignupModal
-                setShowSignup={setShowSignup}
-                setShowLogin={setShowLogin}
-                setShowFindPw={setShowFindPw}
-                setShowResetPw={setShowResetPw}
-              />
-            }
-          />
-
-          <Route
-            path="/find-password"
-            element={
-              <OpenFindPwModal
-                setShowFindPw={setShowFindPw}
-                setShowLogin={setShowLogin}
-                setShowSignup={setShowSignup}
-                setShowResetPw={setShowResetPw}
-              />
-            }
-          />
-
+          <Route path="/login" element={
+            <OpenLoginModal
+              setShowLogin={setShowLogin}
+              setShowSignup={setShowSignup}
+              setShowFindPw={setShowFindPw}
+              setShowResetPw={setShowResetPw}
+            />
+          } />
+          <Route path="/signup" element={
+            <OpenSignupModal
+              setShowSignup={setShowSignup}
+              setShowLogin={setShowLogin}
+              setShowFindPw={setShowFindPw}
+              setShowResetPw={setShowResetPw}
+            />
+          } />
+          <Route path="/find-password" element={
+            <OpenFindPwModal
+              setShowFindPw={setShowFindPw}
+              setShowLogin={setShowLogin}
+              setShowSignup={setShowSignup}
+              setShowResetPw={setShowResetPw}
+            />
+          } />
           <Route path="/community/*" element={<CommunityContainer />} />
         </Route>
       </Routes>

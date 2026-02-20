@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../api/axios';
 import RecommendCard from './RecommendCard';
 import RankingSidebar from './RankingSidebar';
 import './Recommend.css';
@@ -33,7 +33,7 @@ const RecommendMain = () => {
         const fetchRecommendData = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get('http://localhost:8080/api/posts');
+                const response = await api.get('http://localhost:8080/api/posts');
                 const filtered = response.data.filter(p => p.category?.trim() === "여행 추천 게시판");
                 setPosts(filtered);
             } catch (err) {

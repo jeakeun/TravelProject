@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/axios';
 import './PostDetail.css';
 import PostComment from '../components/PostComment'; 
 
@@ -18,7 +18,7 @@ const PostDetail = () => {
 
             try {
                 setLoading(true);
-                const response = await axios.get(`http://localhost:8080/api/freeboard/posts/${id}`);
+                const response = await api.get(`http://localhost:8080/api/freeboard/posts/${id}`);
                 setPost(response.data);
             } catch (error) {
                 console.error("데이터 로딩 실패:", error);

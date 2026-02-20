@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 import './PostComment.css';
 
 const PostComment = ({ postId }) => {
@@ -15,7 +15,7 @@ const PostComment = ({ postId }) => {
         try {
             isFetching.current = true;
             setLoading(true); // 🚩 로딩 상태 시작
-            const response = await axios.get(`http://localhost:8080/api/comments/post/${postId}`);
+            const response = await api.get(`http://localhost:8080/api/comments/post/${postId}`);
             setComments(response.data);
         } catch (error) {
             console.error("댓글 로딩 실패:", error);
@@ -37,7 +37,7 @@ const PostComment = ({ postId }) => {
                 userId: 1, 
                 parentId: parentId 
             };
-            await axios.post('http://localhost:8080/api/comments', commentData);
+            await api.post('http://localhost:8080/api/comments', commentData);
             setNewComment(''); setReplyText(''); setReplyTo(null);
             fetchComments();
         } catch (error) { alert("등록 실패"); }
@@ -46,7 +46,7 @@ const PostComment = ({ postId }) => {
     const handleDelete = async (id) => {
         if (window.confirm("정말 삭제하시겠습니까?")) {
             try {
-                await axios.delete(`http://localhost:8080/api/comments/${id}`);
+                await api.delete(`http://localhost:8080/api/comments/${id}`);
                 fetchComments();
             } catch (error) { alert("삭제 실패"); }
         }

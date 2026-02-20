@@ -1,13 +1,13 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 
 function PhotoDetail() {
   const { id } = useParams(); // URL에서 id 추출
   const [photo, setPhoto] = useState(null);
 
   useEffect(() => {
-    axios.get(`http://localhost:8080/api/photos/${id}`)
+    api.get(`http://localhost:8080/api/photos/${id}`)
       .then(res => setPhoto(res.data))
       .catch(err => console.log(err));
   }, [id]);

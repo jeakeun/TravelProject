@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/axios';
 
 // 🚩 부모(Appha.js)로부터 activeMenu를 전달받습니다.
 function PostWrite({ refreshPosts, activeMenu }) {
@@ -58,7 +58,7 @@ function PostWrite({ refreshPosts, activeMenu }) {
     }
 
     try {
-      const response = await axios.post(apiUrl, formData);
+      const response = await api.post(apiUrl, formData);
       if (response.status === 200 || response.status === 201) {
         alert(`${activeMenu}에 글이 등록되었습니다!`);
         if (refreshPosts) await refreshPosts(); 
