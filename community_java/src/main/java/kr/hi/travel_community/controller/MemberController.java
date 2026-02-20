@@ -16,6 +16,8 @@ import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import kr.hi.travel_community.dao.MemberDAO;
 import kr.hi.travel_community.model.dto.LoginRequestDTO;
+import kr.hi.travel_community.model.dto.VerifyUserRequestDTO;
+import kr.hi.travel_community.model.dto.ResetPasswordRequestDTO;
 import kr.hi.travel_community.model.vo.MemberVO;
 import kr.hi.travel_community.security.jwt.JwtTokenProvider;
 import kr.hi.travel_community.service.MemberService;
@@ -98,6 +100,36 @@ public class MemberController {
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(body);
+    }
+
+    /**
+     * ✅ 비밀번호 찾기 - 아이디/이메일 검증
+     */
+    @PostMapping("/auth/verify-user")
+    public ResponseEntity<?> verifyUser(@RequestBody VerifyUserRequestDTO req) {
+        if (req == null || req.id() == null || req.id().trim().isEmpty()
+                || req.email() == null || req.email().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("아이디와 이메일을 입력하세요.");
+        }
+
+        boolean ok = memberService.verifyUserForReset(req.id().trim(), req.email().trim());
+        if (!ok) return ResponseEntity.status(404).body("아이디/이메일이 일치하는 계정을 찾을 수 없습니다.");
+        return ResponseEntity.ok("OK");
+    }
+
+    /**
+     * ✅ 비밀번호 재설정
+     */
+    @PostMapping("/auth/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequestDTO req) {
+        if (req == null || req.id() == null || req.id().trim().isEmpty()
+                || req.newPw() == null || req.newPw().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("요청 데이터가 올바르지 않습니다.");
+        }
+
+        boolean ok = memberService.resetPassword(req.id().trim(), req.newPw().trim());
+        if (!ok) return ResponseEntity.status(400).body("비밀번호 변경에 실패했습니다.");
+        return ResponseEntity.ok("OK");
     }
 
     /**
