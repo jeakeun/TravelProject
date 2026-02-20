@@ -20,7 +20,11 @@ public class MemberDetailService implements UserDetailsService {
 	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
 		MemberVO member = memberDao.selectMemberById(username);
 
-		return member == null ? null : new CustomUser(member);
-	}
+		// ✅ 기존 흐름 유지하되, Spring Security 표준대로 예외 처리만 추가
+		if (member == null) {
+			throw new UsernameNotFoundException("User not found: " + username);
+		}
 
+		return new CustomUser(member);
+	}
 }

@@ -15,7 +15,7 @@ public class MemberService {
 
     @Autowired
     private MemberDAO memberDAO;
-    
+
     @Autowired
     private BCryptPasswordEncoder encoder;
 
@@ -26,7 +26,7 @@ public class MemberService {
         try {
             // 1. 기존 회원 여부 확인 (아이디와 이메일 중복 체크)
             MemberVO member = memberDAO.selectMember(user);
-            
+
             // 2. 가입된 정보가 없으면 진행
             if (member == null) {
                 // 3. 비밀번호 암호화 및 새로운 DTO 생성
@@ -37,7 +37,7 @@ public class MemberService {
                     user.email(),
                     user.agree()
                 );
-                
+
                 // 4. DB 저장 후 결과 반환
                 return memberDAO.insertMember(signUpDTO);
             }
@@ -47,7 +47,7 @@ public class MemberService {
             return false;
         }
     }
-    
+
     /**
      * 로그인 로직
      */
@@ -55,7 +55,7 @@ public class MemberService {
         try {
             // 1. 아이디로 회원 정보 조회
             MemberVO member = memberDAO.selectMemberById(user.id());
-            
+
             // 2. 회원이 존재하고 비밀번호가 일치하는지 확인
             if (member != null) {
                 // DB의 암호화된 비밀번호(mb_pw)와 입력한 비밀번호(user.pw) 비교
@@ -67,6 +67,43 @@ public class MemberService {
         } catch (Exception e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    // =========================================================
+    // ✅ 여기부터 "추가" (기존 코드 최대한 유지)
+    // =========================================================
+
+    /**
+     * ✅ 비밀번호 찾기: 아이디 + 이메일이 둘 다 일치하는 회원이 있는지 확인
+     */
+    public boolean verifyUserForReset(String id, String email) {
+        try {
+            if (id == null || id.trim().isEmpty()) return false;
+            if (email == null || email.trim().isEmpty()) return false;
+
+            MemberVO member = memberDAO.selectMemberByIdAndEmail(id.trim(), email.trim());
+            return member != null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * ✅ 비밀번호 변경: 새 비밀번호를 BCrypt로 암호화해서 업데이트
+     */
+    public boolean resetPassword(String id, String newPw) {
+        try {
+            if (id == null || id.trim().isEmpty()) return false;
+            if (newPw == null || newPw.trim().isEmpty()) return false;
+
+            String encodedPw = encoder.encode(newPw.trim());
+            int updated = memberDAO.updatePasswordById(id.trim(), encodedPw);
+            return updated > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
         }
     }
 }

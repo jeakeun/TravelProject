@@ -25,53 +25,68 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-	private final JwtAuthenticationFilter jwtAuthenticationFilter;
-	private final MemberDetailService userDetailsService;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final MemberDetailService userDetailsService;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    	http
-		.csrf(csrf -> csrf.disable())
-		.cors(cors -> cors.configurationSource(corsConfigurationSource()))
-		.sessionManagement(session ->
-			session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-		)
-		.authorizeHttpRequests(auth -> auth
-			.requestMatchers("/api/auth/**", "/login", "/signup").permitAll()
-			.anyRequest().authenticated()
-		)
-		.userDetailsService(userDetailsService)
-		.addFilterBefore(
-			jwtAuthenticationFilter,
-			UsernamePasswordAuthenticationFilter.class
-		);
+        http
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .authorizeHttpRequests(auth -> auth
+                // ✅ 프리플라이트(OPTIONS)는 항상 허용해두면 CORS 이슈 줄어듦
+                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
 
-	return http.build();
+                // ✅ 로그인 없이 허용할 API
+                .requestMatchers(
+                    "/api/auth/**",
+                    "/auth/**",      // ✅ verify-user, reset-password 포함
+                    "/login",
+                    "/signup",
+                    "/error"
+                ).permitAll()
+
+                // 그 외는 인증 필요
+                .anyRequest().authenticated()
+            )
+            .userDetailsService(userDetailsService)
+            .addFilterBefore(
+                jwtAuthenticationFilter,
+                UsernamePasswordAuthenticationFilter.class
+            );
+
+        return http.build();
     }
 
-	@Bean
-	public BCryptPasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
-	}
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-	@Bean
-	public AuthenticationManager authenticationManager(
-			AuthenticationConfiguration config
-	) throws Exception {
-		return config.getAuthenticationManager();
-	}
+    @Bean
+    public AuthenticationManager authenticationManager(
+        AuthenticationConfiguration config
+    ) throws Exception {
+        return config.getAuthenticationManager();
+    }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-       
+
         config.setAllowedOrigins(List.of("http://localhost:3000"));
-		config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-		config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+
+        // ✅ 헤더는 * 로 여는게 제일 안전 (특히 개발 단계)
+        config.setAllowedHeaders(List.of("*"));
+
         config.setAllowCredentials(true);
 
-		UrlBasedCorsConfigurationSource source =
-				new UrlBasedCorsConfigurationSource();
+        UrlBasedCorsConfigurationSource source =
+            new UrlBasedCorsConfigurationSource();
 
         source.registerCorsConfiguration("/**", config);
         return source;
