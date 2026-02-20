@@ -26,7 +26,7 @@ function Login({ onClose, onLogin, onOpenSignup, onOpenFindPw }) {
 
       if (response.ok) {
         const userData = await response.json();
-        onLogin(userData);
+        onLogin?.(userData); // ✅ 방어
       } else {
         const message = await response.text();
         alert(message);
@@ -73,10 +73,7 @@ function Login({ onClose, onLogin, onOpenSignup, onOpenFindPw }) {
             <button
               type="button"
               className="link-btn"
-              onClick={() => {
-                if (onOpenFindPw) onOpenFindPw();
-                // 라우팅을 쓰는 경우엔 여기서 navigate("/find-password") 같은 걸 호출
-              }}
+              onClick={() => onOpenFindPw?.()}
             >
               비밀번호 찾기
             </button>
@@ -86,10 +83,7 @@ function Login({ onClose, onLogin, onOpenSignup, onOpenFindPw }) {
             <button
               type="button"
               className="link-btn"
-              onClick={() => {
-                if (onOpenSignup) onOpenSignup();
-                // 모달 열기/회원가입 화면 열기
-              }}
+              onClick={() => onOpenSignup?.()}
             >
               회원가입
             </button>

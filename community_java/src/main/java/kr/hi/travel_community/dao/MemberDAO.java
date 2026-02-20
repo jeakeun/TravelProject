@@ -27,4 +27,9 @@ public interface MemberDAO {
 	 */
 	boolean insertMember(MemberSignUpDTO member);
 
+	// ✅ 아이디 + 이메일로 일치 회원 찾기 (비밀번호 찾기 검증용)
+    MemberVO selectMemberByIdAndEmail(@Param("id") String id, @Param("email") String email);
+
+    // ✅ 비밀번호 변경
+    int updatePasswordById(@Param("id") String id, @Param("pw") String pw);
 }

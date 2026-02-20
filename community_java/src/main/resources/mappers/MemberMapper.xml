@@ -4,14 +4,14 @@
 
     <!-- 회원가입 시 아이디와 이메일로 중복 확인 -->
     <select id="selectMember" resultType="kr.hi.travel_community.model.vo.MemberVO">
-        SELECT * FROM member 
-        WHERE mb_Uid = #{id} 
-        AND mb_email = #{email}
+        SELECT * FROM member
+        WHERE mb_Uid = #{id}
+          AND mb_email = #{email}
     </select>
 
     <!-- 로그인 시 아이디로 조회 -->
     <select id="selectMemberById" resultType="kr.hi.travel_community.model.vo.MemberVO">
-        SELECT * FROM member 
+        SELECT * FROM member
         WHERE mb_Uid = #{id}
     </select>
 
@@ -20,5 +20,21 @@
         INSERT INTO member (mb_Uid, mb_pw, mb_email, mb_agree)
         VALUES (#{id}, #{pw}, #{email}, #{agree})
     </insert>
+
+    <!-- ✅ 아이디 + 이메일 검증 (비밀번호 찾기용) -->
+    <select id="selectMemberByIdAndEmail" resultType="kr.hi.travel_community.model.vo.MemberVO">
+        SELECT mb_num, mb_Uid, mb_pw, mb_email
+        FROM member
+        WHERE mb_Uid = #{id}
+          AND mb_email = #{email}
+        LIMIT 1
+    </select>
+
+    <!-- ✅ 비밀번호 변경 -->
+    <update id="updatePasswordById">
+        UPDATE member
+        SET mb_pw = #{pw}
+        WHERE mb_Uid = #{id}
+    </update>
 
 </mapper>

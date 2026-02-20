@@ -15,31 +15,57 @@ import PostDetail from './pages/PostDetail';
 import FreeBoard from './pages/FreeBoard';
 import RecommendMain from './components/recommend/RecommendMain';
 
-// 로그인, 회원가입 임포트
+// 로그인, 회원가입, 비밀번호 찾기, 비밀번호 변경 임포트
 import Login from './auth/login';
 import Signup from './auth/signup';
+import FindPassword from "./auth/FindPassword";
+import ResetPassword from "./auth/ResetPassword";
 
-// ✅ 라우트 진입 시 팝업을 자동으로 열어주는 래퍼
-function OpenLoginModal({ setShowLogin, setShowSignup }) {
+/* ✅ 라우트 진입 시 팝업을 자동으로 열어주는 래퍼 */
+function OpenLoginModal({ setShowLogin, setShowSignup, setShowFindPw, setShowResetPw }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    setShowSignup(false); // ✅ 겹침 방지
+    // ✅ 겹침 방지
+    setShowSignup(false);
+    setShowFindPw(false);
+    setShowResetPw(false);
     setShowLogin(true);
+
     navigate("/", { replace: true });
-  }, [setShowLogin, setShowSignup, navigate]);
+  }, [setShowLogin, setShowSignup, setShowFindPw, setShowResetPw, navigate]);
 
   return <Main />;
 }
 
-function OpenSignupModal({ setShowSignup, setShowLogin }) {
+function OpenSignupModal({ setShowSignup, setShowLogin, setShowFindPw, setShowResetPw }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    setShowLogin(false); // ✅ 겹침 방지
+    // ✅ 겹침 방지
+    setShowLogin(false);
+    setShowFindPw(false);
+    setShowResetPw(false);
     setShowSignup(true);
+
     navigate("/", { replace: true });
-  }, [setShowSignup, setShowLogin, navigate]);
+  }, [setShowSignup, setShowLogin, setShowFindPw, setShowResetPw, navigate]);
+
+  return <Main />;
+}
+
+function OpenFindPwModal({ setShowFindPw, setShowLogin, setShowSignup, setShowResetPw }) {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // ✅ 겹침 방지
+    setShowLogin(false);
+    setShowSignup(false);
+    setShowResetPw(false);
+    setShowFindPw(true);
+
+    navigate("/", { replace: true });
+  }, [setShowFindPw, setShowLogin, setShowSignup, setShowResetPw, navigate]);
 
   return <Main />;
 }
@@ -49,6 +75,12 @@ function GlobalLayout({
   setShowLogin,
   showSignup,
   setShowSignup,
+  showFindPw,
+  setShowFindPw,
+  showResetPw,
+  setShowResetPw,
+  resetPwId,
+  setResetPwId,
   user,
   onLogin,
   onLogout,
@@ -62,29 +94,68 @@ function GlobalLayout({
         <Login
           onClose={() => setShowLogin(false)}
           onLogin={onLogin}
-          // ✅ 로그인 모달 안에서 "회원가입" 누르면: 로그인 닫고 회원가입 열기
           onOpenSignup={() => {
             setShowLogin(false);
+            setShowFindPw(false);
+            setShowResetPw(false);
             setShowSignup(true);
           }}
-          // ✅ 로그인 모달 안에서 "비밀번호 찾기" 누르면: (너가 비번찾기 모달 만들면 여기 연결)
           onOpenFindPw={() => {
-            // 예시:
-            // setShowLogin(false);
-            // setShowFindPw(true);
-            alert("비밀번호 찾기 팝업/페이지를 아직 연결하지 않았습니다.");
+            setShowLogin(false);
+            setShowSignup(false);
+            setShowResetPw(false);
+            setShowFindPw(true);
           }}
         />
       )}
 
       {showSignup && (
-        <Signup
-          onClose={() => setShowSignup(false)}
+        <Signup onClose={() => setShowSignup(false)} />
+      )}
+
+      {showFindPw && (
+        <FindPassword
+          onClose={() => setShowFindPw(false)}
+          onBackToLogin={() => {
+            setShowFindPw(false);
+            setShowResetPw(false);
+            setShowLogin(true);
+          }}
+          // ✅ 아이디 + 이메일이 둘 다 일치하면 비번 변경 팝업으로 이동
+          onGoResetPassword={(id) => {
+            setResetPwId(id);
+            setShowFindPw(false);
+            setShowSignup(false);
+            setShowLogin(false);
+            setShowResetPw(true);
+          }}
+        />
+      )}
+
+      {showResetPw && (
+        <ResetPassword
+          userId={resetPwId}
+          onClose={() => setShowResetPw(false)}
+          onBackToFindPw={() => {
+            setShowResetPw(false);
+            setShowFindPw(true);
+          }}
         />
       )}
 
       <main style={{ paddingTop: "70px", minHeight: "100vh" }}>
-        <Outlet context={{ user, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang }} />
+        <Outlet
+          context={{
+            user,
+            setShowLogin,
+            setShowSignup,
+            setShowFindPw,
+            setShowResetPw,
+            onLogout,
+            currentLang,
+            setCurrentLang
+          }}
+        />
       </main>
     </div>
   );
@@ -180,14 +251,15 @@ function CommunityContainer() {
  * 3. 최종 App 컴포넌트
  */
 function App() {
-  // ✅ 로그인/회원가입 상태
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
+  const [showFindPw, setShowFindPw] = useState(false);
+  const [showResetPw, setShowResetPw] = useState(false);
 
-  // ✅ 언어 상태
+  const [resetPwId, setResetPwId] = useState("");
+
   const [currentLang, setCurrentLang] = useState("KR");
 
-  // ✅ 유저 상태 (localStorage에서 복원)
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('user');
     return saved ? JSON.parse(saved) : null;
@@ -207,7 +279,6 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* ===== 라우터 영역 ===== */}
         <Route
           element={
             <GlobalLayout
@@ -215,6 +286,12 @@ function App() {
               setShowLogin={setShowLogin}
               showSignup={showSignup}
               setShowSignup={setShowSignup}
+              showFindPw={showFindPw}
+              setShowFindPw={setShowFindPw}
+              showResetPw={showResetPw}
+              setShowResetPw={setShowResetPw}
+              resetPwId={resetPwId}
+              setResetPwId={setResetPwId}
               user={user}
               onLogin={handleLogin}
               onLogout={handleLogout}
@@ -225,16 +302,40 @@ function App() {
         >
           <Route path="/" element={<Main />} />
 
-          {/* ✅ /login 접속하면 로그인 팝업만 열기 */}
           <Route
             path="/login"
-            element={<OpenLoginModal setShowLogin={setShowLogin} setShowSignup={setShowSignup} />}
+            element={
+              <OpenLoginModal
+                setShowLogin={setShowLogin}
+                setShowSignup={setShowSignup}
+                setShowFindPw={setShowFindPw}
+                setShowResetPw={setShowResetPw}
+              />
+            }
           />
 
-          {/* ✅ /signup 접속하면 회원가입 팝업만 열기 */}
           <Route
             path="/signup"
-            element={<OpenSignupModal setShowSignup={setShowSignup} setShowLogin={setShowLogin} />}
+            element={
+              <OpenSignupModal
+                setShowSignup={setShowSignup}
+                setShowLogin={setShowLogin}
+                setShowFindPw={setShowFindPw}
+                setShowResetPw={setShowResetPw}
+              />
+            }
+          />
+
+          <Route
+            path="/find-password"
+            element={
+              <OpenFindPwModal
+                setShowFindPw={setShowFindPw}
+                setShowLogin={setShowLogin}
+                setShowSignup={setShowSignup}
+                setShowResetPw={setShowResetPw}
+              />
+            }
           />
 
           <Route path="/community/*" element={<CommunityContainer />} />
