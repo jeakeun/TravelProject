@@ -1,69 +1,100 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
-import './PostDetail.css';
-import PostComment from '../components/PostComment'; 
+import PostComment from '../components/PostComment';
 
 const PostDetail = () => {
-    const { id } = useParams();
+    const { id } = useParams(); 
     const navigate = useNavigate();
+    const location = useLocation();
     const [post, setPost] = useState(null);
     const [loading, setLoading] = useState(true);
-    const isFetched = useRef(false);
+    const isErrorHandled = useRef(false);
+
+    const getCategoryPath = () => {
+        if (location.pathname.includes('recommend')) return 'recommend';
+        if (location.pathname.includes('reviewboard')) return 'reviewboard';
+        return 'freeboard';
+    };
+
+    const categoryPath = getCategoryPath();
+    const backPath = `/community/${categoryPath}`;
 
     useEffect(() => {
-        const fetchPostDetail = async () => {
-            if (isFetched.current) return;
-            isFetched.current = true;
+        if (!id || id === 'undefined') return;
 
+        const fetchPostDetail = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get(`http://localhost:8080/api/freeboard/posts/${id}`);
-                setPost(response.data);
-            } catch (error) {
-                console.error("데이터 로딩 실패:", error);
-                alert("게시글을 찾을 수 없습니다.");
-                navigate('/community/freeboard');
+                isErrorHandled.current = false;
+
+                const apiUrl = `http://localhost:8080/api/${categoryPath}/posts/${id}`;
+                const response = await axios.get(apiUrl, { withCredentials: true });
+                
+                if (response.data) {
+                    setPost(response.data);
+                }
+            } catch (err) {
+                console.error('데이터 로딩 실패:', err);
+                if (!isErrorHandled.current) {
+                    isErrorHandled.current = true;
+                    alert('게시글을 찾을 수 없습니다.');
+                    navigate(backPath, { replace: true });
+                }
             } finally {
                 setLoading(false);
             }
         };
-        if (id) fetchPostDetail();
-    }, [id, navigate]);
+
+        fetchPostDetail();
+        return () => { isErrorHandled.current = false; };
+    }, [id, categoryPath, backPath, navigate]);
 
     if (loading) return <div style={{ textAlign: 'center', marginTop: '100px' }}>데이터 로딩 중...</div>;
     if (!post) return null;
 
+    const formatDate = (dateString) => {
+        if (!dateString) return "-";
+        return new Date(dateString).toLocaleString();
+    };
+
     return (
-        <div className="post-detail-container" style={{ padding: '40px', maxWidth: '1000px', margin: '50px auto', background: '#fff', borderRadius: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
-            <div className="post-header" style={{ borderBottom: '2px solid #2c3e50', paddingBottom: '20px', marginBottom: '30px' }}>
-                <h1 style={{ fontSize: '2rem', color: '#2c3e50', marginBottom: '15px' }}>{post.title}</h1>
-                <div className="post-info" style={{ display: 'flex', gap: '20px', color: '#7f8c8d', fontSize: '0.9rem' }}>
-                    <span>작성자: User {post.userId}</span>
-                    <span>조회수: {post.viewCount}</span>
-                    <span>작성일: {new Date(post.createdAt).toLocaleString()}</span>
+        <div style={{ padding: '40px', maxWidth: '1000px', margin: '50px auto', background: '#fff', borderRadius: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)' }}>
+            <h1 style={{ fontSize: '2rem', color: '#2c3e50', marginBottom: '20px' }}>
+                {post.poTitle || post.title}
+            </h1>
+            
+            <div style={{ color: '#666', marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '15px', fontSize: '0.9rem' }}>
+                작성자: User {post.poMbNum || post.userId} | 조회수: {post.poView || post.viewCount || 0} | 작성일: {formatDate(post.poDate || post.createdAt)}
+            </div>
+            
+            <div 
+                dangerouslySetInnerHTML={{ __html: post.poContent || post.content }} 
+                style={{ minHeight: '200px', lineHeight: '1.8', color: '#333', fontSize: '1.1rem', marginBottom: '30px' }} 
+            />
+            
+            {/* 🚩 서버에서 생성된 전체 경로를 그대로 출력 */}
+            {post.fileUrl && (
+                <div style={{ marginTop: '30px', textAlign: 'center' }}>
+                    <img 
+                        src={post.fileUrl} 
+                        alt="첨부 이미지" 
+                        style={{ maxWidth: '100%', borderRadius: '10px' }} 
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                    />
                 </div>
-            </div>
-
-            <div className="post-content" style={{ minHeight: '300px', lineHeight: '1.8', fontSize: '1.1rem', color: '#333' }}>
-                <div dangerouslySetInnerHTML={{ __html: post.content }} />
-                {post.fileUrl && (
-                    <div style={{ marginTop: '30px', textAlign: 'center' }}>
-                        <img src={post.fileUrl} alt="첨부 이미지" style={{ maxWidth: '100%', borderRadius: '10px' }} />
-                    </div>
-                )}
-            </div>
-
-            <div className="post-footer" style={{ marginTop: '50px', marginBottom: '40px', textAlign: 'center' }}>
-                <button onClick={() => navigate('/community/freeboard')} style={{ padding: '10px 35px', backgroundColor: '#f1f3f5', color: '#2c3e50', border: '1px solid #ddd', borderRadius: '25px', cursor: 'pointer', fontWeight: 'bold' }}>
+            )}
+            
+            <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'center', borderTop: '1px solid #eee', paddingTop: '30px' }}>
+                <button 
+                    onClick={() => navigate(backPath)} 
+                    style={{ padding: '12px 30px', backgroundColor: '#34495e', color: '#fff', border: 'none', borderRadius: '25px', cursor: 'pointer', fontWeight: 'bold' }}
+                >
                     목록으로 돌아가기
                 </button>
             </div>
-
-            {/* 🚩 핵심: postId라는 이름으로 id 값을 정확히 전달 */}
-            <div className="comment-section" style={{ borderTop: '1px solid #eee', paddingTop: '30px' }}>
-                <PostComment postId={id} />
-            </div>
+            
+            <PostComment postId={post.poNum || post.postId} />
         </div>
     );
 };

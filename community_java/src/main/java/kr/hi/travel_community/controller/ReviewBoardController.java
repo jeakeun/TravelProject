@@ -1,65 +1,111 @@
 package kr.hi.travel_community.controller;
 
+import kr.hi.travel_community.entity.Photo;
+import kr.hi.travel_community.entity.Post;
+import kr.hi.travel_community.repository.PostRepository;
+import kr.hi.travel_community.repository.PhotoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import kr.hi.travel_community.entity.Post;
-import kr.hi.travel_community.repository.PostRepository;
-
 import java.io.File;
-import java.util.Map;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/reviewboard") // 🚩 주소 분리
+@RequestMapping("/api/reviewboard")
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 public class ReviewBoardController {
-
     @Autowired
     private PostRepository postRepository;
+    
+    @Autowired
+    private PhotoRepository photoRepository;
 
-    private final String uploadDir = System.getProperty("user.dir") + "/src/main/resources/static/pic/";
+    private final String uploadDir = System.getProperty("user.dir") + File.separator + "uploads" + File.separator + "pic" + File.separator;
 
+    // 1. 목록 조회
+    @GetMapping("/posts")
+    public List<Map<String, Object>> getList() {
+        return postRepository.findAll().stream()
+                .filter(p -> p.getPoCgNum() == 2 && "N".equals(p.getPoDel())) // 🚩 여행 후기 카테고리 2번
+                .map(this::convertToMap)
+                .sorted((a, b) -> ((Integer) b.get("postId")).compareTo((Integer) a.get("postId")))
+                .collect(Collectors.toList());
+    }
+
+    // 🚩 2. 게시글 상세 조회 (추가된 부분)
+    @GetMapping("/posts/{id}")
+    public ResponseEntity<?> getDetail(@PathVariable("id") Integer id) {
+        return postRepository.findById(id)
+                .map(post -> {
+                    // 조회수 증가 (Repository에 메서드가 없다면 이 줄은 삭제하세요)
+                    postRepository.updateViewCount(post.getPoNum());
+                    // 상세 정보와 사진 URL을 포함한 Map 반환
+                    return ResponseEntity.ok(convertToMap(post)); 
+                })
+                .orElse(ResponseEntity.status(404).build());
+    }
+
+    // 3. 게시글 작성
     @PostMapping("/posts")
-    public ResponseEntity<?> createReviewPost(
-            @RequestParam Map<String, String> allParams, 
-            @RequestParam(value = "image", required = false) MultipartFile image) {
-        
+    public ResponseEntity<?> create(@RequestParam("title") String title,
+                                   @RequestParam("content") String content,
+                                   @RequestParam(value = "image", required = false) MultipartFile image) {
         try {
             Post post = new Post();
-            post.setTitle(allParams.getOrDefault("title", "제목 없음"));
-            post.setContent(allParams.getOrDefault("content", "내용 없음"));
+            post.setPoTitle(title);
+            post.setPoContent(content);
+            post.setPoCgNum(2); // 🚩 여행 후기 카테고리 2번
+            post.setPoMbNum(1);
+            post.setPoView(0);
+            post.setPoDel("N");
+            post.setPoDate(LocalDateTime.now());
             
-            // 🚩 수정 포인트: Integer 타입에 맞춰 L 제거 및 CamelCase 메서드 호출
-            // 여행 후기 게시판 카테고리 번호: 2
-            post.setCategoryId(2); 
-            post.setUserId(1);
-            post.setViewCount(0);
-            post.setStatus("N");
-
-            handleImageUpload(post, image);
-
-            postRepository.save(post);
-            return ResponseEntity.ok(post);
+            // 게시글 저장 후 생성된 poNum 확보
+            Post savedPost = postRepository.save(post);
+            
+            // 이미지가 있으면 photo 테이블에 데이터 생성
+            if (image != null && !image.isEmpty()) {
+                handleImage(savedPost.getPoNum(), image);
+            }
+            
+            return ResponseEntity.ok(convertToMap(savedPost));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("후기게시판 저장 실패: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("등록 오류");
         }
     }
 
-    private void handleImageUpload(Post post, MultipartFile image) throws Exception {
-        if (image != null && !image.isEmpty()) {
-            File dir = new File(uploadDir);
-            if (!dir.exists()) dir.mkdirs();
-            String savedFileName = UUID.randomUUID().toString() + "_" + image.getOriginalFilename();
-            image.transferTo(new File(uploadDir + savedFileName));
-            
-            // 🚩 수정 포인트: setFileUrl (CamelCase)
-            post.setFileUrl("http://localhost:8080/pic/" + savedFileName);
+    private void handleImage(Integer poNum, MultipartFile image) throws Exception {
+        File dir = new File(uploadDir);
+        if (!dir.exists()) dir.mkdirs();
+
+        String name = UUID.randomUUID().toString() + "_" + image.getOriginalFilename();
+        image.transferTo(new File(uploadDir + name));
+        
+        // Photo 객체 생성 및 저장
+        Photo photo = new Photo(image.getOriginalFilename(), name, poNum);
+        photoRepository.save(photo);
+    }
+
+    private Map<String, Object> convertToMap(Post post) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("postId", post.getPoNum());
+        map.put("poNum", post.getPoNum());
+        map.put("poTitle", post.getPoTitle());
+        map.put("poContent", post.getPoContent());
+        map.put("poView", post.getPoView());
+        map.put("poDate", post.getPoDate());
+        
+        // 🚩 8080 포트 고정 및 Photo 테이블 조회
+        Optional<Photo> photoOpt = photoRepository.findFirstByPhPoNumOrderByPhNumDesc(post.getPoNum());
+        if (photoOpt.isPresent()) {
+            map.put("fileUrl", "http://localhost:8080/pic/" + photoOpt.get().getPhName());
         } else {
-            // 🚩 수정 포인트: setFileUrl (CamelCase)
-            post.setFileUrl("http://localhost:8080/pic/1.jpg");
+            map.put("fileUrl", "https://placehold.co");
         }
+        return map;
     }
 }

@@ -4,6 +4,20 @@ CREATE DATABASE travel;
 
 USE travel;
 
+DROP TABLE IF EXISTS `member`;
+
+CREATE TABLE `member` (
+	`mb_num`	int PRIMARY KEY AUTO_INCREMENT,
+	`mb_Uid`	varchar(30)	unique NOT NULL,
+	`mb_pw`		varchar(255)	NULL,
+	`mb_email`	varchar(50)	NULL,
+	`mb_rol`	varchar(10)	default "USER" NOT NULL,
+	`mb_score`	int	NOT NULL DEFAULT 0,
+	`mb_photo`	varchar(100) NULL,
+	`mb_agree`	char(1)	NOT NULL DEFAULT "N"
+);
+
+
 DROP TABLE IF EXISTS `post`;
 
 CREATE TABLE `post` (
@@ -94,19 +108,6 @@ DROP TABLE IF EXISTS `kind`;
 CREATE TABLE `kind` (
 	`ki_num`	int PRIMARY KEY AUTO_INCREMENT,
 	`ki_name`	varchar(10)	unique NOT NULL
-);
-
-DROP TABLE IF EXISTS `member`;
-
-CREATE TABLE `member` (
-	`mb_num`	int PRIMARY KEY AUTO_INCREMENT,
-	`mb_Uid`	varchar(30)	unique NOT NULL,
-	`mb_pw`		varchar(255)	NULL,
-	`mb_email`	varchar(50)	NULL,
-	`mb_rol`	varchar(10)	default "USER" NOT NULL,
-	`mb_score`	int	NOT NULL DEFAULT 0,
-	`mb_photo`	varchar(100) NULL,
-	`mb_agree`	char(1)	NOT NULL DEFAULT "N"
 );
 
 DROP TABLE IF EXISTS `bookmark`;

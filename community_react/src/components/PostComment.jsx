@@ -7,20 +7,21 @@ const PostComment = ({ postId }) => {
     const [newComment, setNewComment] = useState('');
     const [replyTo, setReplyTo] = useState(null); 
     const [replyText, setReplyText] = useState('');
-    const [loading, setLoading] = useState(false); // 🚩 경고 원인이었던 변수를 이제 아래에서 사용합니다.
+    const [loading, setLoading] = useState(false);
     const isFetching = useRef(false);
 
+    // 🚩 서버 엔티티 필드명(id, content, createdAt, userId, postId, parentId)과 100% 일치시킴
     const fetchComments = useCallback(async () => {
         if (!postId || isFetching.current) return;
         try {
             isFetching.current = true;
-            setLoading(true); // 🚩 로딩 상태 시작
+            setLoading(true);
             const response = await axios.get(`http://localhost:8080/api/comments/post/${postId}`);
             setComments(response.data);
         } catch (error) {
             console.error("댓글 로딩 실패:", error);
         } finally {
-            setLoading(false); // 🚩 로딩 상태 종료
+            setLoading(false);
             isFetching.current = false;
         }
     }, [postId]);
@@ -30,17 +31,26 @@ const PostComment = ({ postId }) => {
     const handleAddComment = async (parentId = 0) => {
         const content = parentId !== 0 ? replyText : newComment;
         if (!content.trim()) { alert("내용을 입력해주세요."); return; }
+        
         try {
+            // 🚩 핵심 수정: mbNum을 엔티티 필드명인 userId로 변경하여 500 에러 해결
             const commentData = {
                 content: content.trim(),
                 postId: Number(postId),
-                userId: 1, 
-                parentId: parentId 
+                userId: 1, // 서버 Entity의 userId 필드와 매칭
+                parentId: parentId === 0 ? null : parentId 
             };
+
             await axios.post('http://localhost:8080/api/comments', commentData);
-            setNewComment(''); setReplyText(''); setReplyTo(null);
-            fetchComments();
-        } catch (error) { alert("등록 실패"); }
+            
+            setNewComment(''); 
+            setReplyText(''); 
+            setReplyTo(null);
+            fetchComments(); 
+        } catch (error) { 
+            console.error("등록 에러:", error.response?.data || error.message);
+            alert("댓글 등록에 실패했습니다."); 
+        }
     };
 
     const handleDelete = async (id) => {
@@ -59,7 +69,15 @@ const PostComment = ({ postId }) => {
     };
 
     const renderComments = (parentId = null, depth = 0) => {
-        let filtered = comments.filter(c => (depth === 0 ? (!c.parentId || c.parentId === 0 || c.parentId === c.id) : (c.parentId === parentId && c.parentId !== c.id)));
+        let filtered = comments.filter(c => {
+            const currentParentId = c.parentId;
+            const currentId = c.id;
+            
+            if (depth === 0) {
+                return !currentParentId || currentParentId === 0 || currentParentId === currentId;
+            }
+            return currentParentId === parentId && currentParentId !== currentId;
+        });
         
         if (depth === 0) {
             filtered = [...filtered].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -69,13 +87,14 @@ const PostComment = ({ postId }) => {
             <div key={comment.id} className={`comment-item ${depth > 0 ? 'reply-item' : ''}`}>
                 <div className="comment-header">
                     <div className="user-info">
+                        {/* 🚩 mbNum 대신 엔티티 필드명인 userId 사용 */}
                         <span className="author">User {comment.userId}</span>
                         <span className="date">{formatDate(comment.createdAt)}</span>
                     </div>
                     <div className="comment-actions">
                         <button onClick={() => { setReplyTo(comment.id); setReplyText(''); }}>답글</button>
                         <button onClick={() => handleDelete(comment.id)} className="delete-btn">삭제</button>
-                        <button className="report-btn">신고</button>
+                        <button className="report-btn" onClick={() => alert("댓글 신고 접수: " + comment.id)}>신고</button>
                     </div>
                 </div>
                 <div className="comment-content">{comment.content}</div>
@@ -111,7 +130,6 @@ const PostComment = ({ postId }) => {
                 <button className="submit-btn" onClick={() => handleAddComment(0)}>등록</button>
             </div>
             
-            {/* 🚩 loading 변수를 활용한 조건부 렌더링 (경고 해결 지점) */}
             <div className="comments-list">
                 {loading && comments.length === 0 ? (
                     <div style={{ textAlign: 'center', color: '#999', padding: '20px' }}>

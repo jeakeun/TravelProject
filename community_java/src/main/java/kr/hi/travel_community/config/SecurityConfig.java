@@ -1,21 +1,17 @@
 package kr.hi.travel_community.config;
 
-import java.util.List;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-		//암호화 하는 클래스
+
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -24,24 +20,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable()) // 초기 개발 시 CSRF 비활성화
+            .csrf(AbstractHttpConfigurer::disable)
+            // 모든 API 요청과 정적 이미지 경로를 무조건 허용하도록 설정
             .authorizeHttpRequests(auth -> auth
-                .anyRequest().permitAll() // 우선 모든 요청 허용 (암호화 테스트용)
-            );
+                .requestMatchers("/api/**", "/pic/**", "/static/**", "/favicon.ico").permitAll()
+                .anyRequest().permitAll() // 테스트를 위해 우선 모든 요청을 허용 (작동 확인 후 조정 가능)
+            )
+            .cors(cors -> {}); // WebConfig의 CORS 설정을 따름
+        
         return http.build();
-    }
-
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
-        config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
     }
 }

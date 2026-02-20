@@ -1,79 +1,185 @@
-import { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Routes, Route, useNavigate, useLocation, Navigate, BrowserRouter as Router, Outlet } from 'react-router-dom';
+import axios from 'axios';
 
-import Main from "./pages/Main";
-import Board from "./pages/Board";
-import Post from "./pages/Post";
-
-// ✅ 팝업용 컴포넌트 (네가 만든 것)
-import Login from "./pages/Login";
-import Signup from "./pages/SignUp";
-
+import "./pages/Main.css";
+import './Appha.css';
 import "./App.css";
 
-// ✅ 라우트 진입 시 팝업을 자동으로 열어주는 래퍼
+import Main from "./pages/Main";
+import Header from "./components/Header"; 
+import MainList from './components/MainList';
+import PostWrite from './components/PostWrite';
+import PostDetail from './pages/PostDetail';
+import FreeBoard from './pages/FreeBoard';
+import RecommendMain from './components/recommend/RecommendMain';
+// 🚩 추천 게시판 전용 상세 페이지 임포트
+import RecommendPostDetail from './components/recommend/RecommendPostDetail'; 
+
+import Mapha from './map/Mapha'; 
+
+import Login from './auth/login';
+import Signup from './auth/signup';
+
 function OpenLoginModal({ setShowLogin }) {
   const navigate = useNavigate();
-
   useEffect(() => {
     setShowLogin(true);
-    // URL은 /login으로 들어왔지만, 화면은 메인으로 두고 싶으면 아래처럼 처리
     navigate("/", { replace: true });
   }, [setShowLogin, navigate]);
-
   return <Main />;
 }
 
 function OpenSignupModal({ setShowSignup }) {
   const navigate = useNavigate();
-
   useEffect(() => {
     setShowSignup(true);
     navigate("/", { replace: true });
   }, [setShowSignup, navigate]);
-
   return <Main />;
 }
 
+function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, user, onLogin, onLogout, currentLang, setCurrentLang }) {
+  return (
+    <div className="App">
+      <Header 
+        user={user} 
+        onLogout={onLogout} 
+        setShowLogin={setShowLogin} 
+        setShowSignup={setShowSignup} 
+        currentLang={currentLang} 
+        setCurrentLang={setCurrentLang} 
+      />
+      
+      {showLogin && <Login onClose={() => setShowLogin(false)} onLogin={onLogin} />}
+      {showSignup && <Signup onClose={() => setShowSignup(false)} />}
+      
+      <main style={{ paddingTop: "70px", minHeight: "100vh" }}>
+        <Outlet context={{ user, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang }} />
+      </main>
+    </div>
+  );
+}
+
+function CommunityContainer() {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [activeMenu, setActiveMenu] = useState('자유 게시판');
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const menuItems = useMemo(() => ['여행 추천 게시판', '여행 후기 게시판', '자유 게시판', '여행지도'], []);
+  const menuPaths = useMemo(() => ({
+    '여행 추천 게시판': '/community/recommend',
+    '여행 후기 게시판': '/community/reviewboard',
+    '자유 게시판': '/community/freeboard',
+    '여행지도': '/community/map'
+  }), []);
+
+  useEffect(() => {
+    const foundMenu = Object.keys(menuPaths).find(key => location.pathname.startsWith(menuPaths[key]));
+    if (foundMenu) setActiveMenu(foundMenu);
+  }, [location.pathname, menuPaths]);
+
+  const loadPosts = useCallback(async () => {
+    if (location.pathname.includes('map')) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      let endpoint = 'freeboard';
+      if (location.pathname.includes('recommend')) endpoint = 'recommend';
+      else if (location.pathname.includes('reviewboard')) endpoint = 'reviewboard';
+
+      const apiUrl = `http://localhost:8080/api/${endpoint}/posts`;
+      const response = await axios.get(apiUrl); 
+      
+      const cleanData = response.data.map(post => ({
+        ...post,
+        id: post.postId,
+        postId: post.postId,
+        category: post.category || activeMenu
+      }));
+      setPosts(cleanData);
+    } catch (err) {
+      console.error("데이터 로딩 실패:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [location.pathname, activeMenu]);
+
+  useEffect(() => { loadPosts(); }, [loadPosts]);
+
+  if (loading) return <div style={{ textAlign: 'center', marginTop: '100px' }}>로딩 중...</div>;
+
+  return (
+    <div className="container">
+      <aside className="sidebar">
+        <ul>
+          {menuItems.map(item => (
+            <li key={item} className={activeMenu === item ? 'active' : ''} onClick={() => navigate(menuPaths[item])}>
+              {item}
+            </li>
+          ))}
+        </ul>
+      </aside>
+      <main className="main-content">
+        <Routes>
+          <Route path="write" element={<PostWrite activeMenu={activeMenu} refreshPosts={loadPosts} />} />
+          <Route path="recommend" element={<RecommendMain posts={posts} />} />
+          {/* 🚩 여행 추천 게시판 상세 페이지만 전용 컴포넌트로 수정 */}
+          <Route path="recommend/:id" element={<RecommendPostDetail />} />
+          
+          <Route path="map" element={
+            <MainList 
+              photos={[]} 
+              activeMenu="여행지도" 
+              goToDetail={(id) => navigate(`/community/map/${id}`)} 
+            />
+          } /> 
+          
+          <Route path="reviewboard" element={<MainList photos={posts} setPhotos={setPosts} activeMenu={activeMenu} goToDetail={(id) => navigate(`/community/reviewboard/${id}`)} />} />
+          <Route path="reviewboard/:id" element={<PostDetail />} />
+          <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />
+          <Route path="freeboard/:id" element={<PostDetail />} />
+          <Route path="/" element={<Navigate to="freeboard" replace />} />
+        </Routes>
+      </main>
+    </div>
+  );
+}
+
 function App() {
-  // ✅ 네가 만든 로그인/회원가입 상태
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
+  const [currentLang, setCurrentLang] = useState("KR");
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('user');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const handleLogin = useCallback((userData) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setShowLogin(false);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    setUser(null);
+    localStorage.removeItem('user');
+  }, []);
 
   return (
     <Router>
-      {/* ===== 헤더 (버튼 + 팝업은 버튼 바로 밑) ===== */}
-      <header className="header">
-        <div className="header-left">
-          <a href="/" className="logo">TravelCommunity</a>
-        </div>
-
-        <div className="header-right">
-          {/* ✅ 네가 만든 버튼 */}
-          <button onClick={() => setShowLogin(true)}>로그인</button>
-          <button onClick={() => setShowSignup(true)}>회원가입</button>
-
-          {/* ✅ 네가 만든 팝업 위치(버튼 바로 밑) */}
-          {showLogin && <Login onClose={() => setShowLogin(false)} />}
-          {showSignup && <Signup onClose={() => setShowSignup(false)} />}
-        </div>
-      </header>
-
-      {/* ===== 라우터 영역 ===== */}
       <Routes>
-        <Route path="/" element={<Main />} />
-        <Route path="/board" element={<Board />} />
-        <Route path="/post" element={<Post />} />
-
-        {/* ✅ 여기! 라우터로 /login, /signup 들어와도 팝업을 열게 변경 */}
-        <Route
-          path="/login"
-          element={<OpenLoginModal setShowLogin={setShowLogin} />}
-        />
-        <Route
-          path="/signup"
-          element={<OpenSignupModal setShowSignup={setShowSignup} />}
-        />
+        <Route element={<GlobalLayout showLogin={showLogin} setShowLogin={setShowLogin} showSignup={showSignup} setShowSignup={setShowSignup} user={user} onLogin={handleLogin} onLogout={handleLogout} currentLang={currentLang} setCurrentLang={setCurrentLang} />}>
+          <Route path="/" element={<Main />} />
+          <Route path="/login" element={<OpenLoginModal setShowLogin={setShowLogin} />} />
+          <Route path="/signup" element={<OpenSignupModal setShowSignup={setShowSignup} />} />
+          <Route path="/community/*" element={<CommunityContainer />} />
+        </Route>
       </Routes>
     </Router>
   );

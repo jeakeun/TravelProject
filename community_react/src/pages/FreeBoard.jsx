@@ -1,57 +1,38 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import './FreeBoard.css'; 
 
-const FreeBoard = ({ goToDetail }) => {
+// 🚩 App.jsx의 CommunityContainer에서 넘겨주는 posts와 goToDetail을 받습니다.
+const FreeBoard = ({ posts = [], goToDetail }) => {
     const navigate = useNavigate();
-    const [posts, setPosts] = useState([]); 
     const [inputValue, setInputValue] = useState(''); 
     const [appliedSearch, setAppliedSearch] = useState(''); 
     const [currentPage, setCurrentPage] = useState(1);
-    const [loading, setLoading] = useState(true);
     const itemsPerPage = 10; 
 
-    // 목록 진입 시 최신 데이터 로드
-    useEffect(() => {
-        const fetchLatestPosts = async () => {
-            try {
-                setLoading(true);
-                const response = await axios.get('http://localhost:8080/api/posts');
-                // 자유 게시판 카테고리 필터링 및 최신순 정렬
-                const freeData = response.data
-                    .filter(p => p.category?.trim() === "자유 게시판")
-                    .sort((a, b) => b.postId - a.postId);
-                setPosts(freeData);
-            } catch (err) {
-                console.error("목록 로딩 실패:", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchLatestPosts();
-    }, []);
+    // 🚩 [중요] 내부 fetchLatestPosts 로직을 삭제했습니다. 
+    // 이제 App.jsx가 API를 호출하고 결과인 posts를 prop으로 내려줍니다.
 
     const handleSearch = () => {
         setAppliedSearch(inputValue);
         setCurrentPage(1);
     };
 
+    // 🚩 서버 필드명(poTitle)에 맞춰 검색 필터링 수정
     const filteredItems = useMemo(() => 
-        posts.filter(p => (p.title || "").toLowerCase().includes(appliedSearch.toLowerCase())), 
+        posts.filter(p => (p.poTitle || "").toLowerCase().includes(appliedSearch.toLowerCase())), 
         [posts, appliedSearch]
     );
     
     const totalPages = Math.ceil(filteredItems.length / itemsPerPage) || 1;
     const currentItems = filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+    // 🚩 서버 날짜 형식(poDate) 포맷팅
     const formatDateTime = (dateString) => {
         if (!dateString) return "-";
         const date = new Date(dateString);
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
     };
-
-    if (loading) return <div style={{ textAlign: 'center', marginTop: '100px' }}>데이터 로딩 중...</div>;
 
     return (
         <div className="freeboard-list-wrapper">
@@ -70,22 +51,24 @@ const FreeBoard = ({ goToDetail }) => {
                 <tbody>
                     {currentItems.length > 0 ? (
                         currentItems.map((post, index) => {
+                            // 가상 번호 계산
                             const virtualNum = filteredItems.length - ((currentPage - 1) * itemsPerPage + index);
                             return (
-                                <tr key={post.postId} onClick={() => goToDetail(post.postId)}>
-                                    <td className="td-num">{virtualNum}</td>
-                                    {/* 🚩 제목 영역 수정: 제목 옆에 댓글 개수 추가 */}
+                                // 🚩 App.jsx에서 매핑한 post.id(poSeq)를 사용하여 상세페이지 이동
+                                <tr key={post.postId} onClick={() => goToDetail(post.id)}>
+                                    <td className="td-num">{post.poSeq || virtualNum}</td>
                                     <td className="td-title">
-                                        {post.title}
+                                        {post.poTitle}
                                         {post.commentCount > 0 && (
                                             <span className="freeboard-comment-count">
                                                 &nbsp;[{post.commentCount}]
                                             </span>
                                         )}
                                     </td>
-                                    <td className="td-author">User {post.userId}</td>
-                                    <td className="td-view">{post.viewCount || 0}</td>
-                                    <td className="td-date">{formatDateTime(post.createdAt)}</td>
+                                    {/* 🚩 서버 필드명(poMbNum, poView, poDate) 사용 */}
+                                    <td className="td-author">User {post.poMbNum}</td>
+                                    <td className="td-view">{post.poView || 0}</td>
+                                    <td className="td-date">{formatDateTime(post.poDate)}</td>
                                 </tr>
                             );
                         })

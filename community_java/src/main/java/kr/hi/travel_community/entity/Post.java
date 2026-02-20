@@ -1,52 +1,57 @@
 package kr.hi.travel_community.entity;
 
-import java.time.LocalDateTime;
 import jakarta.persistence.*;
-import lombok.Data;
-import org.hibernate.annotations.Formula;
-import org.hibernate.annotations.CreationTimestamp;
+import lombok.*;
+import java.time.LocalDateTime;
 
 @Entity
-@Data
 @Table(name = "post")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Post {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "po_num")
-    private Integer postId; 
+    private Integer poNum;      // DB Primary Key
 
-    @Column(name = "po_mb_num", nullable = false)
-    private Integer userId; 
+    // 🚩 [수정] DB 스키마에 없으므로 poSeq 필드 완전 제거
 
-    @Column(name = "po_cg_num", nullable = false)
-    private Integer categoryId; 
+    @Column(name = "po_cg_num")
+    private Integer poCgNum;    // 카테고리 ID (1: 추천, 2: 후기, 3: 자유)
 
-    @Column(name = "po_title", length = 100, nullable = false)
-    private String title;
+    @Column(name = "po_mb_num")
+    private Integer poMbNum;    // 작성자 회원 ID
 
-    @Column(name = "po_content", nullable = false)
-    private String content;
+    @Column(name = "po_title", nullable = false)
+    private String poTitle;     // 제목
+
+    @Column(name = "po_content", columnDefinition = "LONGTEXT", nullable = false)
+    private String poContent;   // 내용
 
     @Column(name = "po_view")
-    private Integer viewCount = 0;
+    private Integer poView = 0; // 조회수
 
-    @Column(name = "po_del", length = 1)
-    private String status = "N";
+    @Column(name = "po_up")
+    private Integer poUp = 0;   // 추천수
 
-    // 🚩 작성 시간: @CreationTimestamp로 서버 시간 자동 할당
-    @CreationTimestamp
-    @Column(name = "po_date", updatable = false)
-    private LocalDateTime createdAt;
+    @Column(name = "po_down")
+    private Integer poDown = 0; // 비추천수
 
-    // 🚩 댓글 수: @Formula를 사용하여 실시간으로 DB에서 계산
-    @Formula("(SELECT count(1) FROM comment c WHERE c.co_po_num = po_num AND c.co_del = 'N')")
-    private int commentCount;
+    @Column(name = "po_del")
+    private String poDel = "N"; // 삭제 여부 'Y'/'N'
 
-    // 🚩 핵심 수정: @Transient 제거 -> DB 컬럼(po_file)으로 매핑하여 이미지 경로 저장
-    // 업로드한 파일의 이름이나 경로를 DB에 보존해야 리액트에서 불러올 수 있습니다.
-    @Column(name = "po_file") 
-    private String fileUrl; 
+    @Column(name = "po_date")
+    private LocalDateTime poDate = LocalDateTime.now(); // 작성일
+
+    // 🚩 [참고] fileUrl이 post 테이블에 컬럼으로 없다면 @Transient 처리
+    // 만약 별도의 photo 테이블에서 가져온다면 이 필드는 유지하되 DB 연동에서 제외합니다.
+    @Transient
+    private String fileUrl;     
 
     @Transient
-    private String category; 
+    private Integer commentCount; // 댓글 수 (실시간 계산용)
 }

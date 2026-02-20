@@ -1,86 +1,107 @@
 package kr.hi.travel_community.controller;
 
+import kr.hi.travel_community.entity.Photo;
+import kr.hi.travel_community.entity.Post;
+import kr.hi.travel_community.repository.PostRepository;
+import kr.hi.travel_community.repository.PhotoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import kr.hi.travel_community.entity.Post;
-import kr.hi.travel_community.repository.PostRepository;
-
 import java.io.File;
-import java.util.Map;
-import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/freeboard")
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 public class FreeBoardController {
-
     @Autowired
     private PostRepository postRepository;
+    
+    @Autowired
+    private PhotoRepository photoRepository;
 
-    private final String uploadDir = System.getProperty("user.dir") + "/src/main/resources/static/pic/";
+    private final String uploadDir = System.getProperty("user.dir") + File.separator + "uploads" + File.separator + "pic" + File.separator;
 
-    // 1. 자유 게시판 글 등록 (POST)
+    // 1. 목록 조회
+    @GetMapping("/posts")
+    public List<Map<String, Object>> getList() {
+        return postRepository.findAll().stream()
+                .filter(p -> p.getPoCgNum() == 3 && "N".equals(p.getPoDel())) // 🚩 카테고리 3번
+                .map(this::convertToMap)
+                .sorted((a, b) -> ((Integer) b.get("postId")).compareTo((Integer) a.get("postId")))
+                .collect(Collectors.toList());
+    }
+
+    // 🚩 2. 게시글 상세 조회 (이 부분이 추가되어야 게시글이 보입니다)
+    @GetMapping("/posts/{id}")
+    public ResponseEntity<?> getDetail(@PathVariable("id") Integer id) {
+        return postRepository.findById(id)
+                .map(post -> {
+                    // 조회수 증가 (Repository에 메서드가 없다면 이 줄은 주석 처리하세요)
+                    postRepository.updateViewCount(post.getPoNum());
+                    return ResponseEntity.ok(convertToMap(post)); 
+                })
+                .orElse(ResponseEntity.status(404).build());
+    }
+
+    // 3. 게시글 작성
     @PostMapping("/posts")
-    public ResponseEntity<?> createFreePost(
-            @RequestParam Map<String, String> allParams, 
-            @RequestParam(value = "image", required = false) MultipartFile image) {
-        
+    public ResponseEntity<?> create(@RequestParam("title") String title,
+                                   @RequestParam("content") String content,
+                                   @RequestParam(value = "image", required = false) MultipartFile image) {
         try {
             Post post = new Post();
-            post.setTitle(allParams.getOrDefault("title", "제목 없음"));
-            post.setContent(allParams.getOrDefault("content", "내용 없음"));
+            post.setPoTitle(title);
+            post.setPoContent(content);
+            post.setPoCgNum(3); // 🚩 카테고리 3번
+            post.setPoMbNum(1);
+            post.setPoView(0);
+            post.setPoDel("N");
+            post.setPoDate(LocalDateTime.now());
             
-            // Integer 타입 및 CamelCase 메서드 사용
-            post.setCategoryId(3); 
-            post.setUserId(1);
-            post.setViewCount(0);
-            post.setStatus("N");
-
-            handleImageUpload(post, image);
-
-            postRepository.save(post);
-            return ResponseEntity.ok(post);
+            Post savedPost = postRepository.save(post);
+            
+            if (image != null && !image.isEmpty()) {
+                handleImage(savedPost.getPoNum(), image);
+            }
+            
+            return ResponseEntity.ok(convertToMap(savedPost));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("자유게시판 저장 실패: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("등록 오류");
         }
     }
 
-    // 🚩 2. [추가] 자유 게시판 상세 조회 및 조회수 증가 (GET)
-    // 리액트 호출 주소 예: http://localhost:8080/api/freeboard/posts/15
-    @GetMapping("/posts/{id}")
-    public ResponseEntity<?> getFreePostDetail(@PathVariable("id") Integer id) {
-        try {
-            // 1) Repository에 작성한 메서드로 조회수 1 증가
-            postRepository.updateViewCount(id);
+    private void handleImage(Integer poNum, MultipartFile image) throws Exception {
+        File dir = new File(uploadDir);
+        if (!dir.exists()) dir.mkdirs();
 
-            // 2) 상세 데이터 조회 (데이터가 없으면 404 에러 반환)
-            return postRepository.findById(id)
-                    .map(post -> {
-                        // DB에 이미지가 없을 경우 기본 이미지 처리
-                        if (post.getFileUrl() == null || post.getFileUrl().isEmpty()) {
-                            post.setFileUrl("http://localhost:8080/pic/1.jpg");
-                        }
-                        return ResponseEntity.ok(post);
-                    })
-                    .orElse(ResponseEntity.notFound().build());
-                    
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("게시글 로딩 실패: " + e.getMessage());
-        }
+        String name = UUID.randomUUID().toString() + "_" + image.getOriginalFilename();
+        image.transferTo(new File(uploadDir + name));
+        
+        Photo photo = new Photo(image.getOriginalFilename(), name, poNum);
+        photoRepository.save(photo);
     }
 
-    private void handleImageUpload(Post post, MultipartFile image) throws Exception {
-        if (image != null && !image.isEmpty()) {
-            File dir = new File(uploadDir);
-            if (!dir.exists()) dir.mkdirs();
-            String savedFileName = UUID.randomUUID().toString() + "_" + image.getOriginalFilename();
-            image.transferTo(new File(uploadDir + savedFileName));
-            post.setFileUrl("http://localhost:8080/pic/" + savedFileName);
+    private Map<String, Object> convertToMap(Post post) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("postId", post.getPoNum());
+        map.put("poNum", post.getPoNum());
+        map.put("poTitle", post.getPoTitle());
+        map.put("poContent", post.getPoContent());
+        map.put("poView", post.getPoView());
+        map.put("poDate", post.getPoDate());
+        
+        // 🚩 8080 포트 고정 및 Photo 테이블 조회
+        Optional<Photo> photoOpt = photoRepository.findFirstByPhPoNumOrderByPhNumDesc(post.getPoNum());
+        if (photoOpt.isPresent()) {
+            map.put("fileUrl", "http://localhost:8080/pic/" + photoOpt.get().getPhName());
         } else {
-            post.setFileUrl("http://localhost:8080/pic/1.jpg");
+            map.put("fileUrl", "https://placehold.co");
         }
+        return map;
     }
 }

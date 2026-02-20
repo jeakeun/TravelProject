@@ -1,29 +1,24 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import "./Post.css"; //
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate, useOutletContext } from "react-router-dom";
+import "./Post.css";
+import Header from "../components/Header";
 
 const Post = () => {
 	const navigate = useNavigate();
+	const outletContext = useOutletContext() || {};
+	const { user, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang } = outletContext;
+
 	return (
 		<div>
 			{/* ===== 헤더 ===== */}
-						<header>
-							<Link to="/" className="logo">TRAVEL</Link>
-			
-							<nav>
-								<Link to="/destination">여행지</Link>
-								<Link to="/board">추천</Link>       {/* 클릭 시 Board 페이지로 이동 */}
-								<Link to="/community">커뮤니티</Link>
-								<Link to="/ranking">랭킹</Link>
-							</nav>
-			
-							<div className="user-menu">
-								<span>KR ▾</span>
-								<span>로그인</span>
-								<span>회원가입</span>
-							</div>
-						</header>
+			<Header
+				user={user}
+				onLogout={onLogout}
+				setShowLogin={setShowLogin}
+				setShowSignup={setShowSignup}
+				currentLang={currentLang || "KR"}
+				setCurrentLang={setCurrentLang}
+			/>
 
 			{/* ===== 메인 ===== */}
 			<main className="container">
