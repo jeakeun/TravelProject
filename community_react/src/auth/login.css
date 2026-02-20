@@ -26,3 +26,23 @@
   color: #1a73e8;
   text-decoration: underline;
 }
+
+.remember-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:10px;
+}
+
+.remember-label{
+  cursor:pointer;
+  user-select:none;
+  font-size:14px;
+  color:#444;
+}
+
+.remember-label input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}

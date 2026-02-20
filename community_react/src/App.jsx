@@ -266,9 +266,11 @@ function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const handleLogin = useCallback((userData) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+  const handleLogin = useCallback((data) => {
+    // data = { member, accessToken }
+    setUser(data.member);
+    localStorage.setItem("user", JSON.stringify(data.member));
+    localStorage.setItem("accessToken", data.accessToken); // ✅ 토큰 저장(선택)
     setShowLogin(false);
   }, []);
 
