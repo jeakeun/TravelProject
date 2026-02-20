@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Routes, Route, Link, Outlet, useNavigate, useLocation, Navigate, BrowserRouter as Router } from 'react-router-dom';
+import { Routes, Route, Outlet, useNavigate, useLocation, Navigate, BrowserRouter as Router } from 'react-router-dom';
 import axios from 'axios';
 
 // 스타일 임포트
@@ -15,41 +15,74 @@ import PostDetail from './pages/PostDetail';
 import FreeBoard from './pages/FreeBoard';
 import RecommendMain from './components/recommend/RecommendMain';
 
-//로그인, 회원가입 임포트
+// 로그인, 회원가입 임포트
 import Login from './auth/login';
 import Signup from './auth/signup';
 
 // ✅ 라우트 진입 시 팝업을 자동으로 열어주는 래퍼
-function OpenLoginModal({ setShowLogin }) {
+function OpenLoginModal({ setShowLogin, setShowSignup }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    setShowSignup(false); // ✅ 겹침 방지
     setShowLogin(true);
-    // URL은 /login으로 들어왔지만, 화면은 메인으로 두고 싶으면 아래처럼 처리
     navigate("/", { replace: true });
-  }, [setShowLogin, navigate]);
+  }, [setShowLogin, setShowSignup, navigate]);
 
   return <Main />;
 }
 
-function OpenSignupModal({ setShowSignup }) {
+function OpenSignupModal({ setShowSignup, setShowLogin }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    setShowLogin(false); // ✅ 겹침 방지
     setShowSignup(true);
     navigate("/", { replace: true });
-  }, [setShowSignup, navigate]);
+  }, [setShowSignup, setShowLogin, navigate]);
 
   return <Main />;
 }
 
-function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, user, onLogin, onLogout, currentLang, setCurrentLang }) {
-
+function GlobalLayout({
+  showLogin,
+  setShowLogin,
+  showSignup,
+  setShowSignup,
+  user,
+  onLogin,
+  onLogout,
+  currentLang,
+  setCurrentLang
+}) {
   return (
     <div className="App">
-      {/* 팝업은 header 바깥에 렌더링 (header의 z-index 스태킹 컨텍스트에 갇히지 않도록) */}
-      {showLogin && <Login onClose={() => setShowLogin(false)} onLogin={onLogin} />}
-      {showSignup && <Signup onClose={() => setShowSignup(false)} />}
+      {/* ✅ 팝업은 header 바깥에 렌더링 */}
+      {showLogin && (
+        <Login
+          onClose={() => setShowLogin(false)}
+          onLogin={onLogin}
+          // ✅ 로그인 모달 안에서 "회원가입" 누르면: 로그인 닫고 회원가입 열기
+          onOpenSignup={() => {
+            setShowLogin(false);
+            setShowSignup(true);
+          }}
+          // ✅ 로그인 모달 안에서 "비밀번호 찾기" 누르면: (너가 비번찾기 모달 만들면 여기 연결)
+          onOpenFindPw={() => {
+            // 예시:
+            // setShowLogin(false);
+            // setShowFindPw(true);
+            alert("비밀번호 찾기 팝업/페이지를 아직 연결하지 않았습니다.");
+          }}
+        />
+      )}
+
+      {showSignup && (
+        <Signup
+          onClose={() => setShowSignup(false)}
+        />
+      )}
+
       <main style={{ paddingTop: "70px", minHeight: "100vh" }}>
         <Outlet context={{ user, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang }} />
       </main>
@@ -117,12 +150,17 @@ function CommunityContainer() {
       <aside className="sidebar">
         <ul>
           {menuItems.map((item) => (
-            <li key={item} className={activeMenu === item ? 'active' : ''} onClick={() => navigate(menuPaths[item])}>
+            <li
+              key={item}
+              className={activeMenu === item ? 'active' : ''}
+              onClick={() => navigate(menuPaths[item])}
+            >
               {item}
             </li>
           ))}
         </ul>
       </aside>
+
       <main className="main-content">
         <Routes>
           <Route path="recommend" element={<RecommendMain />} />
@@ -142,7 +180,7 @@ function CommunityContainer() {
  * 3. 최종 App 컴포넌트
  */
 function App() {
-  // ✅ 네가 만든 로그인/회원가입 상태
+  // ✅ 로그인/회원가입 상태
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
 
@@ -170,10 +208,35 @@ function App() {
     <Router>
       <Routes>
         {/* ===== 라우터 영역 ===== */}
-        <Route element={<GlobalLayout showLogin={showLogin} setShowLogin={setShowLogin} showSignup={showSignup} setShowSignup={setShowSignup} user={user} onLogin={handleLogin} onLogout={handleLogout} currentLang={currentLang} setCurrentLang={setCurrentLang} />}>
+        <Route
+          element={
+            <GlobalLayout
+              showLogin={showLogin}
+              setShowLogin={setShowLogin}
+              showSignup={showSignup}
+              setShowSignup={setShowSignup}
+              user={user}
+              onLogin={handleLogin}
+              onLogout={handleLogout}
+              currentLang={currentLang}
+              setCurrentLang={setCurrentLang}
+            />
+          }
+        >
           <Route path="/" element={<Main />} />
-          <Route path="/login" element={<OpenLoginModal setShowLogin={setShowLogin} />} />
-          <Route path="/signup" element={<OpenSignupModal setShowSignup={setShowSignup} />} />
+
+          {/* ✅ /login 접속하면 로그인 팝업만 열기 */}
+          <Route
+            path="/login"
+            element={<OpenLoginModal setShowLogin={setShowLogin} setShowSignup={setShowSignup} />}
+          />
+
+          {/* ✅ /signup 접속하면 회원가입 팝업만 열기 */}
+          <Route
+            path="/signup"
+            element={<OpenSignupModal setShowSignup={setShowSignup} setShowLogin={setShowLogin} />}
+          />
+
           <Route path="/community/*" element={<CommunityContainer />} />
         </Route>
       </Routes>
