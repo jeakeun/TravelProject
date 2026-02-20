@@ -1,3 +1,5 @@
+package kr.hi.travel_community.controller;
+
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -6,22 +8,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
+import kr.hi.travel_community.dao.MemberDAO;
 import kr.hi.travel_community.model.dto.LoginRequestDTO;
 import kr.hi.travel_community.model.vo.MemberVO;
 import kr.hi.travel_community.security.jwt.JwtTokenProvider;
 import kr.hi.travel_community.service.MemberService;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 public class MemberController {
 
     @Autowired private MemberService memberService;
     @Autowired private JwtTokenProvider jwtTokenProvider;
+    @Autowired private MemberDAO memberDAO;
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO user) {
@@ -32,8 +36,16 @@ public class MemberController {
             return ResponseEntity.badRequest().body("아이디/비밀번호를 입력하세요.");
         }
 
-        // ✅ rememberMe null 방어 (프론트에서 필드 안 보내면 null 들어올 수 있음)
-        boolean remember = (user.rememberMe() != null) && user.rememberMe();
+        // ✅ rememberMe가 boolean/Boolean 어떤 타입이든 안전하게 처리
+        boolean remember = false;
+        try {
+            // record의 rememberMe()가 Boolean이면 null 가능
+            // boolean이면 항상 값이 나오므로 그대로 들어감
+            remember = (Boolean.TRUE.equals(user.rememberMe()));
+        } catch (Exception ignore) {
+            // 혹시 record 구조가 다른 경우 대비
+            remember = false;
+        }
 
         // ✅ trim 처리 (record라 새로 생성)
         LoginRequestDTO cleaned = new LoginRequestDTO(
@@ -48,25 +60,23 @@ public class MemberController {
             return ResponseEntity.badRequest().body("아이디 또는 비밀번호가 일치하지 않습니다.");
         }
 
-        // ✅ 보안상 비번 제거
         member.setMb_pw(null);
 
-        // ✅ access token 발급 (바디로 내려줌)
-        // (중요) JwtTokenProvider에 createAccessToken(String) 오버로드가 있어야 함!
+        // ✅ access token 발급
         String accessToken = jwtTokenProvider.createAccessToken(member.getMb_Uid());
 
         Map<String, Object> body = new HashMap<>();
         body.put("member", member);
         body.put("accessToken", accessToken);
 
-        // ✅ rememberMe false면 기존 refreshToken 쿠키가 남아있을 수 있으니 삭제 쿠키 내려줌
+        // ✅ rememberMe false면 refreshToken 쿠키 삭제 내려주기
         if (!remember) {
             ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
                     .httpOnly(true)
-                    .secure(false)     // 로컬 http는 false, 배포 https면 true
+                    .secure(false)      // 로컬 http: false / 배포 https: true
                     .sameSite("Lax")
                     .path("/")
-                    .maxAge(0)         // 삭제
+                    .maxAge(0)
                     .build();
 
             return ResponseEntity.ok()
@@ -79,14 +89,103 @@ public class MemberController {
 
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
-                .secure(false)       // 로컬 http라 false (배포 https면 true)
+                .secure(false)
                 .sameSite("Lax")
                 .path("/")
-                .maxAge(Duration.ofDays(14)) // 자동로그인 유지기간
+                .maxAge(Duration.ofDays(14))
                 .build();
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body(body);
+    }
+
+    /**
+     * ✅ 자동로그인: refreshToken(쿠키)로 accessToken 재발급
+     * - 프론트에서 fetch/axios 요청 시 반드시 credentials(include) 필요
+     */
+    @PostMapping("/auth/refresh")
+    public ResponseEntity<?> refresh(HttpServletRequest request) {
+
+        String refreshToken = jwtTokenProvider.getTokenFromCookie(request, "refreshToken");
+
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.status(401).body("자동로그인 정보가 없습니다.");
+        }
+
+        try {
+            // ✅ refresh 토큰인지 확인
+            if (!jwtTokenProvider.isRefreshToken(refreshToken)) {
+                return deleteRefreshCookieAnd401("유효하지 않은 토큰입니다.");
+            }
+
+            Claims claims = jwtTokenProvider.parseClaims(refreshToken);
+            String id = claims.getSubject();
+
+            // ✅ 계정 존재 확인(권장)
+            MemberVO member = memberDAO.selectMemberById(id);
+            if (member == null) {
+                return deleteRefreshCookieAnd401("계정을 찾을 수 없습니다.");
+            }
+            member.setMb_pw(null);
+
+            // ✅ 새 accessToken 발급
+            String newAccessToken = jwtTokenProvider.createAccessToken(id);
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("member", member);
+            body.put("accessToken", newAccessToken);
+
+            // ✅ refreshToken rotate(추천)
+            String newRefreshToken = jwtTokenProvider.createRefreshToken(id);
+
+            ResponseCookie cookie = ResponseCookie.from("refreshToken", newRefreshToken)
+                    .httpOnly(true)
+                    .secure(false)
+                    .sameSite("Lax")
+                    .path("/")
+                    .maxAge(Duration.ofDays(14))
+                    .build();
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                    .body(body);
+
+        } catch (Exception e) {
+            return deleteRefreshCookieAnd401("자동로그인 정보가 만료되었습니다. 다시 로그인 해주세요.");
+        }
+    }
+
+    /**
+     * ✅ 로그아웃: refreshToken 쿠키 삭제
+     */
+    @PostMapping("/auth/logout")
+    public ResponseEntity<?> logout() {
+        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(false)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(0)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
+                .body("OK");
+    }
+
+    // ✅ 공통: refresh 쿠키 삭제 + 401
+    private ResponseEntity<String> deleteRefreshCookieAnd401(String message) {
+        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .secure(false)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(0)
+                .build();
+
+        return ResponseEntity.status(401)
+                .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
+                .body(message);
     }
 }

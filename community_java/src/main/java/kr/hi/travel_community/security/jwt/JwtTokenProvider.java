@@ -1,6 +1,7 @@
 package kr.hi.travel_community.security.jwt;
 
 import java.nio.charset.StandardCharsets;
+import java.security.Key;
 import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -10,109 +11,137 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
-import java.security.Key;
-
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import kr.hi.travel_community.model.util.CustomUser;
 
 @Component
 public class JwtTokenProvider {
+	// application.properties에 있는 secret을 가져와서 변환해서 사용
+	private final Key key;
+	private final long accessTokenValidity; // 토큰 유지 시간(ms)
+	private final long refreshTokenValidity; // 리프레시 토큰 유지 시간(ms)
 
-    private final Key key;
-    private final long accessTokenValidity;   // ms
-    private final long refreshTokenValidity;  // ms
+	public JwtTokenProvider(
+			@Value("${jwt.secret}") String secret,
+			@Value("${jwt.token-validity-in-seconds}") long accessSeconds,
+			@Value("${jwt.refresh-token-validity-in-seconds}") long refreshSeconds
+	) {
+		this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+		this.accessTokenValidity = accessSeconds * 1000;
+		this.refreshTokenValidity = refreshSeconds * 1000;
+	}
 
-    public JwtTokenProvider(
-            @Value("${jwt.secret}") String secret,
-            @Value("${jwt.token-validity-in-seconds}") long accessSeconds,
-            @Value("${jwt.refresh-token-validity-in-seconds}") long refreshSeconds
-    ) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        this.accessTokenValidity = accessSeconds * 1000;
-        this.refreshTokenValidity = refreshSeconds * 1000;
-    }
+	// =========================
+	// ✅ 기존 로직(유지)
+	// =========================
 
-    // =========================
-    // ✅ 기존 방식 (CustomUser)
-    // =========================
+	// Access Token
+	public String createAccessToken(CustomUser user) {
+		return createToken(user, accessTokenValidity, false);
+	}
 
-    public String createAccessToken(CustomUser user) {
-        return createToken(user, accessTokenValidity, false);
-    }
+	// Refresh Token
+	public String createRefreshToken(CustomUser user) {
+		return createToken(user, refreshTokenValidity, true);
+	}
 
-    public String createRefreshToken(CustomUser user) {
-        return createToken(user, refreshTokenValidity, true);
-    }
+	// 공통 토큰 생성 (CustomUser 기반)
+	private String createToken(CustomUser user, long validity, boolean isRefresh) {
+		long now = System.currentTimeMillis();
+		Date expiry = new Date(now + validity);
 
-    private String createToken(CustomUser user, long validity, boolean isRefresh) {
-        long now = System.currentTimeMillis();
-        Date expiry = new Date(now + validity);
+		var builder = Jwts.builder()
+				.setSubject(user.getUsername())
+				.setIssuedAt(new Date(now))
+				.setExpiration(expiry)
+				.signWith(key, SignatureAlgorithm.HS256);
 
-        var builder = Jwts.builder()
-                .setSubject(user.getUsername())
-                .setIssuedAt(new Date(now))
-                .setExpiration(expiry)
-                .signWith(key, SignatureAlgorithm.HS256);
+		if (isRefresh) {
+			builder.claim("type", "refresh");
+		} else {
+			builder.claim("email", user.getMember().getMb_email());
+			// 권한이 없을 수도 있으니 방어적으로
+			String role = user.getAuthorities() == null || user.getAuthorities().isEmpty()
+					? "ROLE_USER"
+					: user.getAuthorities().iterator().next().getAuthority();
+			builder.claim("role", role);
+		}
+		return builder.compact();
+	}
 
-        if (isRefresh) {
-            builder.claim("type", "refresh");
-        } else {
-            // ✅ 기존 로직 유지 (권한/이메일 claim)
-            builder.claim("email", user.getMember().getMb_email());
+	// =========================
+	// ✅ 자동로그인(Controller에서 쓰는) 오버로드 추가
+	// =========================
 
-            // 권한이 비어있을 가능성 방어 (기존 코드 영향 최소화)
-            String role = user.getAuthorities() != null && !user.getAuthorities().isEmpty()
-                    ? user.getAuthorities().iterator().next().getAuthority()
-                    : "ROLE_USER";
-            builder.claim("role", role);
-        }
+	/**
+	 * ✅ Access Token (id 문자열로 발급)
+	 * - /login, /auth/refresh에서 편하게 쓰기 위함
+	 * - 기존 코드 영향 없음 (오버로드 추가)
+	 */
+	public String createAccessToken(String id) {
+		return createTokenBySubject(id, accessTokenValidity, false);
+	}
 
-        return builder.compact();
-    }
+	/**
+	 * ✅ Refresh Token (id 문자열로 발급)
+	 */
+	public String createRefreshToken(String id) {
+		return createTokenBySubject(id, refreshTokenValidity, true);
+	}
 
-    // =========================================
-    // ✅ 추가: 자동로그인/컨트롤러용 (String username)
-    // =========================================
+	/**
+	 * ✅ 문자열 subject(id) 기반 토큰 생성
+	 * - refresh는 type=refresh만 넣고
+	 * - access는 최소 claim만 넣음(원하면 email/role도 추가 가능)
+	 */
+	private String createTokenBySubject(String subject, long validity, boolean isRefresh) {
+		long now = System.currentTimeMillis();
+		Date expiry = new Date(now + validity);
 
-    public String createAccessToken(String username) {
-        return createToken(username, accessTokenValidity, false);
-    }
+		var builder = Jwts.builder()
+				.setSubject(subject)
+				.setIssuedAt(new Date(now))
+				.setExpiration(expiry)
+				.signWith(key, SignatureAlgorithm.HS256);
 
-    public String createRefreshToken(String username) {
-        return createToken(username, refreshTokenValidity, true);
-    }
+		if (isRefresh) {
+			builder.claim("type", "refresh");
+		} else {
+			// 필요한 claim만(최소)
+			builder.claim("type", "access");
+		}
 
-    // 공통 토큰 생성 (String 주체)
-    private String createToken(String username, long validity, boolean isRefresh) {
-        long now = System.currentTimeMillis();
-        Date expiry = new Date(now + validity);
+		return builder.compact();
+	}
 
-        var builder = Jwts.builder()
-                .setSubject(username)
-                .setIssuedAt(new Date(now))
-                .setExpiration(expiry)
-                .signWith(key, SignatureAlgorithm.HS256);
+	/**
+	 * ✅ 쿠키에서 토큰 꺼내기 (refreshToken 읽을 때 사용)
+	 */
+	public String getTokenFromCookie(HttpServletRequest request, String cookieName) {
+		if (request == null || request.getCookies() == null) return null;
 
-        if (isRefresh) {
-            builder.claim("type", "refresh");
-        }
-        // accessToken이면 type 없음(또는 null) → JwtAuthenticationFilter 로직과 잘 맞음
+		for (Cookie c : request.getCookies()) {
+			if (cookieName.equals(c.getName())) {
+				return c.getValue();
+			}
+		}
+		return null;
+	}
 
-        return builder.compact();
-    }
+	// =========================
+	// ✅ 토큰 파싱 & refresh 확인 (기존 유지)
+	// =========================
 
-    // =========================
-    // 토큰 파싱 & 검증
-    // =========================
+	public Claims parseClaims(String token) {
+		return Jwts.parserBuilder()
+				.setSigningKey(key)
+				.build()
+				.parseClaimsJws(token)
+				.getBody();
+	}
 
-    public Claims parseClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-    }
-
-    public boolean isRefreshToken(String token) {
-        return "refresh".equals(parseClaims(token).get("type"));
-    }
+	public boolean isRefreshToken(String token) {
+		return "refresh".equals(parseClaims(token).get("type"));
+	}
 }
