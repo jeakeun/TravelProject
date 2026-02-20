@@ -41,8 +41,8 @@
 Thumbs.db
 
 # Secrets
-application.properties
-application.yml
+# application.properties
+# application.yml
 *.env
 *.key
 *.pem
