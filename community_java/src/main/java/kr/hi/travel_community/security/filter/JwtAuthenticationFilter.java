@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,14 +27,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider jwtTokenProvider;
     private final MemberDetailService userDetailsService;
 
-    // ✅ 추가: 인증 없이 접근해야 하는 경로는 JWT 필터 자체를 타지 않게 제외
+    // ✅ 인증 없이 접근해야 하는 경로는 JWT 필터 자체를 타지 않게 제외
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getServletPath();
-
-        // 개발/테스트에서 OPTIONS 프리플라이트는 그냥 통과시키는 게 안전
+        // ✅ OPTIONS 프리플라이트는 무조건 통과
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) return true;
 
+        String servletPath = request.getServletPath(); // 보통 여기로 충분
+        String uri = request.getRequestURI();          // 혹시 모를 케이스 대비
+
+        return isPublicPath(servletPath) || isPublicPath(uri);
+    }
+
+    private boolean isPublicPath(String path) {
+        if (path == null) return false;
+
+        // ✅ public endpoint들
         return path.startsWith("/auth/")
             || path.startsWith("/api/auth/")
             || path.equals("/login")
@@ -47,28 +57,58 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        // 요청 headers에 Authorization을 추출
+        // ✅ 이미 인증된 요청이면 패스 (중복 세팅 방지)
+        Authentication existing = SecurityContextHolder.getContext().getAuthentication();
+        if (existing != null && existing.isAuthenticated()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String header = request.getHeader("Authorization");
 
-        // Authorization가 없거나 유효한 토큰 정보가 아니면 인증확인을 안함
-        if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
+        // Authorization가 없거나 Bearer 형식이 아니면 그냥 통과
+        if (header == null || !header.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String token = header.substring(7);
+
+        try {
             Claims claims = jwtTokenProvider.parseClaims(token);
 
-            // 토큰이 리프레쉬 토큰이면 인증 안함
-            if ("refresh".equals(claims.get("type"))) {
+            // ✅ refresh 토큰이면 인증 세팅 안 함 (그냥 통과)
+            Object type = claims.get("type");
+            if (type != null && "refresh".equals(type.toString())) {
                 filterChain.doFilter(request, response);
                 return;
             }
 
             String username = claims.getSubject();
-            UserDetails userDetails =
-                    userDetailsService.loadUserByUsername(username);
+            if (username == null || username.trim().isEmpty()) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+            // ✅ 네 MemberDetailService가 null 리턴 가능해서 방어
+            if (userDetails == null) {
+                filterChain.doFilter(request, response);
+                return;
+            }
 
             Authentication auth = new UsernamePasswordAuthenticationToken(
                     userDetails, null, userDetails.getAuthorities()
             );
             SecurityContextHolder.getContext().setAuthentication(auth);
+
+        } catch (ExpiredJwtException e) {
+            // ✅ 만료 토큰: 인증 없이 통과 (프론트에서 /auth/refresh로 재발급 받게)
+        } catch (JwtException | IllegalArgumentException e) {
+            // ✅ 위변조/형식 오류: 인증 없이 통과
+        } catch (Exception e) {
+            // ✅ 예상 못한 오류도 인증 없이 통과 (서버 500 방지)
         }
 
         filterChain.doFilter(request, response);
