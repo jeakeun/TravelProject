@@ -55,8 +55,9 @@ function Header({ user, onLogout, setShowLogin, setShowSignup, currentLang, setC
         </nav>
 
         <div className="user-menu">
-          <div className="lang-selector" onClick={() => setIsLangOpen(!isLangOpen)}>
-            <span className="current-lang">{currentLang} ▾</span>
+          {/* 번역 방지 클래스(notranslate) 추가 */}
+          <div className="lang-selector notranslate" onClick={() => setIsLangOpen(!isLangOpen)}>
+            <span className="current-lang" translate="no">{currentLang} ▾</span>
             {isLangOpen && (
               <ul className="lang-dropdown">
                 <li onClick={() => {setCurrentLang("KR"); setIsLangOpen(false);}}>한국어 (KR)</li>
@@ -86,7 +87,7 @@ function Header({ user, onLogout, setShowLogin, setShowSignup, currentLang, setC
           <div className="menu-column">
             <h3>{t.menu_news_title}</h3>
             <ul>
-              <li><Link to="/">{t.news_notice}</Link></li>
+              <li><Link to="/newsNotice">{t.news_notice}</Link></li>
               <li><Link to="/">{t.news_event}</Link></li>
               <li><Link to="/">{t.news_letter}</Link></li>
             </ul>
@@ -95,9 +96,9 @@ function Header({ user, onLogout, setShowLogin, setShowSignup, currentLang, setC
             <h3>{t.menu_board_title}</h3>
             <ul>
               <li><Link to="/destination">{t.board_rec}</Link></li>
-              <li><Link to="/">{t.board_review}</Link></li>
-              <li><Link to="/">{t.board_free}</Link></li>
-              <li><Link to="/">{t.board_qna}</Link></li>
+              <li><Link to="/board">{t.board_review}</Link></li>
+              <li><Link to="/community">{t.board_free}</Link></li>
+              <li><Link to="/ranking">{t.board_qna}</Link></li>
             </ul>
           </div>
           <div className="menu-column">

@@ -14,6 +14,7 @@ import PostWrite from './components/PostWrite';
 import PostDetail from './pages/PostDetail';
 import FreeBoard from './pages/FreeBoard';
 import RecommendMain from './components/recommend/RecommendMain';
+import NewsNotice from './pages/NewsNotice';
 
 //로그인, 회원가입 임포트
 import Login from './auth/login';
@@ -174,6 +175,7 @@ function App() {
           <Route path="/" element={<Main />} />
           <Route path="/login" element={<OpenLoginModal setShowLogin={setShowLogin} />} />
           <Route path="/signup" element={<OpenSignupModal setShowSignup={setShowSignup} />} />
+          <Route path="/newsNotice" element={<NewsNotice />} />
           <Route path="/community/*" element={<CommunityContainer />} />
         </Route>
       </Routes>

@@ -1,3 +1,6 @@
+/* =========================================
+   1. 기본 설정 및 초기화 (Reset & Base)
+   ========================================= */
 * {
     margin: 0;
     padding: 0;
@@ -10,6 +13,9 @@ body {
     background-color: #f8f8f8;
 }
 
+/* =========================================
+   2. 상단 네비게이션 영역 (Navigation Area)
+   ========================================= */
 .nav-area {
     position: fixed;
     top: 0;
@@ -18,6 +24,7 @@ body {
     z-index: 1000;
 }
 
+/* 헤더 기본 스타일 */
 header {
     width: 100%;
     height: 70px;
@@ -30,12 +37,14 @@ header {
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
+/* 스크롤 시 변하는 헤더 스타일 */
 header.scrolled {
     background: linear-gradient(135deg, #145a22, #1a7a28);
     height: 60px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.2);
 }
 
+/* 로고 스타일 */
 .logo {
     font-size: 26px;
     font-weight: 900;
@@ -43,6 +52,7 @@ header.scrolled {
     text-decoration: none;
 }
 
+/* 메인 메뉴(GNB) 영역 */
 nav {
     flex: 1;
     display: flex;
@@ -65,6 +75,7 @@ nav {
     display: block;
 }
 
+/* 메뉴 호버 시 하단 라인 애니메이션 */
 .nav-item a::after {
     content: '';
     position: absolute;
@@ -84,12 +95,15 @@ nav {
     color: #ffd700;
 }
 
+/* =========================================
+   3. 메가 메뉴 (Mega Menu - 드롭다운)
+   ========================================= */
 .mega-menu-wrapper {
     position: absolute;
     top: 70px;
     left: 0;
     width: 100%;
-    height: 0;
+    height: 0; /* 평소에는 숨김 */
     background: rgba(20, 90, 34, 0.92);
     backdrop-filter: blur(12px);
     overflow: hidden;
@@ -100,6 +114,18 @@ nav {
     z-index: 500;
 }
 
+/* 메가메뉴가 <header> 태그 내부에 있을 경우 */
+header.scrolled .mega-menu-wrapper {
+    top: 60px;
+}
+
+/* 메가메뉴가 <header> 태그 바로 바깥(형제 요소)에 있을 경우 */
+header.scrolled ~ .mega-menu-wrapper,
+header.scrolled + .mega-menu-wrapper {
+    top: 60px;
+}
+
+/* 네비 영역 호버 시 메가메뉴 노출 */
 .nav-area:hover .mega-menu-wrapper {
     height: 350px;
     visibility: visible;
@@ -119,6 +145,7 @@ nav {
     opacity: 1;
 }
 
+/* 메가메뉴 내부 컬럼 및 리스트 */
 .menu-column {
     flex: 1;
 }
@@ -151,6 +178,7 @@ nav {
     font-weight: bold;
 }
 
+/* 메가메뉴 내부 프로모션/배너 영역 */
 .menu-promo {
     flex: 1.5;
     background: #f4f7f4;
@@ -171,12 +199,16 @@ nav {
     margin-right: 5px;
 }
 
+/* =========================================
+   4. 우측 유저 메뉴 및 언어 선택 (User Menu)
+   ========================================= */
 .user-menu {
     display: flex;
     align-items: center;
     gap: 20px;
 }
 
+/* 언어 선택 버튼 */
 .lang-selector {
     position: relative;
     cursor: pointer;
@@ -185,8 +217,16 @@ nav {
     border: 1px solid rgba(255,255,255,0.4);
     border-radius: 20px;
     font-size: 13px;
+    color: #ffffff !important; /* 글자색 강제 지정 */
+    /* 추가: 버튼이 찌그러지지 않도록 최소 너비와 정렬 보장 */
+    min-width: 50px; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap; /* 글자가 줄바꿈되어 사라지는 것 방지 */
 }
 
+/* 언어 드롭다운 목록 */
 .lang-dropdown {
     position: absolute;
     top: 40px;
@@ -232,6 +272,9 @@ nav {
     font-weight: 500;
 }
 
+/* =========================================
+   5. 메인 비디오 섹션 (Hero Section)
+   ========================================= */
 #main-video {
     width: 100%;
     height: 100vh;
@@ -245,6 +288,7 @@ nav {
     border: none;
 }
 
+/* 스크롤 유도 아이콘 및 애니메이션 */
 .scroll-down {
     position: absolute;
     bottom: 40px;
@@ -264,6 +308,9 @@ nav {
     }
 }
 
+/* =========================================
+   6. 랭킹/캐러셀 섹션 (3D Carousel Ranking)
+   ========================================= */
 #ranking {
     padding: 120px 0;
     text-align: center;
@@ -276,11 +323,12 @@ nav {
     font-weight: 800;
 }
 
+/* 3D 캐러셀 컨테이너 설정 */
 .carousel-container {
     position: relative;
     width: 100%;
     height: 500px;
-    perspective: 1500px;
+    perspective: 1500px; /* 3D 효과 깊이 */
 }
 
 .carousel-wrapper {
@@ -290,6 +338,7 @@ nav {
     transform-style: preserve-3d;
 }
 
+/* 각 개별 아이템 스타일 */
 .carousel-item {
     position: absolute;
     width: 550px;
@@ -310,6 +359,7 @@ nav {
     object-fit: cover;
 }
 
+/* 활성화 및 좌우 배치용 상태 클래스 */
 .carousel-item.active {
     transform: translate3d(0, 0, 300px);
     z-index: 10;
@@ -328,6 +378,7 @@ nav {
     opacity: 0.5;
 }
 
+/* 아이템 내부 정보(텍스트) */
 .item-info {
     position: absolute;
     bottom: 0;
@@ -339,6 +390,7 @@ nav {
     text-align: left;
 }
 
+/* 캐러셀 컨트롤 버튼 (이전/다음) */
 .carousel-btn {
     position: absolute;
     top: 50%;
@@ -368,6 +420,9 @@ nav {
     right: 5%;
 }
 
+/* =========================================
+   7. 하단 푸터 (Footer)
+   ========================================= */
 footer {
     background: #111;
     color: #666;
