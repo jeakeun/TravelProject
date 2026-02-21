@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.hi.travel_community.mapper.LikeMapper">
+
+    <select id="checkLikeStatus" resultType="int">
+        SELECT COUNT(*) FROM likes 
+        WHERE li_id = #{poNum} 
+          AND li_mb_num = #{mbNum} 
+          AND li_name = 'post'
+    </select>
+
+    <insert id="insertLikeLog">
+        INSERT INTO likes (li_state, li_id, li_name, li_mb_num, li_time) 
+        VALUES (1, #{poNum}, 'post', #{mbNum}, NOW())
+    </insert>
+
+    <delete id="deleteLikeLog">
+        DELETE FROM likes 
+        WHERE li_id = #{poNum} 
+          AND li_mb_num = #{mbNum} 
+          AND li_name = 'post'
+    </delete>
+
+</mapper>

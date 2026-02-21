@@ -15,8 +15,6 @@ import FreeBoard from './pages/FreeBoard';
 import RecommendMain from './components/recommend/RecommendMain';
 import RecommendPostDetail from './components/recommend/RecommendPostDetail'; 
 
-import Mapha from './map/Mapha'; 
-
 import Login from './auth/login';
 import Signup from './auth/signup';
 
@@ -67,7 +65,8 @@ function CommunityContainer() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const menuItems = useMemo(() => ['여행 추천 게시판', '여행 후기 게시판', '자유 게시판', '여행지도'], []);
+  const menuItems = ['여행 추천 게시판', '여행 후기 게시판', '자유 게시판', '여행지도'];
+
   const menuPaths = useMemo(() => ({
     '여행 추천 게시판': '/community/recommend',
     '여행 후기 게시판': '/community/reviewboard',
@@ -75,7 +74,6 @@ function CommunityContainer() {
     '여행지도': '/community/map'
   }), []);
 
-  // 🚩 현재 경로가 상세 페이지인지 확인
   const isDetailPage = useMemo(() => {
     const pathParts = location.pathname.split('/');
     const lastPart = pathParts[pathParts.length - 1];
@@ -88,7 +86,6 @@ function CommunityContainer() {
   }, [location.pathname, menuPaths]);
 
   const loadPosts = useCallback(async () => {
-    // 🚩 상세 페이지 진입 시 부모의 목록 조회를 차단하여 조회수 중복 증가 방지
     if (location.pathname.includes('map') || isDetailPage) {
       setLoading(false);
       return;
@@ -97,11 +94,16 @@ function CommunityContainer() {
     try {
       setLoading(true);
       let endpoint = 'freeboard';
-      if (location.pathname.includes('recommend')) endpoint = 'recommend';
+      let isRecommend = location.pathname.includes('recommend');
+      
+      if (isRecommend) endpoint = 'recommend';
       else if (location.pathname.includes('reviewboard')) endpoint = 'reviewboard';
 
-      const apiUrl = `http://localhost:8080/api/${endpoint}/posts`;
-      const response = await axios.get(apiUrl); 
+      const apiUrl = isRecommend 
+        ? `http://localhost:8080/api/recommend/posts/all`
+        : `http://localhost:8080/api/${endpoint}/posts`;
+
+      const response = await axios.get(apiUrl);
       
       const cleanData = response.data.map(post => ({
         ...post,
@@ -115,7 +117,7 @@ function CommunityContainer() {
     } finally {
       setLoading(false);
     }
-  }, [location.pathname, isDetailPage]); // 🚩 노란 에러 원인인 activeMenu 제거
+  }, [location.pathname, isDetailPage]);
 
   useEffect(() => { loadPosts(); }, [loadPosts]);
 
@@ -134,11 +136,14 @@ function CommunityContainer() {
       </aside>
       <main className="main-content">
         <Routes>
-          <Route path="write" element={<PostWrite activeMenu={activeMenu} refreshPosts={loadPosts} />} />
-          <Route path="recommend" element={<RecommendMain posts={posts} />} />
+          {/* 🚩 [수정] 고정 경로인 write를 파라미터 :id보다 위에 두어 충돌을 원천 차단 */}
+          <Route path="recommend/write" element={<PostWrite activeMenu="여행 추천 게시판" refreshPosts={loadPosts} />} />
           <Route path="recommend/:id" element={<RecommendPostDetail />} />
+          <Route path="recommend" element={<RecommendMain posts={posts} />} />
+
+          <Route path="write" element={<PostWrite activeMenu={activeMenu} refreshPosts={loadPosts} />} />
           <Route path="map" element={<MainList photos={[]} activeMenu="여행지도" goToDetail={(id) => navigate(`/community/map/${id}`)} />} /> 
-          <Route path="reviewboard" element={<MainList photos={posts} setPhotos={setPosts} activeMenu={activeMenu} goToDetail={(id) => navigate(`/community/reviewboard/${id}`)} />} />
+          <Route path="reviewboard" element={<MainList posts={posts} setPhotos={setPosts} activeMenu={activeMenu} goToDetail={(id) => navigate(`/community/reviewboard/${id}`)} />} />
           <Route path="reviewboard/:id" element={<PostDetail />} />
           <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />
           <Route path="freeboard/:id" element={<PostDetail />} />

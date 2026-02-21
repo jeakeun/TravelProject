@@ -7,7 +7,7 @@
 }
 
 .detail-container {
-    width: 1200px; 
+    width: 1200px;
     margin: 0 auto;
     padding: 0 40px;
     box-sizing: border-box;
@@ -39,11 +39,11 @@
 }
 
 .detail-image-wrapper {
-    width: 80%; 
+    width: 80%;
     margin: 0 auto 40px;
     border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .detail-image-wrapper img {
@@ -59,6 +59,15 @@
     color: #444;
     margin: 40px 0 60px;
     min-height: 150px;
+    word-break: break-all;
+    /* 긴 영문 텍스트 방지 */
+}
+
+/* 🚩 추가: 본문 내 삽입된 이미지가 박스를 나가지 않도록 설정 */
+.detail-body-text img {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 12px;
 }
 
 /* 버튼 배치 영역 */
@@ -76,9 +85,11 @@
 }
 
 /* 추천 및 신고 버튼 공통 디자인 적용 */
-.btn-like-action, .btn-report-action {
+.btn-like-action,
+.btn-report-action {
     background-color: #fff;
-    border: 2px solid #ff4d4d; /* 레드 테두리 통일 */
+    border: 2px solid #ff4d4d;
+    /* 레드 테두리 통일 */
     color: #ff4d4d;
     padding: 10px 25px;
     border-radius: 30px;
@@ -91,7 +102,8 @@
     gap: 8px;
 }
 
-.btn-like-action.active, .btn-report-action:hover {
+.btn-like-action.active,
+.btn-report-action:hover {
     background-color: #ff4d4d;
     color: #fff;
 }
@@ -170,4 +182,3 @@
     text-decoration: underline;
     color: #2c3e50;
 }
-

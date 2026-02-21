@@ -15,12 +15,12 @@ public class Photo {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer phNum;
 
-    private String phOriName;
+    private String phOriginName;
     private String phName;
     private Integer phPoNum;
 
-    public Photo(String phOriName, String phName, Integer phPoNum) {
-        this.phOriName = phOriName;
+    public Photo(String phOriginName, String phName, Integer phPoNum) {
+        this.phOriginName = phOriginName;
         this.phName = phName;
         this.phPoNum = phPoNum;
     }

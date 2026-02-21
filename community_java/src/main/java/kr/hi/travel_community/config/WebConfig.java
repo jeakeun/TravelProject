@@ -12,28 +12,25 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        /**
-         * 🚩 [중요] 실시간 이미지 반영을 위한 설정
-         * src/main/resources 대신 프로젝트 루트의 외부 폴더(uploads)를 사용합니다.
-         * 이렇게 해야 유저가 올린 사진이 서버 재시작 없이 즉시 브라우저에 표시됩니다.
-         */
+        // 프로젝트 루트 경로 획득
         String rootPath = System.getProperty("user.dir");
+        
+        // 🚩 경로 끝에 반드시 슬래시(/)가 포함되도록 처리 (운영체제 호환성)
         String uploadDir = rootPath + File.separator + "uploads" + File.separator + "pic" + File.separator;
         
-        // 업로드 폴더가 없을 경우 자동 생성
         File directory = new File(uploadDir);
         if (!directory.exists()) {
             directory.mkdirs();
         }
 
-        // http://localhost:8080/pic/파일명.jpg 로 접근 시 실제 파일 경로와 매칭
+        // 🚩 file: 프로토콜 뒤에 절대 경로를 명확히 매핑
         registry.addResourceHandler("/pic/**")
-                .addResourceLocations("file:" + uploadDir);
+                .addResourceLocations("file:" + uploadDir)
+                .setCachePeriod(0); // 개발 단계에서 캐시로 인한 이미지 안 보임 방지
     }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // 리액트(3000포트)와의 데이터 통신을 위한 CORS 설정
         registry.addMapping("/**")
                 .allowedOrigins("http://localhost:3000")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")

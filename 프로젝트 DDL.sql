@@ -338,3 +338,7 @@ INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (1, '여�
 INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (2, '여행 후기 게시판', 'Y', 1);
 INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (3, '자유 게시판', 'Y', 1);
 
+
+-- 테스트 게시글 데이터 (번호 1번 카테고리, 1번 멤버 기준)
+INSERT INTO `post` (po_title, po_content, po_cg_num, po_mb_num, po_del) 
+VALUES ('안녕하세요 테스트 게시글입니다', '내용입니다.', 1, 1, 'N');
