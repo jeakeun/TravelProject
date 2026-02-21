@@ -11,6 +11,9 @@ const PostDetail = () => {
     const [loading, setLoading] = useState(true);
     const isErrorHandled = useRef(false);
 
+    // 🚩 중복 호출 방지를 위한 세션 기반의 물리적 Lock
+    const hasFetched = useRef(false);
+
     const getCategoryPath = () => {
         if (location.pathname.includes('recommend')) return 'recommend';
         if (location.pathname.includes('reviewboard')) return 'reviewboard';
@@ -21,10 +24,12 @@ const PostDetail = () => {
     const backPath = `/community/${categoryPath}`;
 
     useEffect(() => {
-        if (!id || id === 'undefined') return;
+        // 🚩 이미 호출 중이거나 완료되었다면 절대 재실행하지 않음
+        if (!id || id === 'undefined' || hasFetched.current) return;
 
         const fetchPostDetail = async () => {
             try {
+                hasFetched.current = true; // API 호출 시작 즉시 잠금
                 setLoading(true);
                 isErrorHandled.current = false;
 
@@ -35,6 +40,7 @@ const PostDetail = () => {
                     setPost(response.data);
                 }
             } catch (err) {
+                hasFetched.current = false; // 에러 시 다시 시도 가능하게 해제
                 console.error('데이터 로딩 실패:', err);
                 if (!isErrorHandled.current) {
                     isErrorHandled.current = true;
@@ -47,10 +53,13 @@ const PostDetail = () => {
         };
 
         fetchPostDetail();
-        return () => { isErrorHandled.current = false; };
-    }, [id, categoryPath, backPath, navigate]);
+        
+        return () => { 
+            isErrorHandled.current = false; 
+        };
+    }, [id, categoryPath]); // 🚩 의존성 배열에서 post, backPath, navigate 제거 (무한루프 해결)
 
-    if (loading) return <div style={{ textAlign: 'center', marginTop: '100px' }}>데이터 로딩 중...</div>;
+    if (loading && !post) return <div style={{ textAlign: 'center', marginTop: '100px' }}>데이터 로딩 중...</div>;
     if (!post) return null;
 
     const formatDate = (dateString) => {
@@ -73,7 +82,6 @@ const PostDetail = () => {
                 style={{ minHeight: '200px', lineHeight: '1.8', color: '#333', fontSize: '1.1rem', marginBottom: '30px' }} 
             />
             
-            {/* 🚩 서버에서 생성된 전체 경로를 그대로 출력 */}
             {post.fileUrl && (
                 <div style={{ marginTop: '30px', textAlign: 'center' }}>
                     <img 
@@ -94,7 +102,7 @@ const PostDetail = () => {
                 </button>
             </div>
             
-            <PostComment postId={post.poNum || post.postId} />
+            <PostComment postId={post.poNum || post.postId || id} />
         </div>
     );
 };

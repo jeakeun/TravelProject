@@ -7,6 +7,7 @@ import lombok.Data;
 @Table(name = "report_box")
 @Data
 public class ReportBox {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "rb_num")
@@ -16,7 +17,7 @@ public class ReportBox {
     private String rbContent;
 
     @Column(name = "rb_manage")
-    private String rbManage = "N";
+    private String rbManage;
 
     @Column(name = "rb_id")
     private Integer rbId;

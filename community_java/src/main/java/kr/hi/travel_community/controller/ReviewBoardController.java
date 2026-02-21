@@ -2,12 +2,13 @@ package kr.hi.travel_community.controller;
 
 import kr.hi.travel_community.entity.Photo;
 import kr.hi.travel_community.entity.Post;
-import kr.hi.travel_community.repository.PostRepository;
 import kr.hi.travel_community.repository.PhotoRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import kr.hi.travel_community.repository.PostRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.io.File;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -16,96 +17,67 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/reviewboard")
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+@RequiredArgsConstructor
 public class ReviewBoardController {
-    @Autowired
-    private PostRepository postRepository;
-    
-    @Autowired
-    private PhotoRepository photoRepository;
 
+    private final PostRepository postRepository;
+    private final PhotoRepository photoRepository;
     private final String uploadDir = System.getProperty("user.dir") + File.separator + "uploads" + File.separator + "pic" + File.separator;
 
-    // 1. 목록 조회
     @GetMapping("/posts")
-    public List<Map<String, Object>> getList() {
+    public List<Map<String,Object>> getList() {
         return postRepository.findAll().stream()
-                .filter(p -> p.getPoCgNum() == 2 && "N".equals(p.getPoDel())) // 🚩 여행 후기 카테고리 2번
+                .filter(p -> p.getPoCgNum() == 2 && "N".equals(p.getPoDel()))
                 .map(this::convertToMap)
-                .sorted((a, b) -> ((Integer) b.get("postId")).compareTo((Integer) a.get("postId")))
+                .sorted((a,b)->((Integer)b.get("postId")).compareTo((Integer)a.get("postId")))
                 .collect(Collectors.toList());
     }
 
-    // 🚩 2. 게시글 상세 조회 (추가된 부분)
     @GetMapping("/posts/{id}")
-    public ResponseEntity<?> getDetail(@PathVariable("id") Integer id) {
+    public ResponseEntity<Map<String,Object>> getDetail(@PathVariable Integer id) {
         return postRepository.findById(id)
-                .map(post -> {
-                    // 조회수 증가 (Repository에 메서드가 없다면 이 줄은 삭제하세요)
-                    postRepository.updateViewCount(post.getPoNum());
-                    // 상세 정보와 사진 URL을 포함한 Map 반환
-                    return ResponseEntity.ok(convertToMap(post)); 
+                .map(p -> {
+                    postRepository.updateViewCount(p.getPoNum());
+                    return ResponseEntity.ok(convertToMap(p));
                 })
-                .orElse(ResponseEntity.status(404).build());
+                .orElseGet(() -> ResponseEntity.status(404).body(Map.of("error","게시글 없음")));
     }
 
-    // 3. 게시글 작성
     @PostMapping("/posts")
-    public ResponseEntity<?> create(@RequestParam("title") String title,
-                                   @RequestParam("content") String content,
-                                   @RequestParam(value = "image", required = false) MultipartFile image) {
-        try {
-            Post post = new Post();
-            post.setPoTitle(title);
-            post.setPoContent(content);
-            post.setPoCgNum(2); // 🚩 여행 후기 카테고리 2번
-            post.setPoMbNum(1);
-            post.setPoView(0);
-            post.setPoDel("N");
-            post.setPoDate(LocalDateTime.now());
-            
-            // 게시글 저장 후 생성된 poNum 확보
-            Post savedPost = postRepository.save(post);
-            
-            // 이미지가 있으면 photo 테이블에 데이터 생성
-            if (image != null && !image.isEmpty()) {
-                handleImage(savedPost.getPoNum(), image);
-            }
-            
-            return ResponseEntity.ok(convertToMap(savedPost));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body("등록 오류");
+    public ResponseEntity<Map<String,Object>> create(@RequestParam String title,
+                                                     @RequestParam String content,
+                                                     @RequestParam(required = false) MultipartFile image) throws Exception {
+        Post post = Post.builder()
+                .poTitle(title)
+                .poContent(content)
+                .poCgNum(2)
+                .poMbNum(1)
+                .poView(0)
+                .poDel("N")
+                .poDate(LocalDateTime.now())
+                .build();
+        Post saved = postRepository.save(post);
+
+        if(image != null && !image.isEmpty()){
+            File dir = new File(uploadDir);
+            if(!dir.exists()) dir.mkdirs();
+            String name = UUID.randomUUID()+"_"+image.getOriginalFilename();
+            image.transferTo(new File(uploadDir + name));
+            photoRepository.save(new Photo(image.getOriginalFilename(), name, saved.getPoNum()));
         }
+        return ResponseEntity.ok(convertToMap(saved));
     }
 
-    private void handleImage(Integer poNum, MultipartFile image) throws Exception {
-        File dir = new File(uploadDir);
-        if (!dir.exists()) dir.mkdirs();
-
-        String name = UUID.randomUUID().toString() + "_" + image.getOriginalFilename();
-        image.transferTo(new File(uploadDir + name));
-        
-        // Photo 객체 생성 및 저장
-        Photo photo = new Photo(image.getOriginalFilename(), name, poNum);
-        photoRepository.save(photo);
-    }
-
-    private Map<String, Object> convertToMap(Post post) {
-        Map<String, Object> map = new HashMap<>();
-        map.put("postId", post.getPoNum());
-        map.put("poNum", post.getPoNum());
-        map.put("poTitle", post.getPoTitle());
-        map.put("poContent", post.getPoContent());
-        map.put("poView", post.getPoView());
-        map.put("poDate", post.getPoDate());
-        
-        // 🚩 8080 포트 고정 및 Photo 테이블 조회
-        Optional<Photo> photoOpt = photoRepository.findFirstByPhPoNumOrderByPhNumDesc(post.getPoNum());
-        if (photoOpt.isPresent()) {
-            map.put("fileUrl", "http://localhost:8080/pic/" + photoOpt.get().getPhName());
-        } else {
-            map.put("fileUrl", "https://placehold.co");
-        }
+    private Map<String,Object> convertToMap(Post p){
+        Map<String,Object> map = new HashMap<>();
+        map.put("postId", p.getPoNum());
+        map.put("poNum", p.getPoNum());
+        map.put("poTitle", p.getPoTitle());
+        map.put("poContent", p.getPoContent());
+        map.put("poView", p.getPoView());
+        map.put("poDate", p.getPoDate());
+        Optional<Photo> photoOpt = photoRepository.findFirstByPhPoNumOrderByPhNumDesc(p.getPoNum());
+        map.put("fileUrl", photoOpt.map(ph->"http://localhost:8080/pic/"+ph.getPhName()).orElse("https://placehold.co"));
         return map;
     }
 }

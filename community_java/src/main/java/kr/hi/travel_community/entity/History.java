@@ -6,28 +6,22 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "likes")
+@Table(name = "history")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Likes {
+public class History {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer liNum;
+    private Integer htNum;
+
+    private LocalDateTime htTime;
 
     @Column(nullable = false)
-    private Integer liState;
+    private Integer htPoNum;
 
     @Column(nullable = false)
-    private Integer liId;
-
-    @Column(nullable = false, length = 10)
-    private String liName;
-
-    private LocalDateTime liTime;
-
-    @Column(nullable = false)
-    private Integer liMbNum;
+    private Integer htMeNum;
 }

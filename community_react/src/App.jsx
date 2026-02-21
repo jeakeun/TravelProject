@@ -13,7 +13,6 @@ import PostWrite from './components/PostWrite';
 import PostDetail from './pages/PostDetail';
 import FreeBoard from './pages/FreeBoard';
 import RecommendMain from './components/recommend/RecommendMain';
-// 🚩 추천 게시판 전용 상세 페이지 임포트
 import RecommendPostDetail from './components/recommend/RecommendPostDetail'; 
 
 import Mapha from './map/Mapha'; 
@@ -76,13 +75,21 @@ function CommunityContainer() {
     '여행지도': '/community/map'
   }), []);
 
+  // 🚩 현재 경로가 상세 페이지인지 확인
+  const isDetailPage = useMemo(() => {
+    const pathParts = location.pathname.split('/');
+    const lastPart = pathParts[pathParts.length - 1];
+    return (lastPart && !isNaN(lastPart)) || lastPart === 'write';
+  }, [location.pathname]);
+
   useEffect(() => {
     const foundMenu = Object.keys(menuPaths).find(key => location.pathname.startsWith(menuPaths[key]));
     if (foundMenu) setActiveMenu(foundMenu);
   }, [location.pathname, menuPaths]);
 
   const loadPosts = useCallback(async () => {
-    if (location.pathname.includes('map')) {
+    // 🚩 상세 페이지 진입 시 부모의 목록 조회를 차단하여 조회수 중복 증가 방지
+    if (location.pathname.includes('map') || isDetailPage) {
       setLoading(false);
       return;
     }
@@ -100,7 +107,7 @@ function CommunityContainer() {
         ...post,
         id: post.postId,
         postId: post.postId,
-        category: post.category || activeMenu
+        category: post.category || (endpoint === 'freeboard' ? '자유 게시판' : (endpoint === 'recommend' ? '여행 추천 게시판' : '여행 후기 게시판'))
       }));
       setPosts(cleanData);
     } catch (err) {
@@ -108,11 +115,11 @@ function CommunityContainer() {
     } finally {
       setLoading(false);
     }
-  }, [location.pathname, activeMenu]);
+  }, [location.pathname, isDetailPage]); // 🚩 노란 에러 원인인 activeMenu 제거
 
   useEffect(() => { loadPosts(); }, [loadPosts]);
 
-  if (loading) return <div style={{ textAlign: 'center', marginTop: '100px' }}>로딩 중...</div>;
+  if (loading && !isDetailPage) return <div style={{ textAlign: 'center', marginTop: '100px' }}>로딩 중...</div>;
 
   return (
     <div className="container">
@@ -129,17 +136,8 @@ function CommunityContainer() {
         <Routes>
           <Route path="write" element={<PostWrite activeMenu={activeMenu} refreshPosts={loadPosts} />} />
           <Route path="recommend" element={<RecommendMain posts={posts} />} />
-          {/* 🚩 여행 추천 게시판 상세 페이지만 전용 컴포넌트로 수정 */}
           <Route path="recommend/:id" element={<RecommendPostDetail />} />
-          
-          <Route path="map" element={
-            <MainList 
-              photos={[]} 
-              activeMenu="여행지도" 
-              goToDetail={(id) => navigate(`/community/map/${id}`)} 
-            />
-          } /> 
-          
+          <Route path="map" element={<MainList photos={[]} activeMenu="여행지도" goToDetail={(id) => navigate(`/community/map/${id}`)} />} /> 
           <Route path="reviewboard" element={<MainList photos={posts} setPhotos={setPosts} activeMenu={activeMenu} goToDetail={(id) => navigate(`/community/reviewboard/${id}`)} />} />
           <Route path="reviewboard/:id" element={<PostDetail />} />
           <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />

@@ -10,14 +10,20 @@ const PostComment = ({ postId }) => {
     const [loading, setLoading] = useState(false);
     const isFetching = useRef(false);
 
-    // 🚩 서버 엔티티 필드명(id, content, createdAt, userId, postId, parentId)과 100% 일치시킴
-    const fetchComments = useCallback(async () => {
+    // 🚩 API 중복 호출 및 부모 컴포넌트 간섭을 막기 위해 갱신 로직 최적화
+    const fetchComments = useCallback(async (isInitial = false) => {
         if (!postId || isFetching.current) return;
         try {
             isFetching.current = true;
-            setLoading(true);
+            if (isInitial) setLoading(true); // 처음 로드할 때만 로딩 표시
+
             const response = await axios.get(`http://localhost:8080/api/comments/post/${postId}`);
-            setComments(response.data);
+            
+            // 데이터가 실제로 다를 때만 상태 업데이트 (무분별한 재렌더링 방지)
+            setComments(prev => {
+                if (JSON.stringify(prev) === JSON.stringify(response.data)) return prev;
+                return response.data;
+            });
         } catch (error) {
             console.error("댓글 로딩 실패:", error);
         } finally {
@@ -26,27 +32,29 @@ const PostComment = ({ postId }) => {
         }
     }, [postId]);
 
-    useEffect(() => { fetchComments(); }, [fetchComments]);
+    useEffect(() => { 
+        fetchComments(true); 
+    }, [fetchComments]);
 
     const handleAddComment = async (parentId = 0) => {
         const content = parentId !== 0 ? replyText : newComment;
         if (!content.trim()) { alert("내용을 입력해주세요."); return; }
         
         try {
-            // 🚩 핵심 수정: mbNum을 엔티티 필드명인 userId로 변경하여 500 에러 해결
             const commentData = {
                 content: content.trim(),
                 postId: Number(postId),
-                userId: 1, // 서버 Entity의 userId 필드와 매칭
+                userId: 1, 
                 parentId: parentId === 0 ? null : parentId 
             };
 
             await axios.post('http://localhost:8080/api/comments', commentData);
             
+            // 성공 시 입력창 초기화 및 '댓글 목록'만 갱신 (부모 페이지 조회수 영향X)
             setNewComment(''); 
             setReplyText(''); 
             setReplyTo(null);
-            fetchComments(); 
+            fetchComments(false); 
         } catch (error) { 
             console.error("등록 에러:", error.response?.data || error.message);
             alert("댓글 등록에 실패했습니다."); 
@@ -57,7 +65,7 @@ const PostComment = ({ postId }) => {
         if (window.confirm("정말 삭제하시겠습니까?")) {
             try {
                 await axios.delete(`http://localhost:8080/api/comments/${id}`);
-                fetchComments();
+                fetchComments(false);
             } catch (error) { alert("삭제 실패"); }
         }
     };
@@ -87,7 +95,6 @@ const PostComment = ({ postId }) => {
             <div key={comment.id} className={`comment-item ${depth > 0 ? 'reply-item' : ''}`}>
                 <div className="comment-header">
                     <div className="user-info">
-                        {/* 🚩 mbNum 대신 엔티티 필드명인 userId 사용 */}
                         <span className="author">User {comment.userId}</span>
                         <span className="date">{formatDate(comment.createdAt)}</span>
                     </div>
