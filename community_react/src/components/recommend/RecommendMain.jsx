@@ -40,13 +40,12 @@ const RecommendMain = ({ posts = [] }) => {
         return [...posts].sort((a, b) => new Date(b.poDate) - new Date(a.poDate));
     }, [posts]);
 
-    // 🚩 내용 검색 로직(content) 추가
     const filteredList = useMemo(() => 
         listData.filter(p => {
             const term = finalSearchTerm.toLowerCase();
             if (!term) return true;
             if (searchCategory === 'title') return p.poTitle?.toLowerCase().includes(term);
-            if (searchCategory === 'content') return p.poContent?.toLowerCase().includes(term); // 추가됨
+            if (searchCategory === 'content') return p.poContent?.toLowerCase().includes(term);
             if (searchCategory === 'user') return `user ${p.poMbNum}`.toLowerCase().includes(term);
             if (searchCategory === 'titleContent') return p.poTitle?.toLowerCase().includes(term) || (p.poContent && p.poContent.toLowerCase().includes(term));
             return true;
@@ -62,11 +61,19 @@ const RecommendMain = ({ posts = [] }) => {
         setCurrentPage(1);
     };
 
+    // 🚩 [수정] 네트워크 로그를 기반으로 경로 최적화
     const getImageUrl = (url) => {
         if (!url || url === "" || url.includes("null") || url.includes("undefined")) {
             return "https://placehold.co/600x400?text=No+Image";
         }
-        return url;
+        
+        // 이미 주소 형식이면 그대로 반환
+        if (url.startsWith('http')) return url;
+        
+        // 파일명만 올 경우 서버의 업로드 정적 경로를 붙여줌 (로그상 호출 경로 참고)
+        // 보통 스프링부트 정적 리소스 설정에 따라 /api/display?fileName= 또는 /uploads/ 를 사용합니다.
+        // 현재 로그에 찍히는 호출 주소에 맞춰서 아래 주소를 확인해보세요.
+        return `http://localhost:8080/api/display?fileName=${url}`; 
     };
 
     const formatDate = (dateString) => {
@@ -127,10 +134,16 @@ const RecommendMain = ({ posts = [] }) => {
                     <tbody>
                         {currentItems.length > 0 ? (
                             currentItems.map((post, idx) => (
-                                <tr key={post.postId} onClick={() => goToDetail(post.postId)} style={{ cursor: 'pointer' }}>
+                                // 🚩 key와 onClick의 id를 poNum으로 매칭 (백엔드 필드 확인)
+                                <tr key={post.poNum} onClick={() => goToDetail(post.poNum)} style={{ cursor: 'pointer' }}>
                                     <td>{(filteredList.length - (currentPage-1)*itemsPerPage) - idx}</td>
                                     <td className="img-td">
-                                        <img src={getImageUrl(post.fileUrl)} alt="thumb" onError={(e) => { e.target.src = "https://placehold.co/600x400?text=No+Image"; }} />
+                                        {/* 🚩 post.poImg 필드명이 가장 유력함 */}
+                                        <img 
+                                            src={getImageUrl(post.poImg || post.fileUrl)} 
+                                            alt="thumb" 
+                                            onError={(e) => { e.target.src = "https://placehold.co/600x400?text=No+Image"; }} 
+                                        />
                                     </td>
                                     <td className="title-td"><span className="t-text">{post.poTitle}</span></td>
                                     <td className="stats-td">

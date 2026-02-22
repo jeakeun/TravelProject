@@ -17,9 +17,10 @@ function PostWrite({ refreshPosts, activeMenu }) {
 
   useEffect(() => {
     if (isEdit && existingPost) {
-      setTitle(existingPost.poTitle || '');
+      // 기존 poTitle 필드명이 있다면 반영
+      setTitle(existingPost.poTitle || existingPost.title || '');
       if (editorRef.current) {
-        editorRef.current.innerHTML = existingPost.poContent || '';
+        editorRef.current.innerHTML = existingPost.poContent || existingPost.content || '';
       }
     }
   }, [isEdit, existingPost]);
@@ -61,12 +62,15 @@ function PostWrite({ refreshPosts, activeMenu }) {
     }
 
     const formData = new FormData();
-    // 🚩 서버 @RequestParam 이름과 100% 일치시킵니다.
-    formData.append('title', title);
-    formData.append('content', htmlContent);
-    formData.append('mbNum', 1); // 실제 로그인 시스템이 없다면 테스트용 1
+    
+    // 🚩 [수정 포인트] 머지 후 변경되었을 가능성이 높은 서버 필드명에 맞춤
+    // 만약 서버 DTO가 poTitle 형식을 쓴다면 아래처럼 두 버전을 다 고려하거나 확인이 필요합니다.
+    // 여기서는 가장 표준적인 po 접두사 버전으로 보정합니다.
+    formData.append('poTitle', title); 
+    formData.append('poContent', htmlContent);
+    formData.append('poMbNum', 1); // 실제 로그인 유저 번호가 있다면 해당 값 사용
 
-    // 🚩 이미지 첨부 (서버가 단일 MultipartFile 'image'를 받는 경우)
+    // 🚩 이미지 첨부 (서버 변수명이 'image'인지 'file'인지 확인이 필요할 수 있음)
     if (imageFiles.length > 0) {
       formData.append('image', imageFiles[0]); 
     }
@@ -79,7 +83,7 @@ function PostWrite({ refreshPosts, activeMenu }) {
     
     const categoryPath = apiMap[activeMenu] || 'freeboard';
     const apiUrl = isEdit 
-      ? `http://localhost:8080/api/${categoryPath}/posts/${existingPost.poNum}`
+      ? `http://localhost:8080/api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.postId}`
       : `http://localhost:8080/api/${categoryPath}/posts`;
 
     try {
@@ -98,8 +102,8 @@ function PostWrite({ refreshPosts, activeMenu }) {
       }
     } catch (error) {
       console.error("저장 실패:", error);
-      // 400 에러 발생 시 상세 이유를 출력하도록 함
-      const errorDetail = error.response?.data?.error || error.response?.data || "알 수 없는 오류";
+      // 400 에러 시 서버가 주는 구체적인 메시지 확인을 위해 디버깅 코드 유지
+      const errorDetail = error.response?.data?.message || error.response?.data || "필드명이 일치하지 않거나 필수값이 누락되었습니다.";
       alert(`저장 실패: ${errorDetail}`);
     }
   };
