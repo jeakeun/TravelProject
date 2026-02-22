@@ -77,6 +77,18 @@ const ReviewBoardDetail = () => {
         if (replyTo && replyInputRef.current) replyInputRef.current.focus();
     }, [replyTo]);
 
+    // 🚩 [추가] 게시글 삭제 함수 구현
+    const handleDeletePost = async () => {
+        if (!window.confirm("정말 게시글을 삭제하시겠습니까?")) return;
+        try {
+            await axios.delete(`http://localhost:8080/api/reviewboard/posts/${id}`);
+            alert("게시글이 삭제되었습니다.");
+            navigate('/community/reviewboard');
+        } catch (err) {
+            alert("게시글 삭제 중 오류가 발생했습니다.");
+        }
+    };
+
     const handleLikeToggle = async () => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
@@ -107,7 +119,6 @@ const ReviewBoardDetail = () => {
         } catch (err) { alert("등록 실패"); }
     };
 
-    // 🚩 추가: 댓글 수정 요청 함수
     const handleUpdateComment = async (commentId) => {
         if (!editInput?.trim()) return alert("내용을 입력하세요.");
         try {
@@ -118,7 +129,6 @@ const ReviewBoardDetail = () => {
         } catch (err) { alert("수정 실패"); }
     };
 
-    // 🚩 추가: 댓글 삭제 요청 함수
     const handleDeleteComment = async (commentId) => {
         if (!window.confirm("정말 삭제하시겠습니까?")) return;
         try {
@@ -166,7 +176,6 @@ const ReviewBoardDetail = () => {
                             )}
                         </div>
 
-                        {/* 🚩 수정 모드일 때 editInput 사용 */}
                         {isActiveEdit ? (
                             <div className="comment-edit-box">
                                 <textarea value={editInput} onChange={(e) => setEditInput(e.target.value)} />
@@ -219,10 +228,11 @@ const ReviewBoardDetail = () => {
                                 {isLiked ? '❤️ 추천취소' : '🤍 추천'} {post.poUp}
                             </button>
                         )}
-                        {(isLoggedIn && Number(post.poMbNum) === currentUserNum) && (
+                        {/* 🚩 타입 안정성을 위해 Number()로 감싸서 비교 */}
+                        {(isLoggedIn && (Number(post.poMbNum) === Number(currentUserNum) || isAdmin)) && (
                             <>
                                 <button className="btn-edit-action" onClick={() => navigate(`/community/reviewboard/write`, { state: { mode: 'edit', postData: post } })}>✏️ 수정</button>
-                                <button className="btn-delete-action" onClick={() => {/* 게시글 삭제 함수 호출 */}}>🗑️ 삭제</button>
+                                <button className="btn-delete-action" onClick={handleDeletePost}>🗑️ 삭제</button>
                             </>
                         )}
                     </div>

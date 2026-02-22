@@ -8,22 +8,18 @@ const RecommendPostList = () => {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    // 🚩 검색을 위한 상태값 추가
-    const [searchType, setSearchType] = useState("title"); // 기본값: 제목
+    const [searchType, setSearchType] = useState("title"); 
     const [searchKeyword, setSearchKeyword] = useState("");
 
-    // 🚩 페이지네이션 상태
     const [currentPage, setCurrentPage] = useState(1);
     const postsPerPage = 10;
 
+    // 상세 페이지와 동일한 이미지 서버 기본 경로
     const SERVER_URL = "http://localhost:8080/pic/";
 
-    // 데이터 패칭 로직을 함수로 분리 (검색 시에도 재사용 가능)
     const fetchPosts = async (type = "", keyword = "") => {
         setLoading(true);
         try {
-            // 백엔드 엔드포인트에 검색 파라미터 전달 (백엔드 구현에 따라 주소 조정 필요)
-            // 예: /api/recommend/posts/all?type=title&keyword=안녕
             let url = 'http://localhost:8080/api/recommend/posts/all';
             if (keyword) {
                 url += `?type=${type}&keyword=${encodeURIComponent(keyword)}`;
@@ -31,13 +27,15 @@ const RecommendPostList = () => {
 
             const response = await axios.get(url);
             
-            // 최신순 정렬
+            // 데이터 확인용 로그
+            console.log("백엔드 수신 데이터:", response.data);
+
             const sortedData = [...response.data].sort((a, b) => {
-                return Number(b.postId) - Number(a.postId);
+                return Number(b.poNum || b.postId) - Number(a.poNum || a.postId);
             });
             
             setPosts(sortedData);
-            setCurrentPage(1); // 검색 시 첫 페이지로 이동
+            setCurrentPage(1); 
         } catch (error) {
             console.error("데이터 로딩 실패:", error);
         } finally {
@@ -49,18 +47,29 @@ const RecommendPostList = () => {
         fetchPosts();
     }, []);
 
-    // 검색 실행 함수
     const handleSearch = () => {
         fetchPosts(searchType, searchKeyword);
     };
 
+    /**
+     * 🚩 [핵심 수정] 이미지 URL 생성 로직
+     * 백엔드에서 이미 풀 경로(http://...)를 보내주므로 중복 결합을 방지합니다.
+     */
     const getImageUrl = (post) => {
-        const fileName = post.fileUrl;
-        if (!fileName || fileName === "null" || fileName === "") {
+        // 백엔드 Map 키값인 fileUrl 또는 poImg 확인
+        const imgData = post.fileUrl || post.poImg; 
+        
+        if (!imgData || imgData === "null" || imgData === "" || String(imgData).includes("undefined")) {
             return "https://placehold.co/150x100?text=No+Image";
         }
-        if (fileName.startsWith('http')) return fileName;
-        return `${SERVER_URL}${fileName}`;
+        
+        // 1. 이미 http로 시작하는 완성된 경로라면 그대로 반환
+        if (String(imgData).startsWith('http')) {
+            return imgData;
+        }
+        
+        // 2. 파일명만 넘어왔을 경우에만 SERVER_URL과 결합
+        return `${SERVER_URL}${imgData}`;
     };
 
     const indexOfLastPost = currentPage * postsPerPage;
@@ -96,13 +105,17 @@ const RecommendPostList = () => {
                     <tbody>
                         {currentPosts.length > 0 ? (
                             currentPosts.map((post) => (
-                                <tr key={post.postId} onClick={() => navigate(`/community/recommend/${post.postId}`)} style={{ cursor: 'pointer' }}>
-                                    <td className="td-num">{post.postId}</td>
+                                <tr key={post.poNum || post.postId} onClick={() => navigate(`/community/recommend/${post.poNum || post.postId}`)} style={{ cursor: 'pointer' }}>
+                                    <td className="td-num">{post.poNum || post.postId}</td>
                                     <td className="img-td">
                                         <img 
                                             src={getImageUrl(post)} 
                                             alt="thumb" 
-                                            onError={(e) => e.target.src="https://placehold.co/150x100?text=Error"}
+                                            onError={(e) => { 
+                                                console.log("이미지 경로 오류:", e.target.src);
+                                                e.target.src="https://placehold.co/150x100?text=No+Image"; 
+                                            }}
+                                            style={{ width: '100px', height: '60px', objectFit: 'cover', borderRadius: '4px' }}
                                         />
                                     </td>
                                     <td className="title-td">{post.poTitle}</td>
@@ -120,7 +133,7 @@ const RecommendPostList = () => {
                                     </td>
                                     <td className="td-author">User {post.poMbNum}</td>
                                     <td className="td-date">{formatDate(post.poDate)}</td>
-                                    <td className="td-view">{post.poView}</td>
+                                    <td className="td-view">{post.poView || 0}</td>
                                 </tr>
                             ))
                         ) : (
@@ -155,7 +168,6 @@ const RecommendPostList = () => {
 
                     <div className="footer-action-row">
                         <div className="search-footer">
-                            {/* 🚩 선택지 4가지로 수정 및 상태 연결 */}
                             <select 
                                 className="search-select-box"
                                 value={searchType}

@@ -45,9 +45,6 @@ public class RecommendPostService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 🚩 검색 기능 (빨간 줄 수정 완료)
-     */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> searchPosts(String type, String keyword) {
         List<RecommendPost> result;
@@ -60,19 +57,15 @@ public class RecommendPostService {
                 result = postRepository.findByPoContentContainingAndPoDelOrderByPoNumDesc(keyword, "N");
                 break;
             case "title_content":
-                // 🚩 Repository에서 새로 만든 @Query 메서드 호출 (이 부분이 빨간줄 원인)
                 result = postRepository.findByTitleOrContent(keyword, "N");
                 break;
             case "author":
-                // 작성자(mbNum) 검색 - 숫자로 변환 가능한 경우에만 처리하거나 전체에서 필터링
                 try {
                     Integer mbNum = Integer.parseInt(keyword);
-                    // 특정 사용자의 글만 필터링 (간단 구현)
                     result = postRepository.findByPoDelOrderByPoNumDesc("N").stream()
                             .filter(p -> p.getPoMbNum().equals(mbNum))
                             .collect(Collectors.toList());
                 } catch (NumberFormatException e) {
-                    // 숫자가 아니면 결과 없음
                     result = new ArrayList<>();
                 }
                 break;
@@ -204,9 +197,12 @@ public class RecommendPostService {
                 savedNames.add(fileName);
             }
         }
-        if (!savedNames.isEmpty()) post.setFileUrl(String.join(",", savedNames));
+        if (!savedNames.isEmpty()) post.setPoImg(String.join(",", savedNames));
     }
 
+    /**
+     * [주요 수정 영역] 썸네일 노출을 위한 데이터 매핑 로직 보강
+     */
     private Map<String, Object> convertToMap(RecommendPost p) {
         Map<String, Object> map = new HashMap<>();
         map.put("postId", p.getPoNum());
@@ -221,11 +217,21 @@ public class RecommendPostService {
         long commentCount = commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getPoNum(), "RECOMMEND", "N");
         map.put("commentCount", commentCount);
 
-        int score = (int)map.get("poView") + ((int)map.get("poUp") * 2) + ((int)commentCount * 3);
+        // 점수 계산 (poView가 null일 경우 대비)
+        int views = p.getPoView() != null ? p.getPoView() : 0;
+        int likes = p.getPoUp() != null ? p.getPoUp() : 0;
+        int score = views + (likes * 2) + ((int) commentCount * 3);
         map.put("score", score);
 
-        if (p.getFileUrl() != null && !p.getFileUrl().isEmpty()) {
-            map.put("fileUrl", SERVER_URL + p.getFileUrl().split(",")[0].trim());
+        // 썸네일 경로 처리: poImg 필드 사용
+        if (p.getPoImg() != null && !p.getPoImg().trim().isEmpty()) {
+            // 첫 번째 이미지 추출 및 공백 제거
+            String firstImg = p.getPoImg().split(",")[0].trim();
+            map.put("fileUrl", SERVER_URL + firstImg);
+            map.put("poImg", SERVER_URL + firstImg); // 호환성을 위해 poImg 키도 추가
+        } else {
+            map.put("fileUrl", null);
+            map.put("poImg", null);
         }
         return map;
     }

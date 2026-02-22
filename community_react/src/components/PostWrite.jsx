@@ -17,7 +17,7 @@ function PostWrite({ refreshPosts, activeMenu }) {
 
   useEffect(() => {
     if (isEdit && existingPost) {
-      // 기존 poTitle 필드명이 있다면 반영
+      // 서버에서 poTitle 또는 title 어느 쪽으로 내려오든 대응
       setTitle(existingPost.poTitle || existingPost.title || '');
       if (editorRef.current) {
         editorRef.current.innerHTML = existingPost.poContent || existingPost.content || '';
@@ -63,14 +63,12 @@ function PostWrite({ refreshPosts, activeMenu }) {
 
     const formData = new FormData();
     
-    // 🚩 [수정 포인트] 머지 후 변경되었을 가능성이 높은 서버 필드명에 맞춤
-    // 만약 서버 DTO가 poTitle 형식을 쓴다면 아래처럼 두 버전을 다 고려하거나 확인이 필요합니다.
-    // 여기서는 가장 표준적인 po 접두사 버전으로 보정합니다.
-    formData.append('poTitle', title); 
+    // 🚩 [핵심 수정] 백엔드 DTO 필드명 규격(po+대문자)에 맞게 변경
+    formData.append('poTitle', title);
     formData.append('poContent', htmlContent);
-    formData.append('poMbNum', 1); // 실제 로그인 유저 번호가 있다면 해당 값 사용
+    formData.append('poMbNum', 1); // 테스트용 번호 (로그인 연동 전)
 
-    // 🚩 이미지 첨부 (서버 변수명이 'image'인지 'file'인지 확인이 필요할 수 있음)
+    // 🚩 이미지 파일 키값: 서버가 @RequestParam("image")로 받는지 확인 필요
     if (imageFiles.length > 0) {
       formData.append('image', imageFiles[0]); 
     }
@@ -102,9 +100,9 @@ function PostWrite({ refreshPosts, activeMenu }) {
       }
     } catch (error) {
       console.error("저장 실패:", error);
-      // 400 에러 시 서버가 주는 구체적인 메시지 확인을 위해 디버깅 코드 유지
-      const errorDetail = error.response?.data?.message || error.response?.data || "필드명이 일치하지 않거나 필수값이 누락되었습니다.";
-      alert(`저장 실패: ${errorDetail}`);
+      // 서버에서 보내주는 에러 메시지를 alert에 띄워 상세 이유를 파악하도록 수정
+      const errorMsg = error.response?.data?.message || error.response?.data || "데이터 형식이 맞지 않습니다.";
+      alert(`저장 실패 (400): ${errorMsg}`);
     }
   };
 

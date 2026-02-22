@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "review_post")
-@Data
+@Data // Lombok이 Getter, Setter, toString 등을 자동으로 생성합니다.
 public class ReviewPost {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,26 +22,27 @@ public class ReviewPost {
     @Column(name = "po_date", nullable = false, updatable = false)
     private LocalDateTime poDate;
 
-    @Column(name = "po_view")
+    @Column(name = "po_view", nullable = false)
     private Integer poView = 0;
 
-    @Column(name = "po_up")
+    @Column(name = "po_up", nullable = false)
     private Integer poUp = 0;
 
-    @Column(name = "po_down")
+    @Column(name = "po_down", nullable = false)
     private Integer poDown = 0;
 
-    @Column(name = "po_report")
+    @Column(name = "po_report", nullable = false)
     private Integer poReport = 0;
 
-    @Column(name = "po_del")
+    @Column(name = "po_del", nullable = false, length = 1)
     private String poDel = "N";
 
     @Column(name = "po_mb_num", nullable = false)
     private Integer poMbNum;
 
-    @Column(name = "file_url")
-    private String fileUrl;
+    // [핵심 수정] DB의 po_img 컬럼과 매핑을 일치시킵니다.
+    @Column(name = "po_img", length = 100)
+    private String poImg;
 
     @PrePersist
     public void prePersist() {

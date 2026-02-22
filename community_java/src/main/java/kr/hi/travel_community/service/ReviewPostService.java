@@ -35,7 +35,7 @@ public class ReviewPostService {
     }
 
     /**
-     * 🚩 리뷰 게시판 검색 기능 추가
+     * 🚩 리뷰 게시판 검색 기능
      */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> searchPosts(String type, String keyword) {
@@ -49,7 +49,6 @@ public class ReviewPostService {
                 result = postRepository.findByPoContentContainingAndPoDelOrderByPoNumDesc(keyword, "N");
                 break;
             case "title_content":
-                // Repository에 정의한 @Query 메서드 호출
                 result = postRepository.findByTitleOrContent(keyword, "N");
                 break;
             case "author":
@@ -147,6 +146,9 @@ public class ReviewPostService {
         }
     }
 
+    /**
+     * [수정] setFileUrl -> setPoImg 변경
+     */
     private void handleImages(ReviewPost post, List<MultipartFile> images) throws Exception {
         if (images == null || images.isEmpty()) return;
         String uploadDir = System.getProperty("user.dir") + File.separator + "uploads" + File.separator + "pic" + File.separator;
@@ -160,9 +162,14 @@ public class ReviewPostService {
                 savedNames.add(fileName);
             }
         }
-        if (!savedNames.isEmpty()) post.setFileUrl(String.join(",", savedNames));
+        if (!savedNames.isEmpty()) {
+            post.setPoImg(String.join(",", savedNames)); // 수정됨
+        }
     }
 
+    /**
+     * [수정] getFileUrl -> getPoImg 변경
+     */
     private Map<String, Object> convertToMap(ReviewPost p) {
         Map<String, Object> map = new HashMap<>();
         map.put("poNum", p.getPoNum());
@@ -174,8 +181,9 @@ public class ReviewPostService {
         map.put("poMbNum", p.getPoMbNum());
         map.put("commentCount", commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getPoNum(), "REVIEW", "N"));
         
-        if (p.getFileUrl() != null && !p.getFileUrl().isEmpty()) {
-            map.put("fileUrl", SERVER_URL + p.getFileUrl().split(",")[0].trim());
+        // 필드명은 p.getPoImg()를 사용하지만, 프론트 반환 키값은 "fileUrl"을 유지하여 프론트 코드 호환성 확보
+        if (p.getPoImg() != null && !p.getPoImg().isEmpty()) {
+            map.put("fileUrl", SERVER_URL + p.getPoImg().split(",")[0].trim());
         }
         return map;
     }
