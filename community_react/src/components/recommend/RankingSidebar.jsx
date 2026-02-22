@@ -17,11 +17,12 @@ const RankingSidebar = ({ ranking, startRank, onDetail, getImageUrl }) => {
                         </div>
                         
                         <div className="rank-info">
-                            {/* 🚩 4~10등 제목이 여기서 출력됩니다 */}
-                            <p className="rank-title">{post.title}</p>
+                            {/* 🚩 1. 제목 필드 수정: post.title -> post.poTitle */}
+                            <p className="rank-title">{post.poTitle}</p>
                             <div className="rank-meta">
                                 <span className="rank-num-badge">{startRank + idx}</span>
-                                <span className="rank-likes">❤️ {post.likes || 0}</span>
+                                {/* 🚩 2. 추천수 필드 수정: post.likes -> post.poUp */}
+                                <span className="rank-likes">❤️ {post.poUp || 0}</span>
                             </div>
                         </div>
                     </div>

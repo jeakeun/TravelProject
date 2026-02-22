@@ -1,0 +1,221 @@
+/* 1. 그리드 레이아웃: 6개 게시물이 한 화면에 쏙 들어오도록 높이 최적화 */
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 360px);
+    /* 4:1 비율을 위해 높이 확보 */
+    gap: 25px;
+    margin-top: 20px;
+}
+
+.photo-card {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #f0f0f0;
+    height: 100%;
+}
+
+.photo-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* 🚩 사진 영역 (4:1 비율 중 '4' 차지) */
+.img-placeholder {
+    flex: 4;
+    overflow: hidden;
+    background-color: #f9f9f9;
+}
+
+.img-placeholder img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.photo-card:hover .img-placeholder img {
+    transform: scale(1.1);
+}
+
+/* 🚩 텍스트 정보 영역 (4:1 비율 중 '1' 차지) */
+.photo-info {
+    flex: 1;
+    padding: 15px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: white;
+}
+
+.photo-title {
+    margin: 0 0 5px 0;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: #2c3e50;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.post-date {
+    font-size: 0.85rem;
+    color: #95a5a6;
+}
+
+/* 🚩 2. 하단 컨트롤 영역 (Recommend 게시판 디자인 적용) */
+.list-pagination-area {
+    margin-top: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+    width: 100%;
+}
+
+.page-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.page-buttons button {
+    width: 38px;
+    height: 38px;
+    border: 1px solid #ddd;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+}
+
+.page-buttons button.active {
+    background: #2c3e50;
+    color: #fff;
+    border-color: #2c3e50;
+}
+
+/* 🚩 3. 검색창 중앙 & 글쓰기 우측 배치 (Recommend 방식) */
+.footer-action-row {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    /* 글쓰기 버튼 absolute 기준 */
+    margin-top: 10px;
+}
+
+.search-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.search-select-box {
+    height: 46px;
+    padding: 0 15px;
+    border: 1px solid #ddd;
+    border-radius: 30px;
+    background-color: #fff;
+    font-size: 0.9rem;
+    outline: none;
+}
+
+.search-input-wrapper {
+    display: flex;
+    align-items: center;
+    height: 46px;
+    border: 1px solid #ddd;
+    border-radius: 30px;
+    padding: 3px 5px 3px 15px;
+    background: #fff;
+}
+
+.search-input-wrapper input {
+    border: none;
+    outline: none;
+    width: 250px;
+    font-size: 0.9rem;
+}
+
+/* 버튼 글자 깨짐 방지 및 공통 스타일 */
+.btn-search,
+.btn-write-footer {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #2c3e50;
+    color: #fff;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-search {
+    padding: 8px 22px;
+    border-radius: 20px;
+}
+
+.btn-write-footer {
+    position: absolute;
+    right: 0;
+    padding: 12px 28px;
+    border-radius: 30px;
+    font-size: 0.95rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.btn-search:hover,
+.btn-write-footer:hover {
+    background-color: #1a252f;
+}
+
+/* 🚩 4. 상세 페이지 스타일 */
+.detail-card {
+    background: white;
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.detail-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.detail-meta {
+    display: flex;
+    gap: 15px;
+    color: #95a5a6;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #f1f4f7;
+}
+
+.detail-content {
+    line-height: 1.8;
+    min-height: 350px;
+}
+
+.detail-content img {
+    max-width: 100%;
+    border-radius: 12px;
+    margin: 20px 0;
+}

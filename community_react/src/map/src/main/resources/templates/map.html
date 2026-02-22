@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>3월 6일 지구 종말</title>
+    
+    <style>
+        #map { width: 100%; height: 600px; } /* 지도가 보이기 위한 필수 높이 */
+        .search-box { margin-bottom: 10px; padding: 10px; background: #f8f9fa; }
+        
+     .category-container { position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; gap: 5px; }
+   	 .category-btn { padding: 8px 12px; background: #fff; border: 1px solid #ccc; border-radius: 20px; cursor: pointer; font-size: 13px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+     .category-btn:hover { background: #f0f0f0; }
+     .category-btn.active { background: #fee500; border-color: #f7e600; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="category-container">
+    <button class="category-btn" onclick="searchByCategory('AT4', this)">🏖️ 여행지</button>
+    <button class="category-btn" onclick="searchByCategory('FD6', this)">🍴 음식점</button>
+    <button class="category-btn" onclick="searchByCategory('AD5', this)">🏨 숙박시설</button>
+</div>
+
+<div class="search-box">
+    <input type="text" id="keyword" placeholder="장소 입력 (예: 부산역)" onkeypress="if(event.keyCode==13) searchPlaces()">
+    <button onclick="searchPlaces()">검색</button>
+</div>
+<div id="map"></div>
+
+<script type="text/javascript"  src="//dapi.kakao.com/v2/maps/sdk.js?appkey=0fe7c7a264f9456db151ae55939175a2&libraries=services"></script>
+
+<script>
+var mapContainer = document.getElementById('map'), 
+    mapOption = { center: new kakao.maps.LatLng(37.56682, 126.97865), level: 3 };  
+
+var map = new kakao.maps.Map(mapContainer, mapOption); 
+var ps = new kakao.maps.services.Places(); 
+var infowindow = new kakao.maps.InfoWindow({zIndex:1});
+var markers = [];
+
+function searchPlaces() {
+    var keyword = document.getElementById('keyword').value;
+    if (!keyword.trim()) { alert('검색어를 입력하세요!'); return; }
+    ps.keywordSearch(keyword, placesSearchCB); 
+}
+
+function placesSearchCB(data, status) {
+    if (status === kakao.maps.services.Status.OK) {
+        removeMarkers();
+        var bounds = new kakao.maps.LatLngBounds();
+        for (var i=0; i<data.length; i++) {
+            displayMarker(data[i]);    
+            bounds.extend(new kakao.maps.LatLng(data[i].y, data[i].x));
+        }       
+        map.setBounds(bounds);
+    } else {
+        alert('검색 결과가 없습니다.');
+    }
+}
+
+// [핵심] 마커 생성 및 클릭 이벤트 연결 함수
+function displayMarker(place) {
+    var marker = new kakao.maps.Marker({
+        map: map,
+        position: new kakao.maps.LatLng(place.y, place.x) 
+    });
+    markers.push(marker);
+
+    // 마커 클릭 시 인포윈도우를 띄우는 이벤트를 등록합니다
+    kakao.maps.event.addListener(marker, 'click', function() {
+        // 상세 정보창 내용 구성 (가장 안전한 문자열 결합 방식)
+        var content = '<div style="padding:10px; min-width:200px; line-height:1.5;">' +
+                      '    <strong style="color:#2db400;">' + place.place_name + '</strong><br>' +
+                      '    <span style="font-size:12px; color:#666;">' + (place.road_address_name || place.address_name) + '</span><br>' +
+                      '    <span style="font-size:12px; color:#09f;">' + (place.phone || "전화번호 없음") + '</span><br>' +
+                      '    <hr style="margin:5px 0; border:0; border-top:1px solid #eee;">' +
+                      '    <a href="' + place.place_url + '" target="_blank" style="font-size:12px; color:blue; text-decoration:none;">상세보기 ></a>' +
+                      '</div>';
+
+        infowindow.setContent(content);
+        infowindow.open(map, marker);
+    });
+}
+
+function removeMarkers() {
+    for (var i = 0; i < markers.length; i++) { markers[i].setMap(null); }
+    markers = [];
+}
+
+function searchByCategory(categoryCode, element) {
+    // 1. 버튼 활성화 상태 표시 (UI 피드백)
+    var btns = document.querySelectorAll('.category-btn');
+    btns.forEach(function(btn) { btn.style.background = '#fff'; });
+    element.style.background = '#fee500';
+
+    // 2. 현재 지도 중심과 범위를 기준으로 카테고리 검색 수행
+    // { useMapBounds: true } 옵션이 현재 화면 안의 장소만 찾아줍니다.
+    ps.categorySearch(categoryCode, function(data, status) {
+        if (status === kakao.maps.services.Status.OK) {
+            // 기존 마커들을 모두 지웁니다
+            removeMarkers(); 
+
+            for (var i = 0; i < data.length; i++) {
+                displayMarker(data[i]);
+                // 💡 [중요] map.setBounds(bounds) 코드를 삭제했습니다.
+                // 이 코드가 없어야 현재 보고 있는 지도의 위치와 확대 수준이 유지됩니다.
+            }
+        } else if (status === kakao.maps.services.Status.ZERO_RESULT) {
+            alert('현재 화면 범위 내에 해당 장소가 없습니다.');
+        }
+    }, { useMapBounds: true }); 
+}
+</script>
+</body>
+</html>

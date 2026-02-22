@@ -1,12 +1,11 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.4.2' // 🚩 4.0.2 대신 현재 가장 안정적인 3.x 버전 권장
+    id 'org.springframework.boot' version '3.4.2'
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
 group = 'kr.hi'
 version = '0.0.1-SNAPSHOT'
-description = 'Travel Community Project'
 
 java {
     toolchain {
@@ -47,7 +46,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     // [Database & ORM]
-    // 🚩 JPA와 MyBatis를 동시에 사용하는 구성입니다.
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
     runtimeOnly 'com.mysql:mysql-connector-j'
@@ -61,6 +59,11 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
+    // [Servlet API]
+    // 🚩 추가 사유: Spring Boot 3.x 이상 버전에서 Cookie, HttpServletRequest 등을 
+    // 서비스 계층(Service Layer)에서 직접 사용하기 위해 jakarta 서블릿 API 라이브러리를 추가합니다.
+    compileOnly 'jakarta.servlet:jakarta.servlet-api'
+
     // [Test]
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
@@ -70,4 +73,8 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+tasks.withType(JavaCompile) {
+    options.compilerArgs << '-parameters'
 }

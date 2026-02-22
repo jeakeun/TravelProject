@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="kr.hi.travel_community.mapper.RecommendPostMapper">
+
+    <select id="checkHistory" resultType="int">
+        SELECT COUNT(*) FROM history WHERE ht_po_num = #{poNum} AND ht_me_num = #{mbNum}
+    </select>
+
+    <update id="updateViewCount">
+        UPDATE post SET po_view = po_view + 1 WHERE po_num = #{poNum}
+    </update>
+
+    <insert id="insertHistory">
+        INSERT INTO history (ht_po_num, ht_me_num, ht_time) VALUES (#{poNum}, #{mbNum}, NOW())
+    </insert>
+
+    <select id="getPostById" resultType="kr.hi.travel_community.model.dto.RecommendDTO">
+        SELECT po_num AS poNum, po_title AS poTitle, po_content AS poContent, 
+               po_date AS poDate, po_view AS poView, po_mb_num AS poMbNum, po_cg_num AS poCgNum
+        FROM post WHERE po_num = #{poNum} AND po_del = 'N'
+    </select>
+
+    <select id="getPostList" resultType="kr.hi.travel_community.model.dto.RecommendDTO">
+        SELECT po_num AS poNum, po_title AS poTitle, po_date AS poDate, 
+               po_view AS poView, po_mb_num AS poMbNum
+        FROM post WHERE po_cg_num = #{cgNum} AND po_del = 'N' ORDER BY po_num DESC
+    </select>
+
+</mapper>
