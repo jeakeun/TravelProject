@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Routes, Route, useNavigate, useLocation, Navigate, BrowserRouter as Router, Outlet } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate, Outlet } from 'react-router-dom';
 import axios from 'axios';
 
 // 스타일 및 컴포넌트 임포트
