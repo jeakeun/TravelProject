@@ -257,34 +257,47 @@
     padding-left: 20px !important;
 }
 
+/* 🚩 수정: 오른쪽 정렬을 제거하고 중앙 정렬로 변경하여 아이콘 깨짐 방지 */
 .stats-td {
-    text-align: right !important;
-    padding-right: 30px !important;
+    text-align: center !important; 
 }
 
+/* 🚩 수정: 아이콘과 숫자가 가로로 배치되도록 flex 설정 보강 */
 .stats-container {
-    display: inline-flex;
+    display: flex;
     gap: 15px;
+    justify-content: center;
     align-items: center;
 }
 
+/* 🚩 수정: 아이콘(❤️, 💬)이 나타나지 않던 문제 해결 (before 가상 요소 활용) */
 .stat-item {
     display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 13px;
+    gap: 6px;
+    font-size: 14px;
     font-weight: 700;
 }
 
+.stat-item.likes::before {
+    content: "❤️";
+    font-size: 14px;
+}
+
+.stat-item.comment::before {
+    content: "💬";
+    font-size: 14px;
+}
+
 .stat-item.comment {
-    color: #888;
+    color: #1890ff; /* 파란색으로 변경하여 시각적 구분 */
 }
 
 .stat-item.likes {
-    color: #e74c3c;
+    color: #e74c3c; /* 빨간색 유지 */
 }
 
-/* [4. 하단 페이지네이션 및 검색 영역 수정] */
+/* [4. 하단 페이지네이션 및 검색 영역] */
 .list-pagination-area {
     margin-top: 40px;
     display: flex;
@@ -318,7 +331,6 @@
     border-color: #2c3e50;
 }
 
-/* 🚩 배치 최적화: 검색창을 더 왼쪽으로 밀어 정중앙 정렬 */
 .footer-action-row {
     width: 100%;
     display: flex;
@@ -332,9 +344,7 @@
     display: flex;
     align-items: center;
     gap: 15px;
-    /* 🚩 카테고리와 검색창 사이 분리 간격 */
     margin-right: 120px;
-    /* 🚩 뭉치 전체를 왼쪽으로 밀어 검색창을 중앙에 맞춤 */
 }
 
 .search-select-box {
@@ -342,7 +352,6 @@
     padding: 0 15px;
     border: 1px solid #ddd;
     border-radius: 30px;
-    /* 둥근 디자인 유지 */
     background-color: #fff;
     font-size: 0.9rem;
     color: #333;

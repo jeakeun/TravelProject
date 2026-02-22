@@ -1,80 +1,145 @@
 package kr.hi.travel_community.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import java.time.LocalDateTime;
+import java.util.*;
+
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import kr.hi.travel_community.entity.Comment;
+import kr.hi.travel_community.entity.CommentLike;
+import kr.hi.travel_community.entity.Member;
 import kr.hi.travel_community.repository.CommentRepository;
-
-import java.util.List;
+import kr.hi.travel_community.repository.MemberRepository;
+import kr.hi.travel_community.repository.CommentLikeRepository;
+import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/comments")
+@RequestMapping("/api/comment")
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+@RequiredArgsConstructor
 public class CommentController {
 
-    @Autowired
-    private CommentRepository commentRepository;
+    private final CommentRepository commentRepository;
+    private final MemberRepository memberRepository;
+    private final CommentLikeRepository commentLikeRepository;
 
-    // 1. 댓글 등록 (대댓글 로직 및 DB 제약 조건 해결)
-    @PostMapping
-    @Transactional // 🚩 1차 저장 후 업데이트를 수행하므로 트랜잭션이 필수입니다.
-    public ResponseEntity<?> addComment(@RequestBody Comment comment) {
-        try {
-            // [로직 설명]
-            // 일반 댓글(부모 없음)은 리액트에서 0을 보내도록 약속했습니다.
-            // DB의 co_ori_num이 자기 참조 FK이므로, 존재하지 않는 번호(0 등)를 넣으면 에러가 납니다.
-            // 따라서 일반 댓글은 일단 null로 저장하여 제약을 피합니다.
-            
-            boolean isGeneralComment = (comment.getParentId() == null || comment.getParentId() == 0);
+    // 🚩 [수정] Repository 메서드명 일치 (OrderByCoDateAsc 추가)
+    @GetMapping("/list/{postId}")
+    public ResponseEntity<List<Comment>> getComments(
+            @PathVariable("postId") Integer postId,
+            @RequestParam(value = "type", defaultValue = "RECOMMEND") String type){
+        
+        return ResponseEntity.ok(commentRepository.findByCoPoNumAndCoPoTypeAndCoDelOrderByCoDateAsc(postId, type, "N"));
+    }
 
-            if (isGeneralComment) {
-                comment.setParentId(null); 
+    @PostMapping("/add/{postId}")
+    public ResponseEntity<?> addComment(@PathVariable("postId") Integer postId,
+                                        @RequestBody Map<String, Object> payload){
+        
+        // 실제 운영시는 세션에서 가져와야 함 (현재는 테스트용 1번 멤버)
+        Integer mbNum = 1; 
+        Member member = memberRepository.findById(mbNum).orElse(null); 
+        if(member == null) return ResponseEntity.status(401).body(Map.of("error","로그인 필요"));
+
+        String content = (String) payload.get("content");
+        String type = (String) payload.getOrDefault("type", "RECOMMEND");
+        
+        Integer parentId = null;
+        Object parentIdObj = payload.get("parentId");
+        if (parentIdObj != null) {
+            try {
+                parentId = Integer.parseInt(parentIdObj.toString());
+                if (parentId == 0) parentId = null;
+            } catch (NumberFormatException e) {
+                parentId = null;
             }
-
-            // 1단계: 댓글 저장 (co_num 생성 시점)
-            // 일반 댓글이라면 co_ori_num에 null이 들어가며 DB 제약 조건을 통과합니다.
-            Comment saved = commentRepository.save(comment);
-
-            // 2단계: 일반 댓글인 경우, 생성된 본인의 id(co_num)를 부모 번호(co_ori_num)로 설정
-            if (isGeneralComment) {
-                saved.setParentId(saved.getId());
-                // JPA의 더티 체킹(Dirty Checking) 또는 재저장을 통해 업데이트 수행
-                commentRepository.save(saved); 
-            }
-
-            return ResponseEntity.ok(saved);
-        } catch (Exception e) {
-            e.printStackTrace();
-            // 콘솔에 찍힌 상세 에러를 응답 바디에 담아 보냅니다.
-            return ResponseEntity.internalServerError().body("댓글 저장 실패: " + e.getMessage());
         }
+        
+        // 🚩 [수정] Comment 엔티티의 필드명(coPoNum, coPoType, coMbNum)에 맞춰 빌더 구성
+        Comment comment = Comment.builder()
+                .coContent(content)
+                .coDate(LocalDateTime.now())
+                .coLike(0)
+                .coDel("N")
+                .coOriNum(parentId)
+                .coPoNum(postId)
+                .coPoType(type)
+                .coMbNum(member.getMbNum()) 
+                .build();
+                
+        commentRepository.save(comment);
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("coNum", comment.getCoNum());
+        response.put("msg", "댓글 작성 완료");
+        return ResponseEntity.ok(response);
     }
 
-    // 2. 댓글 목록 조회
-    @GetMapping("/post/{postId}")
-    public List<Comment> getComments(@PathVariable("postId") Integer postId) {
-        // 해당 게시글의 모든 댓글을 작성 순으로 가져옵니다.
-        return commentRepository.findByPostIdOrderByCreatedAtAsc(postId);
+    @PutMapping("/update/{commentId}")
+    public ResponseEntity<?> updateComment(@PathVariable("commentId") Integer commentId,
+                                           @RequestBody Map<String, String> payload){
+        Comment comment = commentRepository.findById(commentId).orElse(null);
+        if(comment == null) return ResponseEntity.status(404).body(Map.of("error","댓글 없음"));
+
+        comment.setCoContent(payload.get("content"));
+        commentRepository.save(comment);
+        return ResponseEntity.ok(Map.of("msg","수정 완료"));
     }
 
-    // 3. 신고하기
-    @PostMapping("/report/{id}")
-    public ResponseEntity<?> reportComment(@PathVariable("id") Integer id) {
-        // 신고 로직 (필요 시 구현)
-        return ResponseEntity.ok("신고 접수 완료: " + id);
+    @DeleteMapping("/delete/{commentId}")
+    public ResponseEntity<?> deleteComment(@PathVariable("commentId") Integer commentId){
+        Comment comment = commentRepository.findById(commentId).orElse(null);
+        if(comment == null) return ResponseEntity.status(404).body(Map.of("error","댓글 없음"));
+
+        comment.setCoDel("Y");
+        commentRepository.save(comment);
+        return ResponseEntity.ok(Map.of("msg","삭제 완료"));
     }
-    
-    @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteComment(@PathVariable("id") Integer id) {
-        try {
-            // 실제로는 삭제 처리(isDel = 'Y')를 하는 것이 좋습니다.
-            commentRepository.deleteById(id);
-            return ResponseEntity.ok("삭제 완료");
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("삭제 실패");
+
+    // 🚩 [수정] CommentLike 처리 로직
+    @PostMapping("/like/{commentId}")
+    public ResponseEntity<?> likeComment(@PathVariable("commentId") Integer commentId, 
+                                         @RequestBody Map<String, Integer> payload) {
+        Integer mbNum = payload.get("mbNum");
+        if (mbNum == null || mbNum == 0) {
+            return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요한 서비스 입니다"));
         }
+
+        Comment comment = commentRepository.findById(commentId).orElse(null);
+        Member member = memberRepository.findById(mbNum).orElse(null);
+        
+        if(comment == null || member == null) return ResponseEntity.status(404).build();
+
+        // [주의] CommentLikeRepository에 findByMemberAndComment가 정의되어 있어야 함
+        Optional<CommentLike> existingLike = commentLikeRepository.findByMemberAndComment(member, comment);
+        Map<String, Object> response = new HashMap<>();
+
+        if (existingLike.isPresent()) {
+            commentLikeRepository.delete(existingLike.get());
+            int currentLikes = (comment.getCoLike() == null) ? 0 : comment.getCoLike();
+            comment.setCoLike(Math.max(0, currentLikes - 1));
+            response.put("status", "unliked");
+        } else {
+            CommentLike newLike = CommentLike.builder()
+                    .member(member)
+                    .comment(comment)
+                    .build();
+            commentLikeRepository.save(newLike);
+            int currentLikes = (comment.getCoLike() == null) ? 0 : comment.getCoLike();
+            comment.setCoLike(currentLikes + 1);
+            response.put("status", "liked");
+        }
+        
+        commentRepository.save(comment);
+        response.put("count", comment.getCoLike());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/report/{commentId}")
+    public ResponseEntity<?> reportComment(@PathVariable("commentId") Integer commentId, 
+                                           @RequestBody Map<String, Object> payload) {
+        // 신고 로직 구현부 (필요시 report_box 테이블 연동)
+        return ResponseEntity.ok(Map.of("msg", "신고 접수 완료"));
     }
 }
