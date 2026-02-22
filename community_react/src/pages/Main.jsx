@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import "./Main.css";
-import { Link, useOutletContext } from "react-router-dom";
+import { Link, useOutletContext, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 
 const carouselTranslations = {
@@ -26,16 +26,47 @@ const carouselTranslations = {
     rank_main_title: "本月目的地排名",
     dest1_name: "01. 巴厘岛，印度尼西亚", dest1_desc: "在众神之岛享受完美的休闲",
     dest2_name: "02. 冰岛", dest2_desc: "大自然的惊奇，极光狩猎",
-    dest3_name: "03. 京都，日本", dest3_desc: "传统与现代共存的宁静城市"
+    dest3_name: "03. 京都，日本", dest3_desc: "传统与现代共存의 宁静城市"
   }
 };
 
 function Main() {
   const [carouselIndex, setCarouselIndex] = useState(0);
+  const navigate = useNavigate();
   const outletContext = useOutletContext() || {};
-  const { user, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang } = outletContext;
+  // 🚩 context에서 posts 데이터를 가져옵니다.
+  const { user, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang, posts = [] } = outletContext;
 
   const t = carouselTranslations[currentLang] || carouselTranslations["KR"];
+  const SERVER_URL = "http://localhost:8080";
+
+  // 🚩 [데이터 로직] 추천 게시판 1,2,3위 추출 (조회수 기준 정렬)
+  const topThree = useMemo(() => {
+    if (!Array.isArray(posts)) return [];
+    return [...posts]
+      .sort((a, b) => (b.poView || 0) - (a.poView || 0))
+      .slice(0, 3);
+  }, [posts]);
+
+  // 🚩 [이미지 로직] RecommendMain과 동일한 이미지 추출 함수
+  const getImageUrl = (post) => {
+    const defaultImg = "https://placehold.co/1200x800?text=No+Image";
+    if (!post) return defaultImg;
+    const { poImg, fileName, fileUrl, image, poContent } = post;
+    const targetUrl = poImg || fileName || fileUrl || image;
+
+    if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null") {
+      if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
+      const extractedName = String(targetUrl).split(/[\\/]/).pop();
+      return `${SERVER_URL}/pic/${extractedName}`;
+    }
+    if (poContent && typeof poContent === 'string') {
+      const imgRegex = /<img[^>]+src=["']([^"']+)["']/;
+      const match = poContent.match(imgRegex);
+      if (match && match[1]) return match[1];
+    }
+    return defaultImg; 
+  };
 
   // 3. 카러셀 로직
   const handlePrev = () => setCarouselIndex((prev) => (prev === 0 ? 2 : prev - 1));
@@ -45,8 +76,10 @@ function Main() {
   useEffect(() => {
     const handleScroll = () => {
       const header = document.querySelector('header');
-      if (window.scrollY > 50) header.classList.add('scrolled');
-      else header.classList.remove('scrolled');
+      if (header) { // null 체크 추가
+        if (window.scrollY > 50) header.classList.add('scrolled');
+        else header.classList.remove('scrolled');
+      }
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -81,27 +114,29 @@ function Main() {
         <h2>{t.rank_main_title}</h2>
         <div className="carousel-container">
           <div className="carousel-wrapper">
-            <div className={getCarouselClass(0)}>
-              <img src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e" alt="" />
-              <div className="item-info">
-                <h3>{t.dest1_name}</h3>
-                <p>{t.dest1_desc}</p>
-              </div>
-            </div>
-            <div className={getCarouselClass(1)}>
-              <img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee" alt="" />
-              <div className="item-info">
-                <h3>{t.dest2_name}</h3>
-                <p>{t.dest2_desc}</p>
-              </div>
-            </div>
-            <div className={getCarouselClass(2)}>
-              <img src="https://images.unsplash.com/photo-1493558103817-58b2924bce98" alt="" />
-              <div className="item-info">
-                <h3>{t.dest3_name}</h3>
-                <p>{t.dest3_desc}</p>
-              </div>
-            </div>
+            {/* 🚩 실시간 데이터 1~3위 렌더링 */}
+            {[0, 1, 2].map((idx) => {
+              const post = topThree[idx];
+              return (
+                <div 
+                  key={idx} 
+                  className={getCarouselClass(idx)}
+                  onClick={() => post && navigate(`/community/recommend/${post.poNum}`)}
+                  style={{ cursor: post ? 'pointer' : 'default' }}
+                >
+                  <img src={getImageUrl(post)} alt={post?.poTitle || "Ranking"} />
+                  <div className="item-info">
+                    {/* 데이터가 있으면 실제 제목/내용 표시, 없으면 기본 번역 텍스트 표시 */}
+                    <h3>{post ? `0${idx + 1}. ${post.poTitle}` : t[`dest${idx + 1}_name`]}</h3>
+                    <p>
+                      {post 
+                        ? (post.poContent?.replace(/<[^>]*>?/gm, '').substring(0, 40) + "...") 
+                        : t[`dest${idx + 1}_desc`]}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
           <button className="carousel-btn prev-btn" onClick={handlePrev}>❮</button>
           <button className="carousel-btn next-btn" onClick={handleNext}>❯</button>
