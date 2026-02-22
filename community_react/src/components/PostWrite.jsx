@@ -6,7 +6,6 @@ function PostWrite({ refreshPosts, activeMenu }) {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // 수정 모드 여부 확인
   const isEdit = location.state?.mode === 'edit';
   const existingPost = location.state?.postData;
 
@@ -16,7 +15,6 @@ function PostWrite({ refreshPosts, activeMenu }) {
   const editorRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // 🚩 [수정 로직] 페이지 로드 시 기존 데이터 채워넣기
   useEffect(() => {
     if (isEdit && existingPost) {
       setTitle(existingPost.poTitle || '');
@@ -25,18 +23,6 @@ function PostWrite({ refreshPosts, activeMenu }) {
       }
     }
   }, [isEdit, existingPost]);
-
-  const navyBtnStyle = {
-    backgroundColor: '#34495e', 
-    color: '#fff', 
-    padding: '12px 35px',
-    borderRadius: '25px', 
-    border: 'none', 
-    cursor: 'pointer', 
-    fontWeight: 'bold',
-    fontSize: '0.95rem',
-    transition: 'all 0.3s ease'
-  };
 
   const insertImageAtCursor = (base64Data) => {
     editorRef.current.focus();
@@ -75,18 +61,14 @@ function PostWrite({ refreshPosts, activeMenu }) {
     }
 
     const formData = new FormData();
-    formData.append('poTitle', title);
-    formData.append('poContent', htmlContent);
+    // 🚩 서버 @RequestParam 이름과 100% 일치시킵니다.
+    formData.append('title', title);
+    formData.append('content', htmlContent);
+    formData.append('mbNum', 1); // 실제 로그인 시스템이 없다면 테스트용 1
 
-    // 🚩 [수정 로직] 수정 시 기존 게시글 번호 추가
-    if (isEdit) {
-      formData.append('poNum', existingPost.poNum);
-    }
-
+    // 🚩 이미지 첨부 (서버가 단일 MultipartFile 'image'를 받는 경우)
     if (imageFiles.length > 0) {
-      imageFiles.forEach((file) => {
-        formData.append('images', file); 
-      });
+      formData.append('image', imageFiles[0]); 
     }
 
     const apiMap = {
@@ -96,9 +78,6 @@ function PostWrite({ refreshPosts, activeMenu }) {
     };
     
     const categoryPath = apiMap[activeMenu] || 'freeboard';
-    
-    // 🚩 [수정 로직] URL 및 메서드 분기
-    // 수정 시에는 /api/recommend/posts/{id} 로 PUT 요청
     const apiUrl = isEdit 
       ? `http://localhost:8080/api/${categoryPath}/posts/${existingPost.poNum}`
       : `http://localhost:8080/api/${categoryPath}/posts`;
@@ -119,9 +98,22 @@ function PostWrite({ refreshPosts, activeMenu }) {
       }
     } catch (error) {
       console.error("저장 실패:", error);
-      const errorMsg = error.response?.data?.message || error.response?.data || "서버 저장 중 오류가 발생했습니다.";
-      alert(`저장 실패: ${errorMsg}`);
+      // 400 에러 발생 시 상세 이유를 출력하도록 함
+      const errorDetail = error.response?.data?.error || error.response?.data || "알 수 없는 오류";
+      alert(`저장 실패: ${errorDetail}`);
     }
+  };
+
+  const navyBtnStyle = {
+    backgroundColor: '#34495e', 
+    color: '#fff', 
+    padding: '12px 35px',
+    borderRadius: '25px', 
+    border: 'none', 
+    cursor: 'pointer', 
+    fontWeight: 'bold',
+    fontSize: '0.95rem',
+    transition: 'all 0.3s ease'
   };
 
   return (
@@ -163,7 +155,7 @@ function PostWrite({ refreshPosts, activeMenu }) {
             📷 사진 첨부
           </button>
           <p style={{ color: '#888', fontSize: '0.85rem', marginTop: '10px' }}>
-            * 버튼을 누르면 커서가 위치한 곳에 사진이 첨부됩니다. 사진을 클릭하여 삭제하거나 위치를 조정할 수 있습니다.
+            * 버튼을 누르면 커서가 위치한 곳에 사진이 첨부됩니다.
           </p>
           <input 
             type="file" 

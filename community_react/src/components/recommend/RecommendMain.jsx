@@ -40,11 +40,13 @@ const RecommendMain = ({ posts = [] }) => {
         return [...posts].sort((a, b) => new Date(b.poDate) - new Date(a.poDate));
     }, [posts]);
 
+    // 🚩 내용 검색 로직(content) 추가
     const filteredList = useMemo(() => 
         listData.filter(p => {
             const term = finalSearchTerm.toLowerCase();
             if (!term) return true;
             if (searchCategory === 'title') return p.poTitle?.toLowerCase().includes(term);
+            if (searchCategory === 'content') return p.poContent?.toLowerCase().includes(term); // 추가됨
             if (searchCategory === 'user') return `user ${p.poMbNum}`.toLowerCase().includes(term);
             if (searchCategory === 'titleContent') return p.poTitle?.toLowerCase().includes(term) || (p.poContent && p.poContent.toLowerCase().includes(term));
             return true;
@@ -77,7 +79,7 @@ const RecommendMain = ({ posts = [] }) => {
         backgroundColor: '#2c3e50',
         color: '#fff',
         border: 'none',
-        borderRadius: '20px', // 🚩 이전/다음 버튼 둥글게 변경
+        borderRadius: '20px',
         padding: '0 20px',
         height: '34px',
         fontSize: '14px',
@@ -167,7 +169,7 @@ const RecommendMain = ({ posts = [] }) => {
                                 key={i+1} 
                                 onClick={() => setCurrentPage(i+1)}
                                 style={{
-                                    width: '34px', height: '34px', borderRadius: '50%', // 🚩 숫자 버튼도 동그랗게 변경
+                                    width: '34px', height: '34px', borderRadius: '50%',
                                     backgroundColor: currentPage === i+1 ? '#2c3e50' : '#fff',
                                     color: currentPage === i+1 ? '#fff' : '#2c3e50',
                                     border: '1px solid #2c3e50', cursor: 'pointer', fontWeight: 'bold',
@@ -195,8 +197,9 @@ const RecommendMain = ({ posts = [] }) => {
                         <div className="search-footer">
                             <select className="search-select-box" value={searchCategory} onChange={(e) => setSearchCategory(e.target.value)}>
                                 <option value="title">제목</option>
-                                <option value="user">작성자</option>
+                                <option value="content">내용</option>
                                 <option value="titleContent">제목+내용</option>
+                                <option value="user">작성자</option>
                             </select>
                             <div className="search-input-wrapper">
                                 <input type="text" placeholder="검색어 입력" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSearch()} />

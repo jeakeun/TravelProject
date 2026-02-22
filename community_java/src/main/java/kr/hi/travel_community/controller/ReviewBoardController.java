@@ -1,106 +1,106 @@
 package kr.hi.travel_community.controller;
 
-import kr.hi.travel_community.entity.Photo;
-import kr.hi.travel_community.entity.Post;
-import kr.hi.travel_community.repository.PhotoRepository;
-import kr.hi.travel_community.repository.PostRepository;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import kr.hi.travel_community.entity.ReviewPost;
+import kr.hi.travel_community.service.ReviewPostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/reviewboard") // 후기게시판 전용 경로
+@RequestMapping("/api/reviewboard")
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 @RequiredArgsConstructor
 public class ReviewBoardController {
 
-    private final PostRepository postRepository;
-    private final PhotoRepository photoRepository;
+    private final ReviewPostService reviewPostService;
 
-    private final String uploadDir = System.getProperty("user.dir") + File.separator + "uploads" + File.separator + "pic" + File.separator;
-
-    // 후기 목록 조회
+    /**
+     * 🚩 검색 기능 통합
+     * 파라미터가 없으면 전체 목록을, type과 keyword가 있으면 검색 목록을 반환합니다.
+     */
     @GetMapping("/posts")
-    public List<Map<String,Object>> getList() {
-        return postRepository.findAll().stream()
-                .filter(p -> p.getPoCgNum() == 2 && "N".equals(p.getPoDel())) // 카테고리 2번 필터링
-                .map(this::convertToMap)
-                .sorted((a,b) -> ((Integer)b.get("postId")).compareTo((Integer)a.get("postId")))
-                .collect(Collectors.toList());
+    public List<Map<String, Object>> getList(
+            @RequestParam(value = "type", required = false) String type,
+            @RequestParam(value = "keyword", required = false) String keyword) {
+        
+        // 검색 조건이 넘어온 경우 검색 서비스 호출
+        if (type != null && keyword != null && !keyword.trim().isEmpty()) {
+            return reviewPostService.searchPosts(type, keyword);
+        }
+        
+        // 기본 상태: 전체 목록 반환
+        return reviewPostService.getRealAllPosts();
     }
 
-    // 후기 상세 조회
     @GetMapping("/posts/{id}")
-    public ResponseEntity<Map<String,Object>> getDetail(@PathVariable Integer id){
-        return postRepository.findById(id)
-                .map(post -> {
-                    postRepository.updateViewCount(post.getPoNum());
-                    return ResponseEntity.ok(convertToMap(post));
-                })
-                .orElseGet(() -> ResponseEntity.status(404).body(Map.of("error","게시글 없음")));
+    public ResponseEntity<?> getDetail(@PathVariable("id") Integer id,
+                                       @RequestParam(value = "mbNum", required = false) Integer mbNum,
+                                       HttpServletRequest request,
+                                       HttpServletResponse response) {
+        reviewPostService.increaseViewCount(id, request, response);
+        
+        Integer currentUserNum = (mbNum != null) ? mbNum : 1;
+        Map<String, Object> postData = reviewPostService.getPostDetailWithImage(id, currentUserNum);
+        
+        return postData != null 
+                ? ResponseEntity.ok(postData) 
+                : ResponseEntity.status(404).body(Map.of("error", "게시글 없음"));
     }
 
-    // 후기 글 작성
     @PostMapping("/posts")
-    public ResponseEntity<Map<String,Object>> create(@RequestParam String title,
-                                                     @RequestParam String content,
-                                                     @RequestParam(required = false) MultipartFile image){
+    public ResponseEntity<?> create(@RequestParam("title") String title,
+                                    @RequestParam("content") String content,
+                                    @RequestParam("mbNum") Integer mbNum,
+                                    @RequestParam(value = "image", required = false) MultipartFile image) {
         try {
-            // 🚩 Builder 에러 해결: new Post()와 Setter 사용
-            Post post = new Post();
+            ReviewPost post = new ReviewPost();
             post.setPoTitle(title);
             post.setPoContent(content);
-            post.setPoCgNum(2); // 여행후기 카테고리 고정
-            post.setPoMbNum(1); // 임시 작성자 번호
-            post.setPoView(0);
-            post.setPoUp(0);
-            post.setPoDel("N");
-            post.setPoDate(LocalDateTime.now());
+            post.setPoMbNum(mbNum);
             
-            Post savedPost = postRepository.save(post);
-
-            if(image != null && !image.isEmpty()){
-                File dir = new File(uploadDir);
-                if(!dir.exists()) dir.mkdirs();
-                String name = UUID.randomUUID() + "_" + image.getOriginalFilename();
-                image.transferTo(new File(uploadDir + name));
-                photoRepository.save(new Photo(image.getOriginalFilename(), name, savedPost.getPoNum()));
-            }
-
-            return ResponseEntity.ok(convertToMap(savedPost));
-        } catch(Exception e){
-            e.printStackTrace();
-            return ResponseEntity.internalServerError().body(Map.of("error","등록 실패"));
+            List<MultipartFile> images = (image != null) ? List.of(image) : Collections.emptyList();
+            reviewPostService.savePost(post, images);
+            
+            return ResponseEntity.ok("Success");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "등록 실패: " + e.getMessage()));
         }
     }
 
-    // 🚩 추천 기능은 추후 전용 Service 구현 시 추가 가능하도록 비워둠
-    /*
-    @PostMapping("/posts/{id}/like")
-    public ResponseEntity<?> toggleLike(@PathVariable Integer id, @RequestBody Map<String, Object> data) {
-        return ResponseEntity.ok(Map.of("status", "ReviewBoard 추천 로직 필요"));
+    @PutMapping("/posts/{id}")
+    public ResponseEntity<?> update(@PathVariable("id") Integer id,
+                                    @RequestParam("title") String title,
+                                    @RequestParam("content") String content,
+                                    @RequestParam(value = "image", required = false) MultipartFile image) {
+        try {
+            List<MultipartFile> images = (image != null) ? List.of(image) : null;
+            reviewPostService.updatePost(id, title, content, images);
+            return ResponseEntity.ok("Updated Success");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "수정 실패"));
+        }
     }
-    */
 
-    private Map<String,Object> convertToMap(Post post){
-        Optional<Photo> photoOpt = photoRepository.findFirstByPhPoNumOrderByPhNumDesc(post.getPoNum());
-        String fileUrl = photoOpt.map(p -> "http://localhost:8080/pic/" + p.getPhName()).orElse("https://placehold.co");
-        
-        Map<String, Object> map = new HashMap<>();
-        map.put("postId", post.getPoNum());
-        map.put("poNum", post.getPoNum());
-        map.put("poTitle", post.getPoTitle());
-        map.put("poContent", post.getPoContent());
-        map.put("poView", post.getPoView());
-        map.put("poUp", post.getPoUp() != null ? post.getPoUp() : 0);
-        map.put("poDate", post.getPoDate());
-        map.put("fileUrl", fileUrl);
-        return map;
+    @DeleteMapping("/posts/{id}")
+    public ResponseEntity<?> delete(@PathVariable("id") Integer id) {
+        try {
+            reviewPostService.deletePost(id);
+            return ResponseEntity.ok("Deleted Success");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "삭제 실패"));
+        }
+    }
+
+    @PostMapping("/posts/{id}/like")
+    public ResponseEntity<?> toggleLike(@PathVariable("id") Integer id, @RequestBody Map<String, Object> data) {
+        Object mbNumObj = data.get("mbNum");
+        int mbNum = (mbNumObj != null) ? Integer.parseInt(mbNumObj.toString()) : 1;
+        String status = reviewPostService.toggleLikeStatus(id, mbNum);
+        return ResponseEntity.ok(Map.of("status", status));
     }
 }

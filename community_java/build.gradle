@@ -47,6 +47,11 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
+    // [Servlet API]
+    // 🚩 추가 사유: Spring Boot 3.x 이상 버전에서 Cookie, HttpServletRequest 등을 
+    // 서비스 계층(Service Layer)에서 직접 사용하기 위해 jakarta 서블릿 API 라이브러리를 추가합니다.
+    compileOnly 'jakarta.servlet:jakarta.servlet-api'
+
     // [Test]
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
@@ -55,7 +60,7 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
-    
+}
 
 tasks.withType(JavaCompile) {
     options.compilerArgs << '-parameters'

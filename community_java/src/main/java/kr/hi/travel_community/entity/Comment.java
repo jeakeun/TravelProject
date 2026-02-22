@@ -2,6 +2,7 @@ package kr.hi.travel_community.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
@@ -19,6 +20,7 @@ public class Comment {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String coContent;
 
+    @CreationTimestamp
     private LocalDateTime coDate;
 
     @Builder.Default
@@ -27,15 +29,21 @@ public class Comment {
     @Builder.Default
     private String coDel = "N";
 
-    // 🚩 수정 포인트: 일반 댓글일 경우 DB 외래키 제약조건을 통과하기 위해 null 허용
     @Column(name = "co_ori_num")
     private Integer coOriNum;
 
-    @ManyToOne
-    @JoinColumn(name = "co_po_num")
-    private Post post;
+    // 🚩 [수정] Post 엔티티 대신 게시글 번호와 타입을 저장합니다.
+    @Column(name = "co_po_num", nullable = false)
+    private Integer coPoNum;
 
-    @ManyToOne
-    @JoinColumn(name = "co_mb_num")
-    private Member member;
+    @Column(name = "co_po_type", nullable = false)
+    private String coPoType; // "RECOMMEND", "FREE", "REVIEW" 등
+
+    @Column(name = "co_mb_num", nullable = false)
+    private Integer coMbNum;
+    
+    // Member 엔티티와 관계가 유지되어야 한다면 아래 주석을 해제하고 위 coMbNum을 지우세요.
+    // @ManyToOne
+    // @JoinColumn(name = "co_mb_num")
+    // private Member member;
 }

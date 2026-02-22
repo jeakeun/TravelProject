@@ -1,10 +1,7 @@
 package kr.hi.travel_community.controller;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.HashMap;
-import java.util.Optional;
+import java.util.*;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,10 +9,8 @@ import org.springframework.web.bind.annotation.*;
 import kr.hi.travel_community.entity.Comment;
 import kr.hi.travel_community.entity.CommentLike;
 import kr.hi.travel_community.entity.Member;
-import kr.hi.travel_community.entity.Post;
 import kr.hi.travel_community.repository.CommentRepository;
 import kr.hi.travel_community.repository.MemberRepository;
-import kr.hi.travel_community.repository.PostRepository;
 import kr.hi.travel_community.repository.CommentLikeRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -26,26 +21,30 @@ import lombok.RequiredArgsConstructor;
 public class CommentController {
 
     private final CommentRepository commentRepository;
-    private final PostRepository postRepository;
     private final MemberRepository memberRepository;
     private final CommentLikeRepository commentLikeRepository;
 
+    // 🚩 [수정] Repository 메서드명 일치 (OrderByCoDateAsc 추가)
     @GetMapping("/list/{postId}")
-    public ResponseEntity<List<Comment>> getComments(@PathVariable("postId") Integer postId){
-        // coDel이 "N"인 댓글만 가져오는 기존 로직 유지
-        return ResponseEntity.ok(commentRepository.findByPostPoNumAndCoDelOrderByCoDateAsc(postId,"N"));
+    public ResponseEntity<List<Comment>> getComments(
+            @PathVariable("postId") Integer postId,
+            @RequestParam(value = "type", defaultValue = "RECOMMEND") String type){
+        
+        return ResponseEntity.ok(commentRepository.findByCoPoNumAndCoPoTypeAndCoDelOrderByCoDateAsc(postId, type, "N"));
     }
 
     @PostMapping("/add/{postId}")
     public ResponseEntity<?> addComment(@PathVariable("postId") Integer postId,
                                         @RequestBody Map<String, Object> payload){
-        // 실제 운영 시 시큐리티 세션 등을 사용해야 하지만 기존 로직(id=1) 유지
-        Member member = memberRepository.findById(1).orElse(null); 
+        
+        // 실제 운영시는 세션에서 가져와야 함 (현재는 테스트용 1번 멤버)
+        Integer mbNum = 1; 
+        Member member = memberRepository.findById(mbNum).orElse(null); 
         if(member == null) return ResponseEntity.status(401).body(Map.of("error","로그인 필요"));
 
         String content = (String) payload.get("content");
+        String type = (String) payload.getOrDefault("type", "RECOMMEND");
         
-        // 🚩 안정적인 parentId 추출 로직
         Integer parentId = null;
         Object parentIdObj = payload.get("parentId");
         if (parentIdObj != null) {
@@ -57,22 +56,20 @@ public class CommentController {
             }
         }
         
-        Post post = postRepository.findById(postId).orElse(null);
-        if(post == null) return ResponseEntity.status(404).body(Map.of("error","게시글 없음"));
-
+        // 🚩 [수정] Comment 엔티티의 필드명(coPoNum, coPoType, coMbNum)에 맞춰 빌더 구성
         Comment comment = Comment.builder()
                 .coContent(content)
                 .coDate(LocalDateTime.now())
                 .coLike(0)
                 .coDel("N")
                 .coOriNum(parentId)
-                .post(post)
-                .member(member) 
+                .coPoNum(postId)
+                .coPoType(type)
+                .coMbNum(member.getMbNum()) 
                 .build();
                 
         commentRepository.save(comment);
         
-        // 🚩 순환 참조 에러 방지를 위해 필요한 정보만 담은 Map 반환
         Map<String, Object> response = new HashMap<>();
         response.put("coNum", comment.getCoNum());
         response.put("msg", "댓글 작성 완료");
@@ -100,6 +97,7 @@ public class CommentController {
         return ResponseEntity.ok(Map.of("msg","삭제 완료"));
     }
 
+    // 🚩 [수정] CommentLike 처리 로직
     @PostMapping("/like/{commentId}")
     public ResponseEntity<?> likeComment(@PathVariable("commentId") Integer commentId, 
                                          @RequestBody Map<String, Integer> payload) {
@@ -113,12 +111,12 @@ public class CommentController {
         
         if(comment == null || member == null) return ResponseEntity.status(404).build();
 
+        // [주의] CommentLikeRepository에 findByMemberAndComment가 정의되어 있어야 함
         Optional<CommentLike> existingLike = commentLikeRepository.findByMemberAndComment(member, comment);
         Map<String, Object> response = new HashMap<>();
 
         if (existingLike.isPresent()) {
             commentLikeRepository.delete(existingLike.get());
-            // 🚩 Null 방지를 위해 getCoLike() null 체크 후 연산
             int currentLikes = (comment.getCoLike() == null) ? 0 : comment.getCoLike();
             comment.setCoLike(Math.max(0, currentLikes - 1));
             response.put("status", "unliked");
@@ -141,7 +139,7 @@ public class CommentController {
     @PostMapping("/report/{commentId}")
     public ResponseEntity<?> reportComment(@PathVariable("commentId") Integer commentId, 
                                            @RequestBody Map<String, Object> payload) {
-        // 신고 로직은 기존처럼 성공 메시지 유지
+        // 신고 로직 구현부 (필요시 report_box 테이블 연동)
         return ResponseEntity.ok(Map.of("msg", "신고 접수 완료"));
     }
 }

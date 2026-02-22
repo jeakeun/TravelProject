@@ -1,5 +1,6 @@
-/* 1. 전체 컨테이너: 상단으로 올리기 위해 여백 최소화 */
-.freeboard-list-wrapper {
+/* FreeBoard.css */
+.freeboard-list-wrapper,
+.freeboard-detail-wrapper {
     width: 95%;
     max-width: 1400px;
     margin: 0 auto;
@@ -13,22 +14,25 @@
     color: #333;
 }
 
-/* 2. 테이블 높이 압축 */
+/* 테이블 스타일 */
 .freeboard-table {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
     margin-bottom: 5px;
-    /* 하단 여백 축소 */
 }
 
 .freeboard-table th,
 .freeboard-table td {
     padding: 8px 5px;
-    /* 셀 높이를 줄여 압축 */
     border-bottom: 1px solid #eee;
     text-align: center;
     font-size: 0.95rem;
+}
+
+.freeboard-table thead th {
+    background-color: #f8f9fa;
+    border-top: 2px solid #333;
 }
 
 .th-num {
@@ -49,24 +53,7 @@
     white-space: nowrap;
 }
 
-.th-author {
-    width: 100px;
-}
-
-.th-view {
-    width: 80px;
-}
-
-.th-date {
-    width: 180px;
-}
-
-.freeboard-table thead th {
-    background-color: #f8f9fa;
-    border-top: 2px solid #333;
-}
-
-/* 3. 페이지네이션 영역 */
+/* 페이지네이션 & 버튼 */
 .board-footer-wrapper {
     display: flex;
     justify-content: center;
@@ -90,7 +77,6 @@
     border-radius: 20px;
     cursor: pointer;
     font-weight: 600;
-    font-size: 13px;
 }
 
 .page-num.active {
@@ -107,14 +93,11 @@
     border-radius: 25px;
     border: none;
     cursor: pointer;
-    font-weight: bold;
-    font-size: 14px;
 }
 
-/* 4. 검색창 영역: 페이지네이션과 간격 확보 */
+/* 검색창 */
 .search-container {
     margin-top: 25px;
-    /* 🚩 이전 15px에서 25px로 늘려 간격 확보 */
     display: flex;
     justify-content: center;
 }
@@ -134,7 +117,6 @@
     flex: 1;
     padding: 6px;
     background: transparent;
-    font-size: 14px;
 }
 
 .search-btn {
@@ -144,28 +126,9 @@
     padding: 7px 18px;
     border-radius: 25px;
     cursor: pointer;
-    font-weight: bold;
 }
 
-.no-data {
-    padding: 50px 0 !important;
-    color: #999;
-}
-
-/* 자유 게시판 제목 옆 댓글 수 스타일 */
 .freeboard-comment-count {
     color: #e74c3c;
-    /* 붉은색 강조 */
     font-weight: bold;
-    font-size: 0.9em;
-    vertical-align: middle;
-}
-
-/* 행(tr)에 마우스를 올렸을 때 클릭 가능하다는 표시 */
-.freeboard-table tbody tr {
-    cursor: pointer;
-}
-
-.freeboard-table tbody tr:hover {
-    background-color: #f9f9f9;
 }

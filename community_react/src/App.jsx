@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate, BrowserRouter as Router, Outlet } from 'react-router-dom';
 import axios from 'axios';
 
+// 스타일 및 컴포넌트 임포트
 import "./pages/Main.css";
 import './Appha.css';
 import "./App.css";
@@ -10,13 +11,21 @@ import Main from "./pages/Main";
 import Header from "./components/Header"; 
 import MainList from './components/MainList';
 import PostWrite from './components/PostWrite';
-import PostDetail from './pages/PostDetail';
-import FreeBoard from './pages/FreeBoard';
+
+import FreeBoard from './components/freeboard/FreeBoardList'; 
+import FreeBoardDetail from './components/freeboard/FreeBoardDetail';
 import RecommendMain from './components/recommend/RecommendMain';
 import RecommendPostDetail from './components/recommend/RecommendPostDetail'; 
 
+import ReviewBoardList from './components/reviewboard/ReviewBoardList';
+import ReviewBoardDetail from './components/reviewboard/ReviewBoardDetail';
+
 import Login from './auth/login';
 import Signup from './auth/signup';
+
+// 🚩 수정 사유: import 문이 모두 끝난 직후에 설정을 위치시켜야 문법 에러가 발생하지 않습니다.
+// 모든 요청에 쿠키를 포함하여 조회수 중복 방지 로직이 정상 작동하게 합니다.
+axios.defaults.withCredentials = true;
 
 function OpenLoginModal({ setShowLogin }) {
   const navigate = useNavigate();
@@ -77,7 +86,7 @@ function CommunityContainer() {
   const isDetailPage = useMemo(() => {
     const pathParts = location.pathname.split('/');
     const lastPart = pathParts[pathParts.length - 1];
-    return (lastPart && !isNaN(lastPart)) || lastPart === 'write';
+    return (lastPart && !isNaN(lastPart)) || lastPart === 'write' || lastPart === 'edit';
   }, [location.pathname]);
 
   useEffect(() => {
@@ -107,8 +116,7 @@ function CommunityContainer() {
       
       const cleanData = response.data.map(post => ({
         ...post,
-        id: post.postId,
-        postId: post.postId,
+        id: post.poNum || post.postId, 
         category: post.category || (endpoint === 'freeboard' ? '자유 게시판' : (endpoint === 'recommend' ? '여행 추천 게시판' : '여행 후기 게시판'))
       }));
       setPosts(cleanData);
@@ -136,17 +144,19 @@ function CommunityContainer() {
       </aside>
       <main className="main-content">
         <Routes>
-          {/* 🚩 [수정] 고정 경로인 write를 파라미터 :id보다 위에 두어 충돌을 원천 차단 */}
           <Route path="recommend/write" element={<PostWrite activeMenu="여행 추천 게시판" refreshPosts={loadPosts} />} />
           <Route path="recommend/:id" element={<RecommendPostDetail />} />
           <Route path="recommend" element={<RecommendMain posts={posts} />} />
 
           <Route path="write" element={<PostWrite activeMenu={activeMenu} refreshPosts={loadPosts} />} />
           <Route path="map" element={<MainList photos={[]} activeMenu="여행지도" goToDetail={(id) => navigate(`/community/map/${id}`)} />} /> 
-          <Route path="reviewboard" element={<MainList posts={posts} setPhotos={setPosts} activeMenu={activeMenu} goToDetail={(id) => navigate(`/community/reviewboard/${id}`)} />} />
-          <Route path="reviewboard/:id" element={<PostDetail />} />
+          
+          <Route path="reviewboard" element={<ReviewBoardList posts={posts} />} />
+          <Route path="reviewboard/:id" element={<ReviewBoardDetail />} /> 
+          
           <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />
-          <Route path="freeboard/:id" element={<PostDetail />} />
+          <Route path="freeboard/:id" element={<FreeBoardDetail />} />
+
           <Route path="/" element={<Navigate to="freeboard" replace />} />
         </Routes>
       </main>
@@ -169,10 +179,10 @@ function App() {
     setShowLogin(false);
   }, []);
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = useCallback((() => {
     setUser(null);
     localStorage.removeItem('user');
-  }, []);
+  }), []);
 
   return (
     <Router>

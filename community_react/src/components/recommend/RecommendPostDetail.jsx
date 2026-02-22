@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 import './RecommendPostDetail.css';
 
 const RecommendPostDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { user } = useOutletContext() || {}; 
     
     const [post, setPost] = useState(null);
     const [comments, setComments] = useState([]);
@@ -23,26 +24,32 @@ const RecommendPostDetail = () => {
     const commentAreaRef = useRef(null);
     const replyInputRef = useRef(null);
 
-    const isLoggedIn = true; 
-    const currentUserNum = 1; 
-    const isAdmin = false; 
+    // [권한 설정] 실제 로그인 상태 반영
+    const isLoggedIn = !!user; 
+    const currentUserNum = user ? user.mbNum : null; 
+    const isAdmin = user ? user.mbLevel >= 10 : false; 
 
     const isNumericId = id && !isNaN(Number(id)) && id !== "write";
+
+    const incrementViewCount = useCallback(async () => {
+        if (!isNumericId) return;
+        const viewedPosts = JSON.parse(sessionStorage.getItem('viewedPosts') || '[]');
+        if (!viewedPosts.includes(id)) {
+            try {
+                await axios.post(`http://localhost:8080/api/recommend/posts/${id}/view`);
+                viewedPosts.push(id);
+                sessionStorage.setItem('viewedPosts', JSON.stringify(viewedPosts));
+            } catch (err) {
+                console.error("조회수 증가 실패", err);
+            }
+        }
+    }, [id, isNumericId]);
 
     const fetchAllData = useCallback(async (isAction = false, isCommentAction = false) => {
         if (!isNumericId) return;
 
         try {
             if (!isAction) setLoading(true);
-
-            if (!isAction) {
-                const viewedPosts = JSON.parse(sessionStorage.getItem('viewedPosts') || '[]');
-                if (!viewedPosts.includes(id)) {
-                    await axios.post(`http://localhost:8080/api/recommend/posts/${id}/view`);
-                    viewedPosts.push(id);
-                    sessionStorage.setItem('viewedPosts', JSON.stringify(viewedPosts));
-                }
-            }
             
             const postRes = await axios.get(`http://localhost:8080/api/recommend/posts/${id}`);
             setPost(postRes.data);
@@ -65,8 +72,11 @@ const RecommendPostDetail = () => {
     }, [id, navigate, isNumericId]);
 
     useEffect(() => { 
-        if(isNumericId) fetchAllData(); 
-    }, [isNumericId, fetchAllData]);
+        if(isNumericId) {
+            incrementViewCount(); 
+            fetchAllData();       
+        }
+    }, [isNumericId, fetchAllData, incrementViewCount]);
 
     useEffect(() => {
         if (replyTo && replyInputRef.current) replyInputRef.current.focus();
@@ -120,7 +130,11 @@ const RecommendPostDetail = () => {
     };
 
     const handleReportPost = async () => {
-        if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
+        if(!isLoggedIn) {
+            alert("로그인이 필요한 서비스입니다.");
+            return;
+        }
+
         const reportedPosts = JSON.parse(localStorage.getItem('reportedPosts') || '[]');
         if (reportedPosts.includes(`${currentUserNum}_${id}`)) {
             alert("이미 신고하신 게시글입니다.");
@@ -142,7 +156,11 @@ const RecommendPostDetail = () => {
         const content = parentId ? replyInput : commentInput;
         if (!content?.trim()) return alert("내용을 입력하세요.");
         try {
-            await axios.post(`http://localhost:8080/api/comment/add/${id}`, { content: content.trim(), parentId: parentId });
+            await axios.post(`http://localhost:8080/api/comment/add/${id}`, { 
+                content: content.trim(), 
+                parentId: parentId,
+                mbNum: currentUserNum 
+            });
             alert("댓글을 작성하였습니다."); 
             setCommentInput(""); setReplyInput(""); setReplyTo(null);
             fetchAllData(true, true); 
@@ -188,26 +206,30 @@ const RecommendPostDetail = () => {
         else filtered.sort((a, b) => a.coNum - b.coNum);
 
         return filtered.map(comment => {
-            const isOwner = Number(comment.member?.mbNum) === Number(currentUserNum);
+            const isCommentOwner = isLoggedIn && comment.member && Number(comment.member.mbNum) === Number(currentUserNum);
             const isReply = depth > 0;
             const isActiveEdit = editId === comment.coNum;
             const isActiveReply = replyTo === comment.coNum;
-            const authorDisplayName = `User ${comment.member?.mbNum}`;
+            const authorDisplayName = `User ${comment.member?.mbNum || 'Unknown'}`;
 
             return (
                 <div key={comment.coNum}>
                     <div className="comment-unit" style={{ marginLeft: isReply ? (depth * 20) + 'px' : '0', padding: '15px 20px', borderBottom: '1px solid #f0f0f0', backgroundColor: isReply ? '#f9fafb' : 'transparent', borderLeft: isReply ? '3px solid #ddd' : 'none' }}>
-                        <div className="comment-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <div className="comment-header">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <strong style={{ fontSize: '14px' }}>{authorDisplayName}</strong>
                                 <span style={{ fontSize: '12px', color: '#aaa' }}>{new Date(comment.coDate).toLocaleString()}</span>
                                 <button onClick={() => handleCommentLike(comment.coNum)} style={{ background: 'none', border: '1px solid #eee', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', padding: '2px 6px', color: '#555' }}>👍 {comment.coLike || 0}</button>
                             </div>
                             {!isActiveEdit && !isActiveReply && (
-                                <div style={{ fontSize: '12px', display: 'flex', gap: '10px', color: '#888', cursor: 'pointer' }}>
+                                <div className="comment-btns">
                                     <span onClick={() => { setReplyTo(comment.coNum); setEditId(null); }}>답글</span>
-                                    {isOwner && <span onClick={() => { setEditId(comment.coNum); setEditInput(comment.coContent); }}>수정</span>}
-                                    {(isOwner || isAdmin) && <span onClick={() => handleDeleteComment(comment.coNum)}>삭제</span>}
+                                    {isCommentOwner && (
+                                        <span onClick={() => { setEditId(comment.coNum); setEditInput(comment.coContent); }}>수정</span>
+                                    )}
+                                    {(isCommentOwner || isAdmin) && (
+                                        <span onClick={() => handleDeleteComment(comment.coNum)}>삭제</span>
+                                    )}
                                     <span onClick={() => handleReportComment(comment.coNum)} style={{ color: '#ff4d4f' }}>신고</span>
                                 </div>
                             )}
@@ -243,9 +265,8 @@ const RecommendPostDetail = () => {
     if (loading) return <div style={{ padding: '100px', textAlign: 'center' }}>데이터를 불러오는 중...</div>;
     if (!post) return <div style={{ padding: '100px', textAlign: 'center' }}>게시글을 찾을 수 없습니다.</div>;
 
-    // 🚩 [핵심 수정] Number()를 사용하여 정확한 비교 수행
-    const isPostOwner = Number(post.poMbNum) === Number(currentUserNum);
-    const canDeletePost = isPostOwner || isAdmin;
+    const isPostOwner = isLoggedIn && Number(post.poMbNum) === Number(currentUserNum);
+    const canManagePost = isPostOwner || isAdmin;
 
     return (
         <div className="recommend-detail-wrapper">
@@ -253,49 +274,66 @@ const RecommendPostDetail = () => {
                 <div className="detail-header-section">
                     <h1 className="detail-main-title">{post.poTitle}</h1>
                     <div className="detail-sub-info">
-                        <span>작성자: User {post.poMbNum}</span> | 
-                        <span> 조회 {post.poView}</span> | 
-                        <span> 추천 {post.poUp}</span> | 
-                        <span> 신고누적 {post.poReport || 0}</span> | 
-                        <span> 작성일 {new Date(post.poDate).toLocaleString()}</span>
+                        <span>작성자: User {post.poMbNum}</span> 
+                        <span className="info-divider">|</span>
+                        <span>조회 {post.poView}</span> 
+                        <span className="info-divider">|</span>
+                        <span>추천 {post.poUp}</span> 
+                        <span className="info-divider">|</span>
+                        <span>신고누적 {post.poReport || 0}</span> 
+                        <span className="info-divider">|</span>
+                        <span>작성일 {new Date(post.poDate).toLocaleString()}</span>
                     </div>
                 </div>
 
-                <div className="detail-body-section">
-                    <div className="detail-content-text" dangerouslySetInnerHTML={{ __html: post.poContent }} style={{ lineHeight: '1.8', fontSize: '17px' }} />
+                <div className="detail-body-text">
+                    <div dangerouslySetInnerHTML={{ __html: post.poContent }} />
                 </div>
 
-                <div className="detail-actions" style={{ marginTop: '50px', display: 'flex', justifyContent: 'center', position: 'relative', gap: '15px' }}>
-                    <button onClick={handleLikeToggle} style={{ padding: '10px 20px', borderRadius: '25px', cursor: 'pointer', border: '1px solid #ddd', background: isLiked ? '#ff4d4f' : '#fff', color: isLiked ? '#fff' : '#333' }}>
-                        {isLiked ? '❤️ 추천취소' : '🤍 추천'} {post.poUp}
+                <div className="detail-bottom-actions">
+                    <div className="left-group">
+                        {/* 🚩 [수정] 추천 버튼: 로그인 상태일 때만 렌더링 */}
+                        {isLoggedIn && (
+                            <button className={`btn-like-action ${isLiked ? 'active' : ''}`} onClick={handleLikeToggle}>
+                                {isLiked ? '❤️ 추천취소' : '🤍 추천'} {post.poUp}
+                            </button>
+                        )}
+                        
+                        {/* 신고 버튼: 비로그인 시에도 보임 (클릭 시 알림 처리됨) */}
+                        {!isPostOwner && (
+                            <button className="btn-report-action" onClick={handleReportPost}>
+                                🚨 신고하기
+                            </button>
+                        )}
+
+                        {/* 수정 버튼: 본인인 경우에만 노출 */}
+                        {isPostOwner && (
+                            <button className="btn-edit-action" onClick={handleEditPost} style={{ background: '#fff', border: '1px solid #3498db', color: '#3498db', padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer' }}>
+                                ✏️ 수정
+                            </button>
+                        )}
+
+                        {/* 삭제 버튼: 본인 또는 관리자인 경우 노출 */}
+                        {canManagePost && (
+                            <button className="btn-delete-action" onClick={handleDeletePost} style={{ background: '#fff', border: '1px solid #e67e22', color: '#e67e22', padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer' }}>
+                                🗑️ 삭제
+                            </button>
+                        )}
+                    </div>
+
+                    <button className="btn-list-return" onClick={() => navigate('/community/recommend')}>
+                        목록으로 돌아가기
                     </button>
-                    
-                    {/* 🚩 신고 버튼 조건문 수정: 내가 쓴 글이 아닐 때만 노출 */}
-                    {!isPostOwner && (
-                        <button onClick={handleReportPost} style={{ padding: '10px 20px', borderRadius: '25px', cursor: 'pointer', border: '1px solid #ddd', background: '#fff', color: '#ff4d4f' }}>🚨 신고</button>
-                    )}
-
-                    {isPostOwner && (
-                        <button onClick={handleEditPost} style={{ padding: '10px 20px', borderRadius: '25px', cursor: 'pointer', border: '1px solid #3498db', background: '#fff', color: '#3498db' }}>✏️ 수정</button>
-                    )}
-
-                    {canDeletePost && (
-                        <button onClick={handleDeletePost} style={{ padding: '10px 20px', borderRadius: '25px', cursor: 'pointer', border: '1px solid #e67e22', background: '#fff', color: '#e67e22' }}>🗑️ 삭제</button>
-                    )}
-
-                    <button onClick={() => navigate('/community/recommend')} style={{ position: 'absolute', right: '0', padding: '10px 20px', borderRadius: '25px', border: 'none', background: '#333', color: '#fff' }}>목록</button>
                 </div>
 
-                <hr style={{ margin: '40px 0', border: '0', borderTop: '1px solid #eee' }} />
+                <hr className="section-divider" />
 
-                <div className="comment-section" ref={commentAreaRef}>
-                    <h3 style={{ marginBottom: '20px' }}>댓글 {comments.length}</h3>
+                <div className="comment-area" ref={commentAreaRef}>
+                    <h3 className="comment-title">댓글 {comments.length}</h3>
                     {isLoggedIn ? (
-                        <div className="comment-write-main" style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '15px', marginBottom: '30px' }}>
-                            <textarea style={{ width: '100%', border: 'none', outline: 'none', resize: 'none', minHeight: '80px' }} value={commentInput} onChange={(e) => setCommentInput(e.target.value)} placeholder="깨끗한 댓글 문화를 만들어주세요." />
-                            <div style={{ textAlign: 'right', borderTop: '1px solid #f5f5f5', paddingTop: '10px' }}>
-                                <button onClick={() => handleAddComment(null)} style={{ backgroundColor: '#333', color: '#fff', border: 'none', padding: '8px 25px', borderRadius: '20px', cursor: 'pointer' }}>등록</button>
-                            </div>
+                        <div className="comment-write-box">
+                            <textarea value={commentInput} onChange={(e) => setCommentInput(e.target.value)} placeholder="깨끗한 댓글 문화를 만들어주세요." />
+                            <button className="btn-comment-submit" onClick={() => handleAddComment(null)}>등록</button>
                         </div>
                     ) : (
                         <div style={{ padding: '20px', textAlign: 'center', background: '#f5f5f5', borderRadius: '8px', marginBottom: '30px' }}>로그인 후 이용 가능합니다.</div>
