@@ -40,12 +40,14 @@ CREATE TABLE `category` (
 
 -- ==========================================
 -- 4-1. 여행 추천 게시판 (Recommend)
+-- [수정] po_img 컬럼 추가 (리스트 썸네일용)
 -- ==========================================
 DROP TABLE IF EXISTS `recommend_post`;
 CREATE TABLE `recommend_post` (
     `po_num`    int PRIMARY KEY AUTO_INCREMENT,
     `po_title`  varchar(100) NOT NULL,
     `po_content`    longtext NOT NULL,
+    `po_img`    varchar(100) NULL, -- 리스트 출력용 대표 이미지 파일명
     `po_date`    datetime default current_timestamp not    NULL,
     `po_view`    int    NOT NULL DEFAULT 0,
     `po_up`      int    NOT NULL DEFAULT 0,
@@ -67,12 +69,14 @@ CREATE TABLE `recommend_photo` (
 
 -- ==========================================
 -- 4-2. 여행 후기 게시판 (ReviewBoard)
+-- [수정] po_img 컬럼 추가 (리스트 썸네일용)
 -- ==========================================
 DROP TABLE IF EXISTS `review_post`;
 CREATE TABLE `review_post` (
     `po_num`    int PRIMARY KEY AUTO_INCREMENT,
     `po_title`  varchar(100) NOT NULL,
     `po_content`    longtext NOT NULL,
+    `po_img`    varchar(100) NULL, -- 리스트 출력용 대표 이미지 파일명
     `po_date`    datetime default current_timestamp not    NULL,
     `po_view`    int    NOT NULL DEFAULT 0,
     `po_up`      int    NOT NULL DEFAULT 0,
@@ -120,7 +124,7 @@ CREATE TABLE `free_photo` (
 );
 
 -- ==========================================
--- 5. 댓글 테이블 (수정됨)
+-- 5. 댓글 테이블 (기존 유지)
 -- ==========================================
 DROP TABLE IF EXISTS `comment`;
 CREATE TABLE `comment` (
@@ -130,11 +134,9 @@ CREATE TABLE `comment` (
     `co_like`    int    NOT NULL DEFAULT 0,
     `co_del`     char(1)    NOT NULL DEFAULT "N",
     `co_ori_num`    int    NULL, 
-    `co_po_num` int    NOT NULL, -- 참조하는 게시글 번호
-    `co_po_type` varchar(20) NOT NULL, -- "RECOMMEND", "REVIEW", "FREE" 구분
+    `co_po_num` int    NOT NULL, 
+    `co_po_type` varchar(20) NOT NULL, 
     `co_mb_num` int    NOT NULL,
-    -- [수정] co_po_num에 대한 FOREIGN KEY를 제거함. 
-    -- 이유: 게시판이 3개로 분리되어 하나의 컬럼이 여러 테이블을 참조할 수 없기 때문 (Logical FK 사용)
     FOREIGN KEY (`co_ori_num`) REFERENCES `comment` (`co_num`) ON DELETE CASCADE,
     FOREIGN KEY (`co_mb_num`) REFERENCES `member` (`mb_num`)
 );
@@ -237,8 +239,8 @@ CREATE TABLE `likes` (
     `li_num`    int PRIMARY KEY AUTO_INCREMENT,
     `li_state`  int    NOT NULL,
     `li_id`     int    NOT NULL,
-    `li_name`   varchar(10) NOT    NULL,
-    `li_time`   datetime default current_timestamp not    NULL,
+    `li_name`    varchar(10) NOT    NULL,
+    `li_time`    datetime default current_timestamp not    NULL,
     `li_mb_num` int    NOT NULL,
     FOREIGN KEY (`li_mb_num`) REFERENCES `member` (`mb_num`)
 );

@@ -6,35 +6,44 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "recommend_post") // 추천 게시판 전용 테이블
 public class RecommendPost {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "po_num")
     private Integer poNum;
 
-    @Column(nullable = false)
+    @Column(name = "po_title", nullable = false, length = 100)
     private String poTitle;
     
-    @Column(columnDefinition = "LONGTEXT")
+    @Column(name = "po_content", columnDefinition = "LONGTEXT", nullable = false)
     private String poContent;
     
+    @Column(name = "po_date")
     private LocalDateTime poDate;
     
+    @Column(name = "po_view", nullable = false)
     private Integer poView = 0; 
+    
+    @Column(name = "po_up", nullable = false)
     private Integer poUp = 0;   
+    
+    @Column(name = "po_down", nullable = false)
     private Integer poDown = 0; 
     
-    @Column(name = "po_report")
+    @Column(name = "po_report", nullable = false)
     private Integer poReport = 0;
 
-    @Column(name = "po_del")
+    @Column(name = "po_del", nullable = false, length = 1)
     private String poDel = "N"; 
 
-    private Integer poCgNum; // 추천게시판은 보통 1
+    @Column(name = "po_mb_num", nullable = false)
     private Integer poMbNum;
 
-    @Column(name = "file_url")
-    private String fileUrl; 
+    // [핵심 수정] DB의 po_img 컬럼과 매핑
+    @Column(name = "po_img", length = 100)
+    private String poImg; 
 
-    @Transient
+    @Transient // DB 테이블에 없는 필드이므로 영속성 제외
     private boolean isLikedByMe; 
 
     @PrePersist
@@ -49,31 +58,42 @@ public class RecommendPost {
 
     public RecommendPost() {}
 
-    // Getter & Setter
+    // ================= Getter & Setter =================
+    
     public Integer getPoNum() { return poNum; }
     public void setPoNum(Integer poNum) { this.poNum = poNum; }
+
     public String getPoTitle() { return poTitle; }
     public void setPoTitle(String poTitle) { this.poTitle = poTitle; }
+
     public String getPoContent() { return poContent; }
     public void setPoContent(String poContent) { this.poContent = poContent; }
+
     public LocalDateTime getPoDate() { return poDate; }
     public void setPoDate(LocalDateTime poDate) { this.poDate = poDate; }
+
     public Integer getPoView() { return poView; }
     public void setPoView(Integer poView) { this.poView = poView; }
+
     public Integer getPoUp() { return poUp; }
     public void setPoUp(Integer poUp) { this.poUp = poUp; }
+
     public Integer getPoDown() { return poDown; }
     public void setPoDown(Integer poDown) { this.poDown = poDown; }
+
     public Integer getPoReport() { return poReport; }
     public void setPoReport(Integer poReport) { this.poReport = poReport; }
+
     public String getPoDel() { return poDel; }
     public void setPoDel(String poDel) { this.poDel = poDel; }
-    public Integer getPoCgNum() { return poCgNum; }
-    public void setPoCgNum(Integer poCgNum) { this.poCgNum = poCgNum; }
+
     public Integer getPoMbNum() { return poMbNum; }
     public void setPoMbNum(Integer poMbNum) { this.poMbNum = poMbNum; }
-    public String getFileUrl() { return fileUrl; }
-    public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
-    public boolean isIsLikedByMe() { return isLikedByMe; }
-    public void setIsLikedByMe(boolean isLikedByMe) { this.isLikedByMe = isLikedByMe; }
+
+    // [수정된 Getter/Setter] 필드명 변경에 대응
+    public String getPoImg() { return poImg; }
+    public void setPoImg(String poImg) { this.poImg = poImg; }
+
+    public boolean isLikedByMe() { return isLikedByMe; }
+    public void setLikedByMe(boolean isLikedByMe) { this.isLikedByMe = isLikedByMe; }
 }

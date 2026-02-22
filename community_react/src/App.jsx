@@ -114,8 +114,9 @@ function CommunityContainer() {
 
       const response = await axios.get(apiUrl);
       
+      // 🚩 [핵심 수정] 원본 데이터(post)를 ...post로 전체 복사해야 poImg 등의 필드가 유실되지 않습니다.
       const cleanData = response.data.map(post => ({
-        ...post,
+        ...post, // 원본 필드(poImg, poContent 등) 모두 보존
         id: post.poNum || post.postId, 
         category: post.category || (endpoint === 'freeboard' ? '자유 게시판' : (endpoint === 'recommend' ? '여행 추천 게시판' : '여행 후기 게시판'))
       }));

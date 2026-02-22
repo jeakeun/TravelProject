@@ -13,10 +13,16 @@ const RecommendMain = ({ posts = [] }) => {
     const itemsPerPage = 10;
     const navigate = useNavigate();
 
+    // 🚩 서버 주소 설정
+    const SERVER_URL = "http://localhost:8080";
+
+    // 🚩 [수정] 불필요한 콘솔 로그 제거 및 데이터 방어
     useEffect(() => {
+        // 기존의 console.log를 제거하여 콘솔을 깨끗하게 유지합니다.
     }, [posts]);
 
     const goToDetail = (id) => {
+        if (!id) return;
         navigate(`/community/recommend/${id}`);
     };
 
@@ -30,25 +36,31 @@ const RecommendMain = ({ posts = [] }) => {
     };
 
     const sortedPosts = useMemo(() => {
+        if (!Array.isArray(posts)) return [];
         const monday = getThisMonday();
-        let targetPosts = posts.filter(post => post.poDate && new Date(post.poDate) >= monday);
+        let targetPosts = posts.filter(post => post && post.poDate && new Date(post.poDate) >= monday);
         if (targetPosts.length === 0) targetPosts = posts;
         return [...targetPosts].sort((a, b) => (b.poView || 0) - (a.poView || 0));
     }, [posts]);
 
     const listData = useMemo(() => {
-        return [...posts].sort((a, b) => new Date(b.poDate) - new Date(a.poDate));
+        if (!Array.isArray(posts)) return [];
+        return [...posts].sort((a, b) => {
+            const dateA = a.poDate ? new Date(a.poDate) : 0;
+            const dateB = b.poDate ? new Date(b.poDate) : 0;
+            return dateB - dateA;
+        });
     }, [posts]);
 
-    // 🚩 내용 검색 로직(content) 추가
     const filteredList = useMemo(() => 
         listData.filter(p => {
+            if (!p) return false;
             const term = finalSearchTerm.toLowerCase();
             if (!term) return true;
             if (searchCategory === 'title') return p.poTitle?.toLowerCase().includes(term);
-            if (searchCategory === 'content') return p.poContent?.toLowerCase().includes(term); // 추가됨
+            if (searchCategory === 'content') return p.poContent?.toLowerCase().includes(term);
             if (searchCategory === 'user') return `user ${p.poMbNum}`.toLowerCase().includes(term);
-            if (searchCategory === 'titleContent') return p.poTitle?.toLowerCase().includes(term) || (p.poContent && p.poContent.toLowerCase().includes(term));
+            if (searchCategory === 'titleContent') return (p.poTitle?.toLowerCase().includes(term)) || (p.poContent?.toLowerCase().includes(term));
             return true;
         }), 
         [listData, finalSearchTerm, searchCategory]
@@ -62,17 +74,37 @@ const RecommendMain = ({ posts = [] }) => {
         setCurrentPage(1);
     };
 
-    const getImageUrl = (url) => {
-        if (!url || url === "" || url.includes("null") || url.includes("undefined")) {
-            return "https://placehold.co/600x400?text=No+Image";
+    const getImageUrl = (post) => {
+        const defaultImg = "https://placehold.co/600x400?text=No+Image";
+        if (!post) return defaultImg;
+
+        const { poImg, fileName, fileUrl, image, poContent } = post;
+        const targetUrl = poImg || fileName || fileUrl || image;
+
+        // 1. 이미지 관련 필드 체크
+        if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null" && String(targetUrl) !== "undefined") {
+            if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
+            const extractedName = String(targetUrl).split(/[\\/]/).pop();
+            return `${SERVER_URL}/pic/${extractedName}`;
         }
-        return url;
+        
+        // 2. 본문 내 img 태그 추출
+        if (poContent && typeof poContent === 'string') {
+            const imgRegex = /<img[^>]+src=["']([^"']+)["']/;
+            const match = poContent.match(imgRegex);
+            if (match && match[1]) return match[1];
+        }
+
+        return defaultImg; 
     };
 
     const formatDate = (dateString) => {
         if (!dateString) return "-";
-        const date = new Date(dateString);
-        return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return "-";
+            return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+        } catch (e) { return "-"; }
     };
 
     const searchBtnStyle = {
@@ -127,12 +159,20 @@ const RecommendMain = ({ posts = [] }) => {
                     <tbody>
                         {currentItems.length > 0 ? (
                             currentItems.map((post, idx) => (
-                                <tr key={post.postId} onClick={() => goToDetail(post.postId)} style={{ cursor: 'pointer' }}>
+                                <tr key={post.poNum || idx} onClick={() => goToDetail(post.poNum)} style={{ cursor: 'pointer' }}>
                                     <td>{(filteredList.length - (currentPage-1)*itemsPerPage) - idx}</td>
                                     <td className="img-td">
-                                        <img src={getImageUrl(post.fileUrl)} alt="thumb" onError={(e) => { e.target.src = "https://placehold.co/600x400?text=No+Image"; }} />
+                                        <img 
+                                            src={getImageUrl(post)} 
+                                            alt="thumb" 
+                                            onError={(e) => { 
+                                                if (e.target.src !== "https://placehold.co/600x400?text=No+Image") {
+                                                    e.target.src = "https://placehold.co/600x400?text=No+Image"; 
+                                                }
+                                            }} 
+                                        />
                                     </td>
-                                    <td className="title-td"><span className="t-text">{post.poTitle}</span></td>
+                                    <td className="title-td"><span className="t-text">{post.poTitle || "제목 없음"}</span></td>
                                     <td className="stats-td">
                                         <div className="stats-container" style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
                                             <div className="stat-item comment"><span>{post.commentCount || 0}</span></div>
@@ -206,7 +246,7 @@ const RecommendMain = ({ posts = [] }) => {
                                 <button className="btn-search" onClick={handleSearch}>검색</button>
                             </div>
                         </div>
-                        <button className="btn-write-footer" onClick={() => navigate('/community/write')}>추천 글쓰기</button>
+                        <button className="btn-write-footer" onClick={() => navigate('/community/recommend/write')}>추천 글쓰기</button>
                     </div>
                 </div>
             </div>

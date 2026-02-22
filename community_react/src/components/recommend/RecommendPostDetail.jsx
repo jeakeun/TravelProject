@@ -24,26 +24,40 @@ const RecommendPostDetail = () => {
     const commentAreaRef = useRef(null);
     const replyInputRef = useRef(null);
 
-    // [권한 설정] 실제 로그인 상태 반영
+    // [권한 설정]
     const isLoggedIn = !!user; 
     const currentUserNum = user ? user.mbNum : null; 
     const isAdmin = user ? user.mbLevel >= 10 : false; 
 
     const isNumericId = id && !isNaN(Number(id)) && id !== "write";
 
+    // 🚩 이미지 서버 주소 설정
+    const SERVER_URL = "http://localhost:8080";
+
+    /**
+     * 🚩 [핵심 수정] 본문 내 이미지 경로 보정 함수
+     * dangerouslySetInnerHTML로 렌더링하기 전, src="/pic/..." 형태를 
+     * src="http://localhost:8080/pic/..." 형태로 치환합니다.
+     */
+    const fixImagePaths = (content) => {
+        if (!content) return "";
+        // src="/pic/ 또는 src="pic/ 로 시작하는 모든 경로를 서버 주소와 결합
+        return content.replace(/src=["'](?:\/)?pic\//g, `src="${SERVER_URL}/pic/`);
+    };
+
     const incrementViewCount = useCallback(async () => {
         if (!isNumericId) return;
         const viewedPosts = JSON.parse(sessionStorage.getItem('viewedPosts') || '[]');
         if (!viewedPosts.includes(id)) {
             try {
-                await axios.post(`http://localhost:8080/api/recommend/posts/${id}/view`);
+                await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/view`);
                 viewedPosts.push(id);
                 sessionStorage.setItem('viewedPosts', JSON.stringify(viewedPosts));
             } catch (err) {
                 console.error("조회수 증가 실패", err);
             }
         }
-    }, [id, isNumericId]);
+    }, [id, isNumericId, SERVER_URL]);
 
     const fetchAllData = useCallback(async (isAction = false, isCommentAction = false) => {
         if (!isNumericId) return;
@@ -51,11 +65,11 @@ const RecommendPostDetail = () => {
         try {
             if (!isAction) setLoading(true);
             
-            const postRes = await axios.get(`http://localhost:8080/api/recommend/posts/${id}`);
+            const postRes = await axios.get(`${SERVER_URL}/api/recommend/posts/${id}`);
             setPost(postRes.data);
             setIsLiked(postRes.data.isLikedByMe || false);
 
-            const commentRes = await axios.get(`http://localhost:8080/api/comment/list/${id}`);
+            const commentRes = await axios.get(`${SERVER_URL}/api/comment/list/${id}`);
             setComments(commentRes.data || []);
             
             if (!isAction) setLoading(false);
@@ -69,7 +83,7 @@ const RecommendPostDetail = () => {
             }
             setLoading(false);
         }
-    }, [id, navigate, isNumericId]);
+    }, [id, navigate, isNumericId, SERVER_URL]);
 
     useEffect(() => { 
         if(isNumericId) {
@@ -85,7 +99,7 @@ const RecommendPostDetail = () => {
     const handleDeletePost = async () => {
         if (!window.confirm("정말 이 게시글을 삭제하시겠습니까?")) return;
         try {
-            await axios.delete(`http://localhost:8080/api/recommend/posts/${id}`);
+            await axios.delete(`${SERVER_URL}/api/recommend/posts/${id}`);
             alert("게시글이 삭제되었습니다.");
             navigate('/community/recommend');
         } catch (err) {
@@ -102,7 +116,7 @@ const RecommendPostDetail = () => {
     const handleLikeToggle = async () => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
-            const res = await axios.post(`http://localhost:8080/api/recommend/posts/${id}/like`, { mbNum: currentUserNum });
+            const res = await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/like`, { mbNum: currentUserNum });
             if (res.data.status === "liked") {
                 alert("게시글을 추천했습니다");
                 setIsLiked(true);
@@ -118,7 +132,7 @@ const RecommendPostDetail = () => {
     const handleCommentLike = async (commentId) => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
-            const res = await axios.post(`http://localhost:8080/api/comment/like/${commentId}`, { mbNum: currentUserNum });
+            const res = await axios.post(`${SERVER_URL}/api/comment/like/${commentId}`, { mbNum: currentUserNum });
             if(res.data.status === "liked") {
                 alert("댓글을 추천했습니다.");
                 setComments(prevComments => prevComments.map(c => c.coNum === commentId ? { ...c, coLike: (c.coLike || 0) + 1 } : c));
@@ -143,7 +157,7 @@ const RecommendPostDetail = () => {
         const reason = window.prompt("게시글 신고 사유를 입력해주세요:");
         if (!reason?.trim()) return;
         try {
-            await axios.post(`http://localhost:8080/api/recommend/posts/${id}/report`, { reason, mbNum: currentUserNum });
+            await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/report`, { reason, mbNum: currentUserNum });
             alert("신고가 정상적으로 접수되었습니다.");
             reportedPosts.push(`${currentUserNum}_${id}`);
             localStorage.setItem('reportedPosts', JSON.stringify(reportedPosts));
@@ -156,7 +170,7 @@ const RecommendPostDetail = () => {
         const content = parentId ? replyInput : commentInput;
         if (!content?.trim()) return alert("내용을 입력하세요.");
         try {
-            await axios.post(`http://localhost:8080/api/comment/add/${id}`, { 
+            await axios.post(`${SERVER_URL}/api/comment/add/${id}`, { 
                 content: content.trim(), 
                 parentId: parentId,
                 mbNum: currentUserNum 
@@ -170,7 +184,7 @@ const RecommendPostDetail = () => {
     const handleUpdateComment = async (commentId) => {
         if (!editInput?.trim()) return alert("내용을 입력하세요.");
         try {
-            await axios.put(`http://localhost:8080/api/comment/update/${commentId}`, { content: editInput.trim() });
+            await axios.put(`${SERVER_URL}/api/comment/update/${commentId}`, { content: editInput.trim() });
             alert("댓글을 수정했습니다."); 
             setEditId(null); setEditInput("");
             fetchAllData(true, true);
@@ -180,7 +194,7 @@ const RecommendPostDetail = () => {
     const handleDeleteComment = async (commentId) => {
         if (!window.confirm("정말 삭제하시겠습니까?")) return;
         try {
-            await axios.delete(`http://localhost:8080/api/comment/delete/${commentId}`);
+            await axios.delete(`${SERVER_URL}/api/comment/delete/${commentId}`);
             alert("댓글을 삭제했습니다."); 
             fetchAllData(true, true);
         } catch (err) { alert("삭제 실패"); }
@@ -191,7 +205,7 @@ const RecommendPostDetail = () => {
         const reason = window.prompt("댓글 신고 사유를 입력해주세요:");
         if (!reason?.trim()) return;
         try {
-            await axios.post(`http://localhost:8080/api/comment/report/${commentId}`, { reason, mbNum: currentUserNum });
+            await axios.post(`${SERVER_URL}/api/comment/report/${commentId}`, { reason, mbNum: currentUserNum });
             alert("신고가 정상적으로 접수되었습니다.");
         } catch (err) { alert("이미 신고했거나 신고 처리에 실패했습니다."); }
     };
@@ -287,33 +301,30 @@ const RecommendPostDetail = () => {
                 </div>
 
                 <div className="detail-body-text">
-                    <div dangerouslySetInnerHTML={{ __html: post.poContent }} />
+                    {/* 🚩 [수정] 본문 출력 시 fixImagePaths 함수를 거쳐서 경로를 보정한 후 출력합니다. */}
+                    <div dangerouslySetInnerHTML={{ __html: fixImagePaths(post.poContent) }} />
                 </div>
 
                 <div className="detail-bottom-actions">
                     <div className="left-group">
-                        {/* 🚩 [수정] 추천 버튼: 로그인 상태일 때만 렌더링 */}
                         {isLoggedIn && (
                             <button className={`btn-like-action ${isLiked ? 'active' : ''}`} onClick={handleLikeToggle}>
                                 {isLiked ? '❤️ 추천취소' : '🤍 추천'} {post.poUp}
                             </button>
                         )}
                         
-                        {/* 신고 버튼: 비로그인 시에도 보임 (클릭 시 알림 처리됨) */}
                         {!isPostOwner && (
                             <button className="btn-report-action" onClick={handleReportPost}>
                                 🚨 신고하기
                             </button>
                         )}
 
-                        {/* 수정 버튼: 본인인 경우에만 노출 */}
                         {isPostOwner && (
                             <button className="btn-edit-action" onClick={handleEditPost} style={{ background: '#fff', border: '1px solid #3498db', color: '#3498db', padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer' }}>
                                 ✏️ 수정
                             </button>
                         )}
 
-                        {/* 삭제 버튼: 본인 또는 관리자인 경우 노출 */}
                         {canManagePost && (
                             <button className="btn-delete-action" onClick={handleDeletePost} style={{ background: '#fff', border: '1px solid #e67e22', color: '#e67e22', padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer' }}>
                                 🗑️ 삭제

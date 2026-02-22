@@ -3,27 +3,32 @@ import React from 'react';
 const RecommendCard = ({ post, isMain, rank, onClick, getImageUrl }) => {
     if (!post) return null;
 
+    // 🚩 [유지] 데이터 구조에 따라 poNum 또는 postId 중 존재하는 값을 ID로 사용
+    const postId = post.poNum || post.postId;
+
     return (
         <div 
             className={isMain ? "featured-post" : "recommend-sub-card"} 
-            onClick={() => onClick(post.postId)}
+            onClick={() => onClick(postId)}
         >
             <div className={isMain ? "main-img-box" : "sub-card-img-box"}>
                 <span className={`rank-badge ${!isMain ? 'small' : ''}`}>
                     No.{rank}
                 </span>
                 <img 
-                    src={getImageUrl(post.fileUrl)} 
+                    // 🚩 [핵심 수정] poImg 필드 하나만 보내는 대신 post 객체 전체를 전달합니다.
+                    // 이를 통해 getImageUrl 내부에 새로 추가한 '본문(poContent) 이미지 추출 로직'이 작동하게 됩니다.
+                    src={getImageUrl(post)} 
                     alt={post.poTitle} 
-                    onError={(e) => e.target.src = "https://placehold.co"}
+                    onError={(e) => { e.target.src = "https://placehold.co/600x400?text=No+Image"; }}
                 />
             </div>
 
             <div className={isMain ? "featured-info" : "sub-card-body"}>
-                {/* 🚩 제목만 출력 */}
+                {/* 🚩 제목만 출력 (요청사항 유지) */}
                 <h2 className="card-title">{post.poTitle}</h2>
                 
-                {/* 🚩 내용(poContent) 출력 부분 삭제됨 */}
+                {/* 🚩 내용(poContent) 출력 부분 삭제 유지 */}
                 
                 <div className="post-info-row">
                     <span className="post-user">User {post.poMbNum}</span>
