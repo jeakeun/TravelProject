@@ -9,7 +9,7 @@ export async function authFetch(url, options = {}) {
   });
 
   if (res.status === 401) {
-    const refresh = await fetch("http://localhost:8080/api/auth/refresh", {
+    const refresh = await fetch("http://localhost:8080/auth/refresh", {
       method: "POST",
       credentials: "include",
     });

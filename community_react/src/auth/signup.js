@@ -7,6 +7,7 @@ function Signup({ onClose }) {
   const [pw2, setPw2] = useState("");
   const [email, setEmail] = useState("");
   const [agree, setAgree] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
 
   const fillRandom = () => {
     const rand = Math.random().toString(36).substring(2, 8);
@@ -95,8 +96,33 @@ function Signup({ onClose }) {
             <input type="checkbox" id="agree"
               checked={agree}
               onChange={(e) => setAgree(e.target.checked)} />
-            <label htmlFor="agree">개인정보 처리방침에 동의합니다</label>
+            <label htmlFor="agree">
+              개인정보 처리방침에 동의합니다
+              <button type="button" className="agree-link" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowTerms(true); }}>
+                (약관 보기)
+              </button>
+            </label>
           </div>
+          {showTerms && (
+            <div className="termsOverlay" onClick={() => setShowTerms(false)}>
+              <div className="termsModal" onClick={(e) => e.stopPropagation()}>
+                <div className="termsModal-header">
+                  <h3>개인정보 처리방침</h3>
+                  <button type="button" className="terms-close" onClick={() => setShowTerms(false)}>&times;</button>
+                </div>
+                <div className="termsModal-body">
+                  <p><strong>제1조 (목적)</strong><br />본 약관은 서비스 이용과 관련하여 회원의 개인정보를 보호하고, 개인정보와 관련한 회원의 권익을 보장하기 위해 적용됩니다.</p>
+                  <p><strong>제2조 (수집 항목)</strong><br />회원가입 시 아이디, 비밀번호, 이메일 주소를 수집합니다. 서비스 이용 과정에서 접속 로그, 쿠키 등이 생성·수집될 수 있습니다.</p>
+                  <p><strong>제3조 (이용 목적)</strong><br />수집된 정보는 회원 식별, 서비스 제공·개선, 고객 문의 처리, 부정 이용 방지 등에 사용됩니다.</p>
+                  <p><strong>제4조 (보유 기간)</strong><br />회원 탈퇴 시까지 보유하며, 관계 법령에 따라 일정 기간 보관이 필요한 경우 해당 기간 동안 보관 후 파기합니다.</p>
+                  <p><strong>제5조 (동의)</strong><br />회원가입 시 본 약관에 동의한 것으로 간주됩니다. 동의하지 않으시면 회원가입이 제한됩니다.</p>
+                </div>
+                <div className="termsModal-footer">
+                  <button type="button" className="btn-primary" onClick={() => setShowTerms(false)}>확인</button>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="modal-btn-group">
             <button type="submit" className="btn-primary">회원가입</button>
             <button type="button" className="btn-kakao">카카오톡으로 회원가입</button>

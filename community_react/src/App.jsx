@@ -206,18 +206,44 @@ function App() {
     loadPosts();
   }, [loadPosts]);
 
+  // 자동로그인: localStorage에 user가 없을 때 refresh 쿠키로 세션 복원
+  useEffect(() => {
+    const saved = localStorage.getItem('user');
+    if (saved) return; // 이미 로컬에 user 있으면 스킵
+    fetch("http://localhost:8080/auth/refresh", { method: "POST", credentials: "include" })
+      .then((res) => {
+        if (!res.ok) return;
+        return res.json();
+      })
+      .then((data) => {
+        if (!data?.member && !data?.accessToken) return;
+        const member = data.member;
+        if (member) {
+          setUser(member);
+          localStorage.setItem('user', JSON.stringify(member));
+        }
+        if (data.accessToken) localStorage.setItem('accessToken', data.accessToken);
+      })
+      .catch(() => {});
+  }, []);
+
   const handleLogin = useCallback((userData) => {
     // 로그인 응답이 { member, accessToken } 형태이면 member만 저장해 헤더에 아이디(mb_Uid) 표시
     const member = userData?.member ?? userData;
+    const accessToken = userData?.accessToken;
     setUser(member);
     localStorage.setItem('user', JSON.stringify(member));
+    if (accessToken) localStorage.setItem('accessToken', accessToken);
     setShowLogin(false);
   }, []);
 
-  const handleLogout = useCallback((() => {
+  const handleLogout = useCallback(() => {
     setUser(null);
     localStorage.removeItem('user');
-  }), []);
+    localStorage.removeItem('accessToken');
+    // refreshToken 쿠키 삭제
+    fetch("http://localhost:8080/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
+  }, []);
 
   const openLogin = useCallback(() => {
     setShowSignup(false);
