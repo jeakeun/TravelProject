@@ -59,7 +59,7 @@ function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, user
       {showLogin && <Login onClose={() => setShowLogin(false)} onLogin={onLogin} />}
       {showSignup && <Signup onClose={() => setShowSignup(false)} />}
       
-      <main style={{ paddingTop: "70px", minHeight: "100vh" }}>
+      <main className="main-content">
         {/* 🚩 [수정] context에 posts 데이터를 추가하여 Main 페이지에서도 사용 가능하게 합니다. */}
         <Outlet context={{ user, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang, posts }} />
       </main>
