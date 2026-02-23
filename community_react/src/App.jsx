@@ -24,42 +24,65 @@ import NewsNotice from './pages/NewsNotice';
 
 import Login from './auth/login';
 import Signup from './auth/signup';
+import FindPassword from './auth/FindPassword';
+import ResetPassword from './auth/ResetPassword';
 
 // 모든 요청에 쿠키를 포함하여 조회수 중복 방지 로직이 정상 작동하게 합니다.
 axios.defaults.withCredentials = true;
 
-function OpenLoginModal({ setShowLogin }) {
+function OpenLoginModal({ openLogin }) {
   const navigate = useNavigate();
   useEffect(() => {
-    setShowLogin(true);
+    openLogin?.();
     navigate("/", { replace: true });
-  }, [setShowLogin, navigate]);
+  }, [openLogin, navigate]);
   return <Main />;
 }
 
-function OpenSignupModal({ setShowSignup, setShowLogin, setShowFindPw, setShowResetPw }) {
+function OpenSignupModal({ openSignup }) {
   const navigate = useNavigate();
   useEffect(() => {
-    setShowSignup(true);
+    openSignup?.();
     navigate("/", { replace: true });
-  }, [setShowSignup, navigate]);
+  }, [openSignup, navigate]);
   return <Main />;
 }
 
-function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, user, onLogin, onLogout, currentLang, setCurrentLang, posts }) {
+function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, openLogin, openSignup, showFindPw, setShowFindPw, showResetPw, setShowResetPw, resetUserId, setResetUserId, user, onLogin, onLogout, currentLang, setCurrentLang, posts }) {
   return (
     <div className="App">
       <Header 
         user={user} 
         onLogout={onLogout} 
-        setShowLogin={setShowLogin} 
-        setShowSignup={setShowSignup} 
+        openLogin={openLogin} 
+        openSignup={openSignup} 
         currentLang={currentLang} 
         setCurrentLang={setCurrentLang} 
       />
       
-      {showLogin && <Login onClose={() => setShowLogin(false)} onLogin={onLogin} />}
+      {showLogin && (
+        <Login
+          onClose={() => setShowLogin(false)}
+          onLogin={onLogin}
+          onOpenSignup={openSignup}
+          onOpenFindPw={() => { setShowLogin(false); setShowFindPw(true); }}
+        />
+      )}
       {showSignup && <Signup onClose={() => setShowSignup(false)} />}
+      {showFindPw && (
+        <FindPassword
+          onClose={() => setShowFindPw(false)}
+          onBackToLogin={() => { setShowFindPw(false); setShowLogin(true); }}
+          onGoResetPassword={(userId) => { setShowFindPw(false); setResetUserId(userId); setShowResetPw(true); }}
+        />
+      )}
+      {showResetPw && (
+        <ResetPassword
+          onClose={() => { setShowResetPw(false); setResetUserId(''); }}
+          onBackToFindPw={() => { setShowResetPw(false); setShowFindPw(true); }}
+          userId={resetUserId}
+        />
+      )}
       
       <main className="main-content">
         {/* 🚩 [수정] context에 posts 데이터를 추가하여 Main 페이지에서도 사용 가능하게 합니다. */}
@@ -132,6 +155,9 @@ function CommunityContainer({ posts, loadPosts, loading }) {
 function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
+  const [showFindPw, setShowFindPw] = useState(false);
+  const [showResetPw, setShowResetPw] = useState(false);
+  const [resetUserId, setResetUserId] = useState('');
   const [currentLang, setCurrentLang] = useState("KR");
   const [posts, setPosts] = useState([]); // 🚩 [수정] 데이터를 App 수준으로 이동
   const [loading, setLoading] = useState(true); // 🚩 [수정] 로딩 상태를 App 수준으로 이동
@@ -193,6 +219,20 @@ function App() {
     localStorage.removeItem('user');
   }), []);
 
+  const openLogin = useCallback(() => {
+    setShowSignup(false);
+    setShowFindPw(false);
+    setShowResetPw(false);
+    setShowLogin(true);
+  }, []);
+
+  const openSignup = useCallback(() => {
+    setShowLogin(false);
+    setShowFindPw(false);
+    setShowResetPw(false);
+    setShowSignup(true);
+  }, []);
+
   return (
     <Routes>
       <Route element={
@@ -201,17 +241,25 @@ function App() {
           setShowLogin={setShowLogin} 
           showSignup={showSignup} 
           setShowSignup={setShowSignup} 
+          openLogin={openLogin}
+          openSignup={openSignup}
+          showFindPw={showFindPw} 
+          setShowFindPw={setShowFindPw} 
+          showResetPw={showResetPw} 
+          setShowResetPw={setShowResetPw} 
+          resetUserId={resetUserId} 
+          setResetUserId={setResetUserId} 
           user={user} 
           onLogin={handleLogin} 
           onLogout={handleLogout} 
           currentLang={currentLang} 
           setCurrentLang={setCurrentLang}
-          posts={posts} // 🚩 context로 전달될 posts
+          posts={posts}
         />
       }>
         <Route path="/" element={<Main />} />
-        <Route path="/login" element={<OpenLoginModal setShowLogin={setShowLogin} />} />
-        <Route path="/signup" element={<OpenSignupModal setShowSignup={setShowSignup} />} />
+        <Route path="/login" element={<OpenLoginModal openLogin={openLogin} />} />
+        <Route path="/signup" element={<OpenSignupModal openSignup={openSignup} />} />
         <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
         <Route path="/news/notice" element={<NewsNotice />} />
       </Route>

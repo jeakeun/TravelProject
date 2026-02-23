@@ -13,3 +13,11 @@ export function getMemberNum(userOrMember) {
   const num = userOrMember.mbNum ?? userOrMember.mb_num;
   return num != null ? Number(num) : null;
 }
+
+/** 관리자 여부 (mb_rol === 'ADMIN' 또는 mb_score >= 10) */
+export function isAdmin(userOrMember) {
+  if (!userOrMember || typeof userOrMember !== 'object') return false;
+  const rol = userOrMember.mb_rol ?? userOrMember.mbRol ?? '';
+  const score = Number(userOrMember.mb_score ?? userOrMember.mbScore ?? 0);
+  return String(rol).toUpperCase() === 'ADMIN' || score >= 10;
+}

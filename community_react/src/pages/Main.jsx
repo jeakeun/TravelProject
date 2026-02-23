@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "./Main.css";
-import {  useOutletContext, useNavigate } from "react-router-dom";
-import Header from "../components/Header";
+import { useOutletContext, useNavigate } from "react-router-dom";
 
 const carouselTranslations = {
   KR: {
@@ -72,14 +71,13 @@ function Main() {
   const handlePrev = () => setCarouselIndex((prev) => (prev === 0 ? 2 : prev - 1));
   const handleNext = () => setCarouselIndex((prev) => (prev === 2 ? 0 : prev + 1));
 
-  // 4. 스크롤 이벤트 (헤더 투명도 조절)
+  // 4. 스크롤 이벤트 (헤더 스타일 조절)
   useEffect(() => {
+    const header = document.querySelector('.App .nav-area header');
+    if (!header) return;
     const handleScroll = () => {
-      const header = document.querySelector('header');
-      if (header) { // null 체크 추가
-        if (window.scrollY > 50) header.classList.add('scrolled');
-        else header.classList.remove('scrolled');
-      }
+      if (window.scrollY > 50) header.classList.add('scrolled');
+      else header.classList.remove('scrolled');
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
@@ -91,22 +89,21 @@ function Main() {
     return "carousel-item prev";
   };
 
+  const scrollToRanking = useCallback(() => {
+    const el = document.getElementById("ranking");
+    if (!el) return;
+    const top = el.getBoundingClientRect().top + window.scrollY;
+    window.scrollTo({ top, behavior: "smooth" });
+  }, []);
+
   return (
     <div className="main-container">
-      {/* ===== 네비게이션 영역 (헤더 + 메가메뉴) ===== */}
-      <Header
-        user={user}
-        onLogout={onLogout}
-        setShowLogin={setShowLogin}
-        setShowSignup={setShowSignup}
-        currentLang={currentLang || "KR"}
-        setCurrentLang={setCurrentLang}
-      />
-
-      {/* ===== 메인 비디오 ===== */}
+      {/* ===== 메인 비디오 (헤더는 GlobalLayout에서 한 번만 렌더) ===== */}
       <section id="main-video">
         <iframe src="https://www.youtube.com/embed/1La4QzGeaaQ?autoplay=1&mute=1&controls=0&loop=1&playlist=1La4QzGeaaQ" frameBorder="0" allow="autoplay; fullscreen" title="video"></iframe>
-        <div className="scroll-down">⬇</div>
+        <button type="button" className="scroll-down" onClick={scrollToRanking} aria-label="두 번째 화면으로">
+          <span className="scroll-down-arrow">⬇</span>
+        </button>
       </section>
 
       {/* ===== 랭킹 카러셀 ===== */}

@@ -1,3 +1,4 @@
+/* 헤더(9999) 위에 표시. 배경은 반투명 검정만 */
 .modalStyle {
   position: fixed;
   top: 0;
@@ -8,7 +9,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 4000;
+  z-index: 10000;
   animation: fadeIn 0.2s ease;
 }
 
@@ -21,6 +22,7 @@
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   position: relative;
+  z-index: 1;
   animation: slideUp 0.3s ease;
 }
 
