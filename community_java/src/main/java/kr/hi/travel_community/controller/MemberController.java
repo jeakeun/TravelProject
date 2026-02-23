@@ -13,14 +13,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map;
-
 import io.jsonwebtoken.Claims;
-import kr.hi.travel_community.model.util.CustomUser;
 import jakarta.servlet.http.HttpServletRequest;
 import kr.hi.travel_community.dao.MemberDAO;
 import kr.hi.travel_community.model.dto.LoginDTO;
 import kr.hi.travel_community.model.dto.LoginRequestDTO;
+import kr.hi.travel_community.model.util.CustomUser;
 import kr.hi.travel_community.model.vo.MemberVO;
 import kr.hi.travel_community.security.jwt.JwtTokenProvider;
 import kr.hi.travel_community.service.MemberService;
