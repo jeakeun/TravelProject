@@ -23,20 +23,13 @@ function FindPassword({ onClose, onBackToLogin, onGoResetPassword }) {
     const payload = { id: trimmedId, email: trimmedEmail };
 
     try {
-      // ✅ 디버그: 실제로 뭘 보내는지 확인
-      console.log("[verify-user] request payload:", payload);
-
       const res = await fetch("http://localhost:8080/auth/verify-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
-      const text = await res.text(); // ✅ 응답 본문 먼저 확보
-
-      // ✅ 디버그: 응답 상태/본문 확인 (다른 서버/다른 컨트롤러면 여기서 바로 보임)
-      console.log("[verify-user] response status:", res.status);
-      console.log("[verify-user] response body:", text);
+      const text = await res.text();
 
       if (!res.ok) {
         alert(text || "아이디/이메일이 일치하는 계정을 찾을 수 없습니다.");
@@ -46,7 +39,6 @@ function FindPassword({ onClose, onBackToLogin, onGoResetPassword }) {
       // ✅ 성공: 비밀번호 변경 팝업으로 이동
       onGoResetPassword?.(trimmedId);
     } catch (err) {
-      console.error(err);
       alert("서버와 통신 중 오류가 발생했습니다.");
     }
   };

@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import kr.hi.travel_community.dao.MemberDAO;
@@ -187,6 +189,40 @@ public class MemberController {
         } catch (Exception e) {
             return deleteRefreshCookieAnd401("자동로그인 정보가 만료되었습니다. 다시 로그인 해주세요.");
         }
+    }
+
+    /**
+     * 비밀번호 찾기 1단계: 아이디 + 이메일로 본인 확인
+     */
+    @PostMapping("/auth/verify-user")
+    public ResponseEntity<String> verifyUser(@RequestBody Map<String, String> body) {
+        String id = body != null ? (body.get("id") != null ? body.get("id").trim() : "") : "";
+        String email = body != null ? (body.get("email") != null ? body.get("email").trim() : "") : "";
+        if (id.isEmpty() || email.isEmpty()) {
+            return ResponseEntity.badRequest().body("아이디와 이메일을 입력하세요.");
+        }
+        boolean ok = memberService.verifyUserForReset(id, email);
+        if (ok) {
+            return ResponseEntity.ok("OK");
+        }
+        return ResponseEntity.badRequest().body("아이디/이메일이 일치하는 계정을 찾을 수 없습니다.");
+    }
+
+    /**
+     * 비밀번호 찾기 2단계: 새 비밀번호로 변경
+     */
+    @PostMapping("/auth/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody Map<String, String> body) {
+        String id = body != null ? (body.get("id") != null ? body.get("id").trim() : "") : "";
+        String newPw = body != null ? (body.get("newPw") != null ? body.get("newPw").trim() : "") : "";
+        if (id.isEmpty() || newPw.isEmpty()) {
+            return ResponseEntity.badRequest().body("아이디와 새 비밀번호를 입력하세요.");
+        }
+        boolean ok = memberService.resetPassword(id, newPw);
+        if (ok) {
+            return ResponseEntity.ok("OK");
+        }
+        return ResponseEntity.badRequest().body("비밀번호 변경에 실패했습니다.");
     }
 
     /**
