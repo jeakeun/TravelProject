@@ -42,12 +42,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private boolean isPublicPath(String path) {
         if (path == null) return false;
 
-        // ✅ public endpoint들
-        return path.startsWith("/auth/")
-            || path.startsWith("/api/auth/")
-            || path.equals("/login")
-            || path.equals("/signup")
-            || path.equals("/error");
+        if (path.equals("/login") || path.equals("/signup") || path.equals("/error")) return true;
+        if (path.startsWith("/api/auth/")) return true;
+
+        // ✅ 인증 없이 접근하는 auth 경로만 제외 (update-email, change-password는 JWT 필요)
+        return "/auth/refresh".equals(path)
+            || "/auth/logout".equals(path)
+            || "/auth/verify-user".equals(path)
+            || "/auth/reset-password".equals(path);
     }
 
     @Override

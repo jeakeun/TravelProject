@@ -137,6 +137,34 @@
   border-color: #ccc;
 }
 
+.mypage-email-edit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.mypage-email-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.mypage-email-input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.mypage-email-cancel {
+  background: #fff;
+  color: #666;
+  border-color: #ccc;
+}
+
 /* 내가 쓴 글 섹션 - 아래로 밀려서 남은 영역 채움, 스크롤 가능 */
 .mypage-posts {
   flex: 1;

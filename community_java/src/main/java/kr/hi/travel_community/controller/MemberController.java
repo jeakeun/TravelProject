@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 import io.jsonwebtoken.Claims;
+import kr.hi.travel_community.model.util.CustomUser;
 import jakarta.servlet.http.HttpServletRequest;
 import kr.hi.travel_community.dao.MemberDAO;
 import kr.hi.travel_community.model.dto.LoginDTO;
@@ -241,6 +243,26 @@ public class MemberController {
             return ResponseEntity.ok("OK");
         }
         return ResponseEntity.badRequest().body("현재 비밀번호가 일치하지 않거나 변경에 실패했습니다.");
+    }
+
+    /**
+     * ✅ 로그인 사용자 이메일 변경 (JWT로 본인 확인)
+     */
+    @PostMapping("/auth/update-email")
+    public ResponseEntity<String> updateEmail(Authentication authentication, @RequestBody Map<String, String> body) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUser)) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+        String id = ((CustomUser) authentication.getPrincipal()).getMember().getMb_Uid();
+        String newEmail = body != null ? (body.get("email") != null ? body.get("email").trim() : "") : "";
+        if (newEmail.isEmpty()) {
+            return ResponseEntity.badRequest().body("이메일을 입력하세요.");
+        }
+        boolean ok = memberService.updateEmail(id, newEmail);
+        if (ok) {
+            return ResponseEntity.ok("OK");
+        }
+        return ResponseEntity.badRequest().body("이미 사용 중인 이메일이거나 변경에 실패했습니다.");
     }
 
     /**

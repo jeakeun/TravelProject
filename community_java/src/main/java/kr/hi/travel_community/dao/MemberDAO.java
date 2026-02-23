@@ -37,4 +37,7 @@ public interface MemberDAO {
 
     // ✅ 비밀번호 변경
     int updatePasswordById(@Param("id") String id, @Param("pw") String pw);
+
+    // ✅ 이메일 변경
+    int updateEmailById(@Param("id") String id, @Param("email") String email);
 }

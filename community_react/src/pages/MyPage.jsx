@@ -14,12 +14,15 @@ const BOARD_OPTIONS = [
 ];
 
 function MyPage() {
-  const { user, openChangePassword } = useOutletContext() || {};
+  const { user, setUser, openChangePassword } = useOutletContext() || {};
   const navigate = useNavigate();
   const [myPosts, setMyPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedBoard, setSelectedBoard] = useState("");
+  const [isEditingEmail, setIsEditingEmail] = useState(false);
+  const [editEmailValue, setEditEmailValue] = useState("");
+  const [emailSaving, setEmailSaving] = useState(false);
 
   const loadMyPosts = useCallback(async () => {
     if (!user) {
@@ -57,6 +60,13 @@ function MyPage() {
     loadMyPosts();
   }, [loadMyPosts]);
 
+  useEffect(() => {
+    if (!user) {
+      alert("로그인이 필요한 서비스입니다.");
+      navigate("/", { replace: true });
+    }
+  }, [user, navigate]);
+
   const goToPost = (post) => {
     navigate(`/community/${post.boardType}/${post.poNum || post.id}`);
   };
@@ -67,12 +77,45 @@ function MyPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   };
 
+  const startEditEmail = () => {
+    setEditEmailValue(user?.mb_email ?? user?.mb_Email ?? "");
+    setIsEditingEmail(true);
+  };
+
+  const cancelEditEmail = () => {
+    setIsEditingEmail(false);
+    setEditEmailValue("");
+  };
+
+  const saveEmail = async () => {
+    const trimmed = (editEmailValue || "").trim();
+    if (!trimmed) {
+      alert("이메일을 입력하세요.");
+      return;
+    }
+    setEmailSaving(true);
+    try {
+      const res = await api.post("/auth/update-email", { email: trimmed });
+      if (res.status === 200) {
+        const updated = { ...user, mb_email: trimmed, mb_Email: trimmed };
+        setUser?.(updated);
+        try {
+          localStorage.setItem("user", JSON.stringify(updated));
+        } catch (_) {}
+        setIsEditingEmail(false);
+        setEditEmailValue("");
+        alert("이메일이 변경되었습니다.");
+      }
+    } catch (err) {
+      const msg = err.response?.data ?? err.response?.statusText ?? "이메일 변경에 실패했습니다.";
+      alert(typeof msg === "string" ? msg : "이미 사용 중인 이메일이거나 변경에 실패했습니다.");
+    } finally {
+      setEmailSaving(false);
+    }
+  };
+
   if (!user) {
-    return (
-      <div className="mypage-wrapper">
-        <p className="mypage-guest-msg">로그인이 필요한 서비스입니다.</p>
-      </div>
-    );
+    return null;
   }
 
   const email = user.mb_email ?? user.mb_Email ?? "-";
@@ -113,10 +156,31 @@ function MyPage() {
             <div className="mypage-info-row">
               <span className="mypage-info-icon" aria-hidden>✉</span>
               <span className="mypage-info-label">이메일</span>
-              <span className="mypage-info-text">{email}</span>
-              <button type="button" className="mypage-info-btn" onClick={() => {}}>
-                수정
-              </button>
+              {!isEditingEmail ? (
+                <>
+                  <span className="mypage-info-text">{email}</span>
+                  <button type="button" className="mypage-info-btn" onClick={startEditEmail}>
+                    수정
+                  </button>
+                </>
+              ) : (
+                <div className="mypage-email-edit">
+                  <input
+                    type="email"
+                    className="mypage-email-input"
+                    value={editEmailValue}
+                    onChange={(e) => setEditEmailValue(e.target.value)}
+                    placeholder="이메일 입력"
+                    aria-label="이메일"
+                  />
+                  <button type="button" className="mypage-info-btn" onClick={saveEmail} disabled={emailSaving}>
+                    {emailSaving ? "저장 중..." : "저장"}
+                  </button>
+                  <button type="button" className="mypage-info-btn mypage-email-cancel" onClick={cancelEditEmail} disabled={emailSaving}>
+                    취소
+                  </button>
+                </div>
+              )}
             </div>
             <div className="mypage-info-row">
               <span className="mypage-info-icon" aria-hidden>🔒</span>

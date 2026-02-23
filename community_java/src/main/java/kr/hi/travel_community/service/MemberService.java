@@ -3,6 +3,7 @@ package kr.hi.travel_community.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import kr.hi.travel_community.dao.MemberDAO;
 import kr.hi.travel_community.model.dto.LoginDTO;
@@ -120,6 +121,35 @@ public class MemberService {
 
             String encodedPw = encoder.encode(newPw.trim());
             int updated = memberDAO.updatePasswordById(id.trim(), encodedPw);
+            return updated > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * ✅ 이메일 변경: 로그인 사용자 본인만 가능. 새 이메일 중복 시 실패.
+     */
+    @Transactional
+    public boolean updateEmail(String id, String newEmail) {
+        try {
+            if (id == null || id.trim().isEmpty()) return false;
+            if (newEmail == null || newEmail.trim().isEmpty()) return false;
+
+            MemberVO member = memberDAO.selectMemberById(id.trim());
+            if (member == null) return false;
+
+            String emailTrim = newEmail.trim();
+            // 다른 회원이 이미 사용 중인 이메일이면 실패
+            MemberVO existing = memberDAO.selectMemberByEmail(emailTrim);
+            if (existing != null && !existing.getMb_Uid().equals(id.trim())) {
+                return false;
+            }
+            // 동일 이메일이면 성공 처리(변경 없음)
+            if (emailTrim.equals(member.getMb_email())) return true;
+
+            int updated = memberDAO.updateEmailById(id.trim(), emailTrim);
             return updated > 0;
         } catch (Exception e) {
             e.printStackTrace();

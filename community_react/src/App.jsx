@@ -51,7 +51,7 @@ function OpenSignupModal({ openSignup }) {
   return <Main />;
 }
 
-function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, openLogin, openSignup, showFindPw, setShowFindPw, showResetPw, setShowResetPw, resetUserId, setResetUserId, showChangePw, setShowChangePw, user, onLogin, onLogout, currentLang, setCurrentLang, posts, openChangePassword }) {
+function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, openLogin, openSignup, showFindPw, setShowFindPw, showResetPw, setShowResetPw, resetUserId, setResetUserId, showChangePw, setShowChangePw, user, setUser, onLogin, onLogout, currentLang, setCurrentLang, posts, openChangePassword }) {
   return (
     <div className="App">
       <Header 
@@ -95,7 +95,7 @@ function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, open
       
       <main className="main-content">
         {/* 🚩 [수정] context에 posts 데이터를 추가하여 Main 페이지에서도 사용 가능하게 합니다. */}
-        <Outlet context={{ user, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang, posts, openChangePassword }} />
+        <Outlet context={{ user, setUser, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang, posts, openChangePassword }} />
       </main>
     </div>
   );
@@ -292,10 +292,11 @@ function App() {
           setResetUserId={setResetUserId}
           showChangePw={showChangePw}
           setShowChangePw={setShowChangePw}
-          user={user} 
-          onLogin={handleLogin} 
-          onLogout={handleLogout} 
-          currentLang={currentLang} 
+          user={user}
+          setUser={setUser}
+          onLogin={handleLogin}
+          onLogout={handleLogout}
+          currentLang={currentLang}
           setCurrentLang={setCurrentLang}
           posts={posts}
           openChangePassword={openChangePassword}
