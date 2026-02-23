@@ -400,8 +400,7 @@
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* [5. 상단바 및 사이드메뉴 고정] */
-header,
+/* [5. 상단바 및 사이드메뉴 고정] - 전역 header는 App/Main.css에서만 사용, 여기서는 .navbar만 */
 .navbar {
     position: fixed;
     top: 0;
@@ -415,7 +414,6 @@ header,
     z-index: 1000;
 }
 
-header a,
 .navbar a {
     color: #fff;
     text-decoration: none;

@@ -59,7 +59,7 @@ function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, user
       {showLogin && <Login onClose={() => setShowLogin(false)} onLogin={onLogin} />}
       {showSignup && <Signup onClose={() => setShowSignup(false)} />}
       
-      <main style={{ paddingTop: "70px", minHeight: "100vh" }}>
+      <main className="main-content">
         {/* 🚩 [수정] context에 posts 데이터를 추가하여 Main 페이지에서도 사용 가능하게 합니다. */}
         <Outlet context={{ user, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang, posts }} />
       </main>
@@ -134,10 +134,12 @@ function App() {
   const [posts, setPosts] = useState([]); // 🚩 [수정] 데이터를 App 수준으로 이동
   const [loading, setLoading] = useState(true); // 🚩 [수정] 로딩 상태를 App 수준으로 이동
   const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('user');
+    if (!saved) return null;
     try {
-      const saved = localStorage.getItem('user');
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
+      const parsed = JSON.parse(saved);
+      return parsed?.member ?? parsed;
+    } catch {
       return null;
     }
   });
@@ -177,8 +179,10 @@ function App() {
   }, [loadPosts]);
 
   const handleLogin = useCallback((userData) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    // 로그인 응답이 { member, accessToken } 형태이면 member만 저장해 헤더에 아이디(mb_Uid) 표시
+    const member = userData?.member ?? userData;
+    setUser(member);
+    localStorage.setItem('user', JSON.stringify(member));
     setShowLogin(false);
   }, []);
 

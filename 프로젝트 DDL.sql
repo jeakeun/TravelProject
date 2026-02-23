@@ -8,7 +8,7 @@ USE travel;
 DROP TABLE IF EXISTS `member`;
 CREATE TABLE `member` (
     `mb_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `mb_Uid`    varchar(30)    unique NOT NULL,
+    `mb_uid`    varchar(30)    unique NOT NULL,
     `mb_pw`     varchar(255)   NULL,
     `mb_email`  varchar(50)    NULL,
     `mb_rol`    varchar(10)    default "USER" NOT NULL,
@@ -248,7 +248,7 @@ CREATE TABLE `likes` (
 -- ==========================================
 -- 7. 초기 데이터 삽입
 -- ==========================================
-INSERT INTO `member` (mb_num, mb_Uid, mb_rol) VALUES (1, 'admin', 'ADMIN');
+INSERT INTO `member` (mb_num, mb_uid, mb_rol) VALUES (1, 'admin', 'ADMIN');
 INSERT INTO `board` (bo_name) VALUES ('전체게시판');
 INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (1, '여행 추천 게시판', 'Y', 1);
 INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (2, '여행 후기 게시판', 'Y', 1);
