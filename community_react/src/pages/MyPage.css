@@ -137,6 +137,151 @@
   border-color: #ccc;
 }
 
+.mypage-email-edit {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.mypage-email-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.mypage-email-input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.mypage-email-cancel {
+  background: #fff;
+  color: #666;
+  border-color: #ccc;
+}
+
+/* 회원탈퇴 버튼 - 비밀번호 수정 버튼 밑, 빨간색 */
+.mypage-withdraw-row {
+  border-bottom: none;
+  padding-top: 8px;
+  padding-bottom: 0;
+}
+
+.mypage-btn-withdraw {
+  flex-shrink: 0;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: #c0392b;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.mypage-btn-withdraw:hover {
+  background: #a93226;
+}
+
+/* 회원탈퇴 모달 */
+.mypage-withdraw-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.mypage-withdraw-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px 28px;
+  min-width: 320px;
+  max-width: 400px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.mypage-withdraw-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+}
+
+.mypage-withdraw-desc {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.mypage-withdraw-password {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+}
+
+.mypage-withdraw-password:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.mypage-withdraw-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.mypage-withdraw-btn-cancel {
+  padding: 10px 20px;
+  font-size: 14px;
+  color: #333;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.mypage-withdraw-btn-cancel:hover:not(:disabled) {
+  background: #e0e0e0;
+}
+
+.mypage-withdraw-btn-confirm {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: #c0392b;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.mypage-withdraw-btn-confirm:hover:not(:disabled) {
+  background: #a93226;
+}
+
+.mypage-withdraw-btn-confirm:disabled,
+.mypage-withdraw-btn-cancel:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 /* 내가 쓴 글 섹션 - 아래로 밀려서 남은 영역 채움, 스크롤 가능 */
 .mypage-posts {
   flex: 1;
