@@ -434,6 +434,116 @@ body {
     right: 4px;
 }
 
+/* ----- 랭킹 카드 반응형: 노트북 / 데스크톱 ----- */
+/* 노트북 (~1366px): 카드 작게 */
+@media (max-width: 1366px) {
+    .carousel-outer {
+        max-width: 1020px;
+        padding: 0 48px;
+    }
+    .carousel-container {
+        max-width: 920px;
+        height: 320px;
+    }
+    .carousel-item {
+        width: 300px;
+        height: 200px;
+        margin-left: -150px;
+        margin-top: -100px;
+        border-radius: 14px;
+    }
+    .carousel-item.active {
+        transform: translate3d(0, 0, 220px);
+    }
+    .carousel-item.prev {
+        transform: translate3d(-260px, 0, -140px) rotateY(30deg);
+    }
+    .carousel-item.next {
+        transform: translate3d(260px, 0, -140px) rotateY(-30deg);
+    }
+    .item-info {
+        padding: 12px 16px;
+    }
+    .item-info h3 { font-size: 0.95rem; }
+    .item-info p { font-size: 0.8rem; }
+    .carousel-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+}
+
+/* 데스크톱 (1400px~): 카드 크게 */
+@media (min-width: 1400px) {
+    .carousel-outer {
+        max-width: 1320px;
+        padding: 0 60px;
+    }
+    .carousel-container {
+        max-width: 1200px;
+        height: 400px;
+    }
+    .carousel-item {
+        width: 400px;
+        height: 267px;
+        margin-left: -200px;
+        margin-top: -133px;
+        border-radius: 18px;
+    }
+    .carousel-item.active {
+        transform: translate3d(0, 0, 300px);
+    }
+    .carousel-item.prev {
+        transform: translate3d(-360px, 0, -180px) rotateY(30deg);
+    }
+    .carousel-item.next {
+        transform: translate3d(360px, 0, -180px) rotateY(-30deg);
+    }
+    .item-info {
+        padding: 18px 22px;
+    }
+    .item-info h3 { font-size: 1.1rem; }
+    .item-info p { font-size: 0.9rem; }
+    .carousel-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+}
+
+/* 큰 데스크톱 (1800px~): 카드 더 크게 */
+@media (min-width: 1800px) {
+    .carousel-outer {
+        max-width: 1520px;
+        padding: 0 72px;
+    }
+    .carousel-container {
+        max-width: 1380px;
+        height: 460px;
+    }
+    .carousel-item {
+        width: 460px;
+        height: 307px;
+        margin-left: -230px;
+        margin-top: -153px;
+        border-radius: 20px;
+    }
+    .carousel-item.active {
+        transform: translate3d(0, 0, 340px);
+    }
+    .carousel-item.prev {
+        transform: translate3d(-420px, 0, -200px) rotateY(30deg);
+    }
+    .carousel-item.next {
+        transform: translate3d(420px, 0, -200px) rotateY(-30deg);
+    }
+    .item-info {
+        padding: 20px 26px;
+    }
+    .item-info h3 { font-size: 1.15rem; }
+    .item-info p { font-size: 0.95rem; }
+}
+
 /* 푸터: 검은색, 크기·색 유지. 위치는 두 번째 섹션 바로 아래(조금만 스크롤하면 보임) */
 footer {
     margin: 0;
