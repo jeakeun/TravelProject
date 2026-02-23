@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Routes, Route, useNavigate, useLocation, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate, Outlet, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 
 // 스타일 및 컴포넌트 임포트
@@ -21,11 +21,14 @@ import ReviewBoardList from './components/reviewboard/ReviewBoardList';
 import ReviewBoardDetail from './components/reviewboard/ReviewBoardDetail';
 
 import NewsNotice from './pages/NewsNotice';
+import MyPage from './pages/MyPage';
+import { getUserId } from './utils/user';
 
 import Login from './auth/login';
 import Signup from './auth/signup';
 import FindPassword from './auth/FindPassword';
 import ResetPassword from './auth/ResetPassword';
+import ChangePassword from './auth/ChangePassword';
 
 // 모든 요청에 쿠키를 포함하여 조회수 중복 방지 로직이 정상 작동하게 합니다.
 axios.defaults.withCredentials = true;
@@ -48,7 +51,7 @@ function OpenSignupModal({ openSignup }) {
   return <Main />;
 }
 
-function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, openLogin, openSignup, showFindPw, setShowFindPw, showResetPw, setShowResetPw, resetUserId, setResetUserId, user, onLogin, onLogout, currentLang, setCurrentLang, posts }) {
+function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, openLogin, openSignup, showFindPw, setShowFindPw, showResetPw, setShowResetPw, resetUserId, setResetUserId, showChangePw, setShowChangePw, user, onLogin, onLogout, currentLang, setCurrentLang, posts, openChangePassword }) {
   return (
     <div className="App">
       <Header 
@@ -83,16 +86,23 @@ function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, open
           userId={resetUserId}
         />
       )}
+      {showChangePw && user && (
+        <ChangePassword
+          onClose={() => setShowChangePw(false)}
+          userId={getUserId(user)}
+        />
+      )}
       
       <main className="main-content">
         {/* 🚩 [수정] context에 posts 데이터를 추가하여 Main 페이지에서도 사용 가능하게 합니다. */}
-        <Outlet context={{ user, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang, posts }} />
+        <Outlet context={{ user, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang, posts, openChangePassword }} />
       </main>
     </div>
   );
 }
 
 function CommunityContainer({ posts, loadPosts, loading }) {
+  const { user } = useOutletContext() || {};
   const [activeMenu, setActiveMenu] = useState('자유 게시판');
   const navigate = useNavigate();
   const location = useLocation();
@@ -132,11 +142,11 @@ function CommunityContainer({ posts, loadPosts, loading }) {
       </aside>
       <main className="main-content">
         <Routes>
-          <Route path="recommend/write" element={<PostWrite activeMenu="여행 추천 게시판" refreshPosts={loadPosts} />} />
+          <Route path="recommend/write" element={<PostWrite user={user} activeMenu="여행 추천 게시판" refreshPosts={loadPosts} />} />
           <Route path="recommend/:id" element={<RecommendPostDetail />} />
           <Route path="recommend" element={<RecommendMain posts={posts} />} />
 
-          <Route path="write" element={<PostWrite activeMenu={activeMenu} refreshPosts={loadPosts} />} />
+          <Route path="write" element={<PostWrite user={user} activeMenu={activeMenu} refreshPosts={loadPosts} />} />
           <Route path="map" element={<MainList photos={[]} activeMenu="여행지도" goToDetail={(id) => navigate(`/community/map/${id}`)} />} /> 
           
           <Route path="reviewboard" element={<ReviewBoardList posts={posts} />} />
@@ -157,6 +167,7 @@ function App() {
   const [showSignup, setShowSignup] = useState(false);
   const [showFindPw, setShowFindPw] = useState(false);
   const [showResetPw, setShowResetPw] = useState(false);
+  const [showChangePw, setShowChangePw] = useState(false);
   const [resetUserId, setResetUserId] = useState('');
   const [currentLang, setCurrentLang] = useState("KR");
   const [posts, setPosts] = useState([]); // 🚩 [수정] 데이터를 App 수준으로 이동
@@ -259,6 +270,10 @@ function App() {
     setShowSignup(true);
   }, []);
 
+  const openChangePassword = useCallback(() => {
+    if (user) setShowChangePw(true);
+  }, [user]);
+
   return (
     <Routes>
       <Route element={
@@ -274,16 +289,20 @@ function App() {
           showResetPw={showResetPw} 
           setShowResetPw={setShowResetPw} 
           resetUserId={resetUserId} 
-          setResetUserId={setResetUserId} 
+          setResetUserId={setResetUserId}
+          showChangePw={showChangePw}
+          setShowChangePw={setShowChangePw}
           user={user} 
           onLogin={handleLogin} 
           onLogout={handleLogout} 
           currentLang={currentLang} 
           setCurrentLang={setCurrentLang}
           posts={posts}
+          openChangePassword={openChangePassword}
         />
       }>
         <Route path="/" element={<Main />} />
+        <Route path="/mypage" element={<MyPage />} />
         <Route path="/login" element={<OpenLoginModal openLogin={openLogin} />} />
         <Route path="/signup" element={<OpenSignupModal openSignup={openSignup} />} />
         <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />

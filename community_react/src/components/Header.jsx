@@ -52,7 +52,7 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
             <li className="nav-item"><Link to="/">{t.nav_cs}</Link></li>
             <li className="nav-item">
               {user ? (
-                <Link to="/">{t.nav_mypage}</Link>
+                <Link to="/mypage">{t.nav_mypage}</Link>
               ) : (
                 <span
                   role="button"

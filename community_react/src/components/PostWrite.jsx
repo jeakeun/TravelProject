@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import { getMemberNum } from '../utils/user';
 
-function PostWrite({ refreshPosts, activeMenu }) {
+function PostWrite({ user, refreshPosts, activeMenu }) {
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -62,15 +63,16 @@ function PostWrite({ refreshPosts, activeMenu }) {
     }
 
     const formData = new FormData();
-    
-    // 🚩 [핵심 수정] 백엔드 DTO 필드명 규격(po+대문자)에 맞게 변경
+    const mbNum = getMemberNum(user);
+    const authorNum = mbNum != null ? mbNum : 1;
+
     formData.append('poTitle', title);
     formData.append('poContent', htmlContent);
-    formData.append('poMbNum', 1); // 테스트용 번호 (로그인 연동 전)
+    formData.append('poMbNum', authorNum);
+    formData.append('mbNum', authorNum); // 자유/후기 게시판 파라미터와 동일하게
 
-    // 🚩 이미지 파일 키값: 서버가 @RequestParam("image")로 받는지 확인 필요
     if (imageFiles.length > 0) {
-      formData.append('image', imageFiles[0]); 
+      formData.append('image', imageFiles[0]);
     }
 
     const apiMap = {

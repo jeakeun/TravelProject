@@ -132,7 +132,10 @@ public class RecommendPostService {
         post.setPoView(0); 
         post.setPoUp(0);
         post.setPoDel("N");
-        post.setPoMbNum(1); 
+        // po_mb_num은 컨트롤러에서 로그인 회원 번호로 설정
+        if (post.getPoMbNum() == null) {
+            post.setPoMbNum(1);
+        }
         handleImages(post, images);
         postRepository.save(post);
     }

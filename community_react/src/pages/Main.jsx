@@ -106,37 +106,37 @@ function Main() {
         </button>
       </section>
 
-      {/* ===== 랭킹 카러셀 ===== */}
+      {/* ===== 랭킹 카러셀: 화살표는 카드 뒤에 없이 빈 공간에만 배치 ===== */}
       <section id="ranking">
         <h2>{t.rank_main_title}</h2>
-        <div className="carousel-container">
-          <div className="carousel-wrapper">
-            {/* 🚩 실시간 데이터 1~3위 렌더링 */}
-            {[0, 1, 2].map((idx) => {
-              const post = topThree[idx];
-              return (
-                <div 
-                  key={idx} 
-                  className={getCarouselClass(idx)}
-                  onClick={() => post && navigate(`/community/recommend/${post.poNum}`)}
-                  style={{ cursor: post ? 'pointer' : 'default' }}
-                >
-                  <img src={getImageUrl(post)} alt={post?.poTitle || "Ranking"} />
-                  <div className="item-info">
-                    {/* 데이터가 있으면 실제 제목/내용 표시, 없으면 기본 번역 텍스트 표시 */}
-                    <h3>{post ? `0${idx + 1}. ${post.poTitle}` : t[`dest${idx + 1}_name`]}</h3>
-                    <p>
-                      {post 
-                        ? (post.poContent?.replace(/<[^>]*>?/gm, '').substring(0, 40) + "...") 
-                        : t[`dest${idx + 1}_desc`]}
-                    </p>
+        <div className="carousel-outer">
+          <button type="button" className="carousel-btn prev-btn" onClick={handlePrev} aria-label="이전">❮</button>
+          <div className="carousel-container">
+            <div className="carousel-wrapper">
+              {[0, 1, 2].map((idx) => {
+                const post = topThree[idx];
+                return (
+                  <div 
+                    key={idx} 
+                    className={getCarouselClass(idx)}
+                    onClick={() => post && navigate(`/community/recommend/${post.poNum}`)}
+                    style={{ cursor: post ? 'pointer' : 'default' }}
+                  >
+                    <img src={getImageUrl(post)} alt={post?.poTitle || "Ranking"} />
+                    <div className="item-info">
+                      <h3>{post ? `0${idx + 1}. ${post.poTitle}` : t[`dest${idx + 1}_name`]}</h3>
+                      <p>
+                        {post 
+                          ? (post.poContent?.replace(/<[^>]*>?/gm, '').substring(0, 40) + "...") 
+                          : t[`dest${idx + 1}_desc`]}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-          <button className="carousel-btn prev-btn" onClick={handlePrev}>❮</button>
-          <button className="carousel-btn next-btn" onClick={handleNext}>❯</button>
+          <button type="button" className="carousel-btn next-btn" onClick={handleNext} aria-label="다음">❯</button>
         </div>
       </section>
 
