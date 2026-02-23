@@ -28,32 +28,32 @@ import ResetPassword from './auth/ResetPassword';
 // 모든 요청에 쿠키를 포함하여 조회수 중복 방지 로직이 정상 작동하게 합니다.
 axios.defaults.withCredentials = true;
 
-function OpenLoginModal({ setShowLogin }) {
+function OpenLoginModal({ openLogin }) {
   const navigate = useNavigate();
   useEffect(() => {
-    setShowLogin(true);
+    openLogin?.();
     navigate("/", { replace: true });
-  }, [setShowLogin, navigate]);
+  }, [openLogin, navigate]);
   return <Main />;
 }
 
-function OpenSignupModal({ setShowSignup, setShowLogin, setShowFindPw, setShowResetPw }) {
+function OpenSignupModal({ openSignup }) {
   const navigate = useNavigate();
   useEffect(() => {
-    setShowSignup(true);
+    openSignup?.();
     navigate("/", { replace: true });
-  }, [setShowSignup, navigate]);
+  }, [openSignup, navigate]);
   return <Main />;
 }
 
-function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, showFindPw, setShowFindPw, showResetPw, setShowResetPw, resetUserId, setResetUserId, user, onLogin, onLogout, currentLang, setCurrentLang, posts }) {
+function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, openLogin, openSignup, showFindPw, setShowFindPw, showResetPw, setShowResetPw, resetUserId, setResetUserId, user, onLogin, onLogout, currentLang, setCurrentLang, posts }) {
   return (
     <div className="App">
       <Header 
         user={user} 
         onLogout={onLogout} 
-        setShowLogin={setShowLogin} 
-        setShowSignup={setShowSignup} 
+        openLogin={openLogin} 
+        openSignup={openSignup} 
         currentLang={currentLang} 
         setCurrentLang={setCurrentLang} 
       />
@@ -62,7 +62,7 @@ function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, show
         <Login
           onClose={() => setShowLogin(false)}
           onLogin={onLogin}
-          onOpenSignup={() => { setShowLogin(false); setShowSignup(true); }}
+          onOpenSignup={openSignup}
           onOpenFindPw={() => { setShowLogin(false); setShowFindPw(true); }}
         />
       )}
@@ -217,6 +217,20 @@ function App() {
     localStorage.removeItem('user');
   }), []);
 
+  const openLogin = useCallback(() => {
+    setShowSignup(false);
+    setShowFindPw(false);
+    setShowResetPw(false);
+    setShowLogin(true);
+  }, []);
+
+  const openSignup = useCallback(() => {
+    setShowLogin(false);
+    setShowFindPw(false);
+    setShowResetPw(false);
+    setShowSignup(true);
+  }, []);
+
   return (
     <Routes>
       <Route element={
@@ -225,6 +239,8 @@ function App() {
           setShowLogin={setShowLogin} 
           showSignup={showSignup} 
           setShowSignup={setShowSignup} 
+          openLogin={openLogin}
+          openSignup={openSignup}
           showFindPw={showFindPw} 
           setShowFindPw={setShowFindPw} 
           showResetPw={showResetPw} 
@@ -240,8 +256,8 @@ function App() {
         />
       }>
         <Route path="/" element={<Main />} />
-        <Route path="/login" element={<OpenLoginModal setShowLogin={setShowLogin} />} />
-        <Route path="/signup" element={<OpenSignupModal setShowSignup={setShowSignup} />} />
+        <Route path="/login" element={<OpenLoginModal openLogin={openLogin} />} />
+        <Route path="/signup" element={<OpenSignupModal openSignup={openSignup} />} />
         <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
       </Route>
     </Routes>

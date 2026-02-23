@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { getUserId } from "../utils/user";
+import { getUserId, isAdmin } from "../utils/user";
 
 const translations = {
   KR: {
@@ -37,7 +37,7 @@ const translations = {
   }
 };
 
-function Header({ user, onLogout, setShowLogin, setShowSignup, currentLang, setCurrentLang }) {
+function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrentLang }) {
   const [isLangOpen, setIsLangOpen] = useState(false);
   const t = translations[currentLang] || translations["KR"];
 
@@ -48,11 +48,28 @@ function Header({ user, onLogout, setShowLogin, setShowSignup, currentLang, setC
         <nav>
           <ul className="nav-list">
             <li className="nav-item"><Link to="/">{t.nav_news}</Link></li>
-            {/* 🚩 상단 여행게시판 클릭 시 기본적으로 추천게시판으로 이동하도록 수정 */}
             <li className="nav-item"><Link to="/community/recommend">{t.nav_board}</Link></li>
             <li className="nav-item"><Link to="/">{t.nav_cs}</Link></li>
-            <li className="nav-item"><Link to="/">{t.nav_mypage}</Link></li>
-            <li className="nav-item"><Link to="/">{t.nav_admin}</Link></li>
+            <li className="nav-item">
+              {user ? (
+                <Link to="/">{t.nav_mypage}</Link>
+              ) : (
+                <span
+                  role="button"
+                  className="nav-item mypage-guest"
+                  style={{ cursor: "pointer", color: "#fff", textDecoration: "none", display: "block", padding: "20px 0" }}
+                  onClick={() => {
+                    alert("로그인이 필요한 서비스입니다.");
+                    openLogin?.();
+                  }}
+                >
+                  {t.nav_mypage}
+                </span>
+              )}
+            </li>
+            {user && isAdmin(user) && (
+              <li className="nav-item"><Link to="/">{t.nav_admin}</Link></li>
+            )}
           </ul>
         </nav>
 
@@ -75,8 +92,8 @@ function Header({ user, onLogout, setShowLogin, setShowSignup, currentLang, setC
             </>
           ) : (
             <>
-              <span className="menu-link" style={{ cursor: "pointer" }} onClick={() => setShowLogin && setShowLogin(true)}>{t.user_login}</span>
-              <span className="menu-link" style={{ cursor: "pointer" }} onClick={() => setShowSignup && setShowSignup(true)}>{t.user_signup}</span>
+              <span className="menu-link" style={{ cursor: "pointer" }} onClick={() => openLogin?.()}>{t.user_login}</span>
+              <span className="menu-link" style={{ cursor: "pointer" }} onClick={() => openSignup?.()}>{t.user_signup}</span>
             </>
           )}
         </div>
