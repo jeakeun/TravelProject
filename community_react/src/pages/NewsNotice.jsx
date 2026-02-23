@@ -4,8 +4,7 @@ import { useNavigate, useOutletContext } from "react-router-dom";
 import Header from '../components/Header';
 
 const NewsNotice = ({ goToDetail }) => {
-    // 1. App.jsx의 Outlet context에서 모든 상태와 함수를 가져옵니다.
-    // 이 데이터들이 Header로 전달되어야 로그인/회원가입 버튼이 작동합니다.
+    // App.jsx의 Outlet context에서 상태와 함수를 가져옵니다.
     const { 
         user, 
         onLogout, 
@@ -15,10 +14,9 @@ const NewsNotice = ({ goToDetail }) => {
         setShowSignup 
     } = useOutletContext(); 
 
-    // 2. 관리자 권한 확인 (사용자 정보가 있고, 역할이 ADMIN인 경우)
-    const isAdmin = user && user.mb_rol === 'ADMIN';
-
+    const isAdminUser = user && user.mb_rol === 'ADMIN'; // 변수명 충돌 방지
     const navigate = useNavigate();
+    
     const [posts, setPosts] = useState([]); 
     const [inputValue, setInputValue] = useState(''); 
     const [appliedSearch, setAppliedSearch] = useState(''); 
@@ -28,18 +26,14 @@ const NewsNotice = ({ goToDetail }) => {
 
     useEffect(() => {
         window.scrollTo(0, 0);
-    }, []);
-
-    useEffect(() => {
         const fetchLatestPosts = async () => {
             try {
                 setLoading(true);
                 const response = await axios.get('http://localhost:8080/api/posts');
-                
-                const freeData = response.data
+                const noticeData = response.data
                     .filter(p => p.category?.trim() === "공지사항")
                     .sort((a, b) => b.postId - a.postId);
-                setPosts(freeData);
+                setPosts(noticeData);
             } catch (err) {
                 console.error("목록 로딩 실패:", err);
             } finally {
@@ -68,32 +62,27 @@ const NewsNotice = ({ goToDetail }) => {
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
     };
 
-    // 로딩 중일 때 표시되는 화면
+    // 공통 Header Props 설정 (코드 중복 방지)
+    const headerProps = {
+        user,
+        onLogout,
+        currentLang,
+        setCurrentLang,
+        // 기존 Header가 사용하는 이름(openLogin)에 setShowLogin 함수를 연결합니다.
+        openLogin: () => setShowLogin(true),
+        openSignup: () => setShowSignup(true)
+    };
+
     if (loading) return (
         <>
-            <Header 
-                user={user} 
-                onLogout={onLogout} 
-                currentLang={currentLang} 
-                setCurrentLang={setCurrentLang} 
-                setShowLogin={setShowLogin}
-                setShowSignup={setShowSignup}
-            />
+            <Header {...headerProps} />
             <div style={{ textAlign: 'center', marginTop: '100px' }}>데이터 로딩 중...</div>
         </>
     );
 
     return (
         <>
-            {/* 3. Header에 context에서 가져온 모든 props를 전달합니다. */}
-            <Header 
-                user={user} 
-                onLogout={onLogout} 
-                currentLang={currentLang} 
-                setCurrentLang={setCurrentLang} 
-                setShowLogin={setShowLogin}
-                setShowSignup={setShowSignup}
-            /> 
+            <Header {...headerProps} /> 
 
             <div className="freeboard-list-wrapper">
                 <h2 className="board-title">| 공지사항</h2>
@@ -152,8 +141,7 @@ const NewsNotice = ({ goToDetail }) => {
                         <button className="nav-btn" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>다음</button>
                     </div>
 
-                    {/* 4. 관리자(ADMIN) 권한이 있는 경우에만 글쓰기 버튼 표시 */}
-                    {isAdmin && (
+                    {isAdminUser && (
                         <button className="write-btn" onClick={() => navigate('/community/write')}>
                             글쓰기
                         </button>
