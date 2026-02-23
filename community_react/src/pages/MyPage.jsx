@@ -14,7 +14,7 @@ const BOARD_OPTIONS = [
 ];
 
 function MyPage() {
-  const { user, setUser, openChangePassword } = useOutletContext() || {};
+  const { user, setUser, openChangePassword, onLogout } = useOutletContext() || {};
   const navigate = useNavigate();
   const [myPosts, setMyPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,6 +23,9 @@ function MyPage() {
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [editEmailValue, setEditEmailValue] = useState("");
   const [emailSaving, setEmailSaving] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [withdrawPassword, setWithdrawPassword] = useState("");
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
 
   const loadMyPosts = useCallback(async () => {
     if (!user) {
@@ -85,6 +88,30 @@ function MyPage() {
   const cancelEditEmail = () => {
     setIsEditingEmail(false);
     setEditEmailValue("");
+  };
+
+  const handleWithdraw = async () => {
+    const pw = (withdrawPassword || "").trim();
+    if (!pw) {
+      alert("비밀번호를 입력하세요.");
+      return;
+    }
+    setWithdrawSubmitting(true);
+    try {
+      const res = await api.post("/auth/withdraw", { password: pw });
+      if (res.status === 200) {
+        setShowWithdrawModal(false);
+        setWithdrawPassword("");
+        onLogout?.();
+        navigate("/", { replace: true });
+        alert("회원 탈퇴되었습니다.");
+      }
+    } catch (err) {
+      const msg = err.response?.data ?? "탈퇴에 실패했습니다.";
+      alert(typeof msg === "string" ? msg : "비밀번호가 일치하지 않거나 탈퇴에 실패했습니다.");
+    } finally {
+      setWithdrawSubmitting(false);
+    }
   };
 
   const saveEmail = async () => {
@@ -190,9 +217,46 @@ function MyPage() {
                 수정
               </button>
             </div>
+            <div className="mypage-info-row mypage-withdraw-row">
+              <span className="mypage-info-icon" aria-hidden />
+              <span className="mypage-info-label" />
+              <span className="mypage-info-text" style={{ flex: 1 }} />
+              <button
+                type="button"
+                className="mypage-btn-withdraw"
+                onClick={() => setShowWithdrawModal(true)}
+              >
+                회원탈퇴
+              </button>
+            </div>
           </div>
         </div>
       </section>
+
+      {showWithdrawModal && (
+        <div className="mypage-withdraw-overlay" onClick={() => !withdrawSubmitting && setShowWithdrawModal(false)}>
+          <div className="mypage-withdraw-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="mypage-withdraw-title">회원 탈퇴</h3>
+            <p className="mypage-withdraw-desc">정말 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
+            <input
+              type="password"
+              className="mypage-withdraw-password"
+              placeholder="비밀번호 입력"
+              value={withdrawPassword}
+              onChange={(e) => setWithdrawPassword(e.target.value)}
+              aria-label="비밀번호"
+            />
+            <div className="mypage-withdraw-actions">
+              <button type="button" className="mypage-withdraw-btn-cancel" onClick={() => !withdrawSubmitting && setShowWithdrawModal(false)} disabled={withdrawSubmitting}>
+                취소
+              </button>
+              <button type="button" className="mypage-withdraw-btn-confirm" onClick={handleWithdraw} disabled={withdrawSubmitting}>
+                {withdrawSubmitting ? "처리 중..." : "탈퇴하기"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 내가 쓴 글 - 헤더 오른쪽에 검색창·게시판 선택, 목록은 게시판명 - 제목 */}
       <section className="mypage-posts">

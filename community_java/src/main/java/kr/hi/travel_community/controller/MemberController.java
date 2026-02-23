@@ -266,6 +266,26 @@ public class MemberController {
     }
 
     /**
+     * ✅ 회원 탈퇴: 비밀번호 확인 후 계정 삭제 (JWT로 본인 확인)
+     */
+    @PostMapping("/auth/withdraw")
+    public ResponseEntity<String> withdraw(Authentication authentication, @RequestBody Map<String, String> body) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUser)) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+        String id = ((CustomUser) authentication.getPrincipal()).getMember().getMb_Uid();
+        String password = body != null ? (body.get("password") != null ? body.get("password") : "") : "";
+        if (password.isEmpty()) {
+            return ResponseEntity.badRequest().body("비밀번호를 입력하세요.");
+        }
+        boolean ok = memberService.withdraw(id, password);
+        if (ok) {
+            return ResponseEntity.ok("OK");
+        }
+        return ResponseEntity.badRequest().body("비밀번호가 일치하지 않거나 탈퇴에 실패했습니다.");
+    }
+
+    /**
      * ✅ 로그아웃: refreshToken 쿠키 삭제
      */
     @PostMapping("/auth/logout")

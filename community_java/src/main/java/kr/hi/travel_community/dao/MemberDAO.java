@@ -40,4 +40,7 @@ public interface MemberDAO {
 
     // ✅ 이메일 변경
     int updateEmailById(@Param("id") String id, @Param("email") String email);
+
+    // ✅ 회원 탈퇴
+    int deleteMemberById(@Param("id") String id);
 }

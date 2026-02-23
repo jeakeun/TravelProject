@@ -156,4 +156,25 @@ public class MemberService {
             return false;
         }
     }
+
+    /**
+     * ✅ 회원 탈퇴: 비밀번호 확인 후 계정 삭제
+     */
+    @Transactional
+    public boolean withdraw(String id, String password) {
+        try {
+            if (id == null || id.trim().isEmpty()) return false;
+            if (password == null || password.trim().isEmpty()) return false;
+
+            MemberVO member = memberDAO.selectMemberById(id.trim());
+            if (member == null) return false;
+            if (!encoder.matches(password.trim(), member.getMb_pw())) return false;
+
+            int deleted = memberDAO.deleteMemberById(id.trim());
+            return deleted > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 }

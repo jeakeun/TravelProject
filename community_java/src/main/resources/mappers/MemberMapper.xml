@@ -63,4 +63,10 @@
         WHERE mb_uid = #{id}
     </update>
 
+    <!-- ✅ 회원 탈퇴 -->
+    <delete id="deleteMemberById">
+        DELETE FROM member
+        WHERE mb_uid = #{id}
+    </delete>
+
 </mapper>
