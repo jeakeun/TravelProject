@@ -1,14 +1,22 @@
-import { useState, useEffect, useMemo } from 'react'; // 1. useMemo 추가
+import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
-// import './Board.css';
-import { useNavigate } from "react-router-dom"; 
-import Header from '../components/Header'; // 2. 헤더 가져오기
+import { useNavigate, useOutletContext } from "react-router-dom"; 
+import Header from '../components/Header';
 
 const NewsNotice = ({ goToDetail }) => {
-    // 3. useEffect를 반드시 컴포넌트 안으로 이동!
-    useEffect(() => {
-        window.scrollTo(0, 0);
-    }, []);
+    // 1. App.jsx의 Outlet context에서 모든 상태와 함수를 가져옵니다.
+    // 이 데이터들이 Header로 전달되어야 로그인/회원가입 버튼이 작동합니다.
+    const { 
+        user, 
+        onLogout, 
+        currentLang, 
+        setCurrentLang, 
+        setShowLogin, 
+        setShowSignup 
+    } = useOutletContext(); 
+
+    // 2. 관리자 권한 확인 (사용자 정보가 있고, 역할이 ADMIN인 경우)
+    const isAdmin = user && user.mb_rol === 'ADMIN';
 
     const navigate = useNavigate();
     const [posts, setPosts] = useState([]); 
@@ -19,12 +27,17 @@ const NewsNotice = ({ goToDetail }) => {
     const itemsPerPage = 10; 
 
     useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
+
+    useEffect(() => {
         const fetchLatestPosts = async () => {
             try {
                 setLoading(true);
                 const response = await axios.get('http://localhost:8080/api/posts');
+                
                 const freeData = response.data
-                    .filter(p => p.category?.trim() === "자유 게시판")
+                    .filter(p => p.category?.trim() === "공지사항")
                     .sort((a, b) => b.postId - a.postId);
                 setPosts(freeData);
             } catch (err) {
@@ -55,17 +68,32 @@ const NewsNotice = ({ goToDetail }) => {
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
     };
 
+    // 로딩 중일 때 표시되는 화면
     if (loading) return (
         <>
-            <Header /> {/* 로딩 중일 때도 헤더는 보여주는 게 좋음 */}
+            <Header 
+                user={user} 
+                onLogout={onLogout} 
+                currentLang={currentLang} 
+                setCurrentLang={setCurrentLang} 
+                setShowLogin={setShowLogin}
+                setShowSignup={setShowSignup}
+            />
             <div style={{ textAlign: 'center', marginTop: '100px' }}>데이터 로딩 중...</div>
         </>
     );
 
     return (
         <>
-            {/* 4. 헤더 */}
-            <Header /> 
+            {/* 3. Header에 context에서 가져온 모든 props를 전달합니다. */}
+            <Header 
+                user={user} 
+                onLogout={onLogout} 
+                currentLang={currentLang} 
+                setCurrentLang={setCurrentLang} 
+                setShowLogin={setShowLogin}
+                setShowSignup={setShowSignup}
+            /> 
 
             <div className="freeboard-list-wrapper">
                 <h2 className="board-title">| 공지사항</h2>
@@ -123,7 +151,13 @@ const NewsNotice = ({ goToDetail }) => {
                         ))}
                         <button className="nav-btn" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>다음</button>
                     </div>
-                    <button className="write-btn" onClick={() => navigate('/community/write')}>글쓰기</button>
+
+                    {/* 4. 관리자(ADMIN) 권한이 있는 경우에만 글쓰기 버튼 표시 */}
+                    {isAdmin && (
+                        <button className="write-btn" onClick={() => navigate('/community/write')}>
+                            글쓰기
+                        </button>
+                    )}
                 </div>
 
                 <div className="search-container">
