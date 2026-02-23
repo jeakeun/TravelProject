@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Routes, Route, useNavigate, useLocation, Navigate, BrowserRouter as Router, Outlet } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate, Outlet } from 'react-router-dom';
 import axios from 'axios';
 
 // 스타일 및 컴포넌트 임포트
@@ -23,7 +23,6 @@ import ReviewBoardDetail from './components/reviewboard/ReviewBoardDetail';
 import Login from './auth/login';
 import Signup from './auth/signup';
 
-// 🚩 수정 사유: import 문이 모두 끝난 직후에 설정을 위치시켜야 문법 에러가 발생하지 않습니다.
 // 모든 요청에 쿠키를 포함하여 조회수 중복 방지 로직이 정상 작동하게 합니다.
 axios.defaults.withCredentials = true;
 
@@ -45,7 +44,7 @@ function OpenSignupModal({ setShowSignup, setShowLogin, setShowFindPw, setShowRe
   return <Main />;
 }
 
-function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, user, onLogin, onLogout, currentLang, setCurrentLang }) {
+function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, user, onLogin, onLogout, currentLang, setCurrentLang, posts }) {
   return (
     <div className="App">
       <Header 
@@ -61,15 +60,14 @@ function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, user
       {showSignup && <Signup onClose={() => setShowSignup(false)} />}
       
       <main style={{ paddingTop: "70px", minHeight: "100vh" }}>
-        <Outlet context={{ user, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang }} />
+        {/* 🚩 [수정] context에 posts 데이터를 추가하여 Main 페이지에서도 사용 가능하게 합니다. */}
+        <Outlet context={{ user, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang, posts }} />
       </main>
     </div>
   );
 }
 
-function CommunityContainer() {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
+function CommunityContainer({ posts, loadPosts, loading }) {
   const [activeMenu, setActiveMenu] = useState('자유 게시판');
   const navigate = useNavigate();
   const location = useLocation();
@@ -93,42 +91,6 @@ function CommunityContainer() {
     const foundMenu = Object.keys(menuPaths).find(key => location.pathname.startsWith(menuPaths[key]));
     if (foundMenu) setActiveMenu(foundMenu);
   }, [location.pathname, menuPaths]);
-
-  const loadPosts = useCallback(async () => {
-    if (location.pathname.includes('map') || isDetailPage) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      let endpoint = 'freeboard';
-      let isRecommend = location.pathname.includes('recommend');
-      
-      if (isRecommend) endpoint = 'recommend';
-      else if (location.pathname.includes('reviewboard')) endpoint = 'reviewboard';
-
-      const apiUrl = isRecommend 
-        ? `http://localhost:8080/api/recommend/posts/all`
-        : `http://localhost:8080/api/${endpoint}/posts`;
-
-      const response = await axios.get(apiUrl);
-      
-      // 🚩 [핵심 수정] 원본 데이터(post)를 ...post로 전체 복사해야 poImg 등의 필드가 유실되지 않습니다.
-      const cleanData = response.data.map(post => ({
-        ...post, // 원본 필드(poImg, poContent 등) 모두 보존
-        id: post.poNum || post.postId, 
-        category: post.category || (endpoint === 'freeboard' ? '자유 게시판' : (endpoint === 'recommend' ? '여행 추천 게시판' : '여행 후기 게시판'))
-      }));
-      setPosts(cleanData);
-    } catch (err) {
-      console.error("데이터 로딩 실패:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [location.pathname, isDetailPage]);
-
-  useEffect(() => { loadPosts(); }, [loadPosts]);
 
   if (loading && !isDetailPage) return <div style={{ textAlign: 'center', marginTop: '100px' }}>로딩 중...</div>;
 
@@ -169,18 +131,58 @@ function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
   const [currentLang, setCurrentLang] = useState("KR");
+  const [posts, setPosts] = useState([]); // 🚩 [수정] 데이터를 App 수준으로 이동
+  const [loading, setLoading] = useState(true); // 🚩 [수정] 로딩 상태를 App 수준으로 이동
   const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem('user');
+    if (!saved) return null;
     try {
-      const saved = localStorage.getItem('user');
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
+      const parsed = JSON.parse(saved);
+      return parsed?.member ?? parsed;
+    } catch {
       return null;
     }
   });
 
+  const location = useLocation();
+
+  // 🚩 [수정] loadPosts 로직을 App 수준으로 이동하여 모든 페이지에서 게시글 정보를 공유합니다.
+  const loadPosts = useCallback(async () => {
+    try {
+      setLoading(true);
+      // 메인 카러셀을 위해 추천 게시판 데이터를 기본적으로 가져오거나, 
+      // 현재 경로에 맞는 데이터를 가져옵니다. 
+      // 메인(/)에서는 추천 게시판 데이터(1,2,3위용)를 가져오도록 설정합니다.
+      let endpoint = 'recommend'; 
+      if (location.pathname.includes('freeboard')) endpoint = 'freeboard';
+      else if (location.pathname.includes('reviewboard')) endpoint = 'reviewboard';
+
+      const apiUrl = endpoint === 'recommend' 
+        ? `http://localhost:8080/api/recommend/posts/all`
+        : `http://localhost:8080/api/${endpoint}/posts`;
+
+      const response = await axios.get(apiUrl);
+      const cleanData = response.data.map(post => ({
+        ...post,
+        id: post.poNum || post.postId
+      }));
+      setPosts(cleanData);
+    } catch (err) {
+      console.error("데이터 로딩 실패:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    loadPosts();
+  }, [loadPosts]);
+
   const handleLogin = useCallback((userData) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    // 로그인 응답이 { member, accessToken } 형태이면 member만 저장해 헤더에 아이디(mb_Uid) 표시
+    const member = userData?.member ?? userData;
+    setUser(member);
+    localStorage.setItem('user', JSON.stringify(member));
     setShowLogin(false);
   }, []);
 
@@ -190,18 +192,30 @@ function App() {
   }), []);
 
   return (
-    <Router>
-      <Routes>
-        <Route element={<GlobalLayout showLogin={showLogin} setShowLogin={setShowLogin} showSignup={showSignup} setShowSignup={setShowSignup} user={user} onLogin={handleLogin} onLogout={handleLogout} currentLang={currentLang} setCurrentLang={setCurrentLang} />}>
-          <Route path="/" element={<Main />} />
-          <Route path="/login" element={<OpenLoginModal setShowLogin={setShowLogin} />} />
-          <Route path="/signup" element={<OpenSignupModal setShowSignup={setShowSignup} />} />
-          <Route path="/community/*" element={<CommunityContainer />} />
-          <Route path="/newsNotice" element={<NewsNotice />} /> 
-        </Route>
-      </Routes>
-    </Router>
+    <Routes>
+      <Route element={
+        <GlobalLayout 
+          showLogin={showLogin} 
+          setShowLogin={setShowLogin} 
+          showSignup={showSignup} 
+          setShowSignup={setShowSignup} 
+          user={user} 
+          onLogin={handleLogin} 
+          onLogout={handleLogout} 
+          currentLang={currentLang} 
+          setCurrentLang={setCurrentLang}
+          posts={posts} // 🚩 context로 전달될 posts
+        />
+      }>
+        <Route path="/" element={<Main />} />
+        <Route path="/login" element={<OpenLoginModal setShowLogin={setShowLogin} />} />
+        <Route path="/signup" element={<OpenSignupModal setShowSignup={setShowSignup} />} />
+        <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
+      </Route>
+    </Routes>
   );
 }
 
+// 🚩 export default App 위에서 Router로 감싸지 않았으므로 index.js나 여기서 처리 확인
+// Router가 App 내부가 아닌 외부(index.js 등)에 있는 경우를 위해 유지
 export default App;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
+import { getMemberNum } from '../../utils/user';
 import './ReviewBoardDetail.css'; 
 
 const ReviewBoardDetail = () => {
@@ -23,8 +24,8 @@ const ReviewBoardDetail = () => {
     const replyInputRef = useRef(null);
 
     const isLoggedIn = !!user; 
-    const currentUserNum = user ? user.mbNum : null; 
-    const isAdmin = user ? user.mbLevel >= 10 : false; 
+    const currentUserNum = getMemberNum(user); 
+    const isAdmin = user ? (Number(user.mbLevel ?? user.mb_score ?? 0) >= 10 || user.mb_rol === 'ADMIN') : false; 
 
     const isNumericId = id && !isNaN(Number(id));
 
@@ -147,7 +148,7 @@ const ReviewBoardDetail = () => {
         else filtered.sort((a, b) => a.coNum - b.coNum);
 
         return filtered.map(comment => {
-            const isCommentOwner = isLoggedIn && comment.member && Number(comment.member.mbNum) === Number(currentUserNum);
+            const isCommentOwner = isLoggedIn && comment.member && getMemberNum(comment.member) === currentUserNum;
             const isReply = depth > 0;
             const isActiveEdit = editId === comment.coNum;
             const isActiveReply = replyTo === comment.coNum;
@@ -160,7 +161,7 @@ const ReviewBoardDetail = () => {
                     }}>
                         <div className="comment-header">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <strong>User {comment.member?.mbNum}</strong>
+                                <strong>User {getMemberNum(comment.member) ?? 'Unknown'}</strong>
                                 <span className="comment-date">{new Date(comment.coDate).toLocaleString()}</span>
                             </div>
                             {!isActiveEdit && !isActiveReply && (

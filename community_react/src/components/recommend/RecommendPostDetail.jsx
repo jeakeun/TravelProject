@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
+import { getMemberNum } from '../../utils/user';
 import './RecommendPostDetail.css';
 
 const RecommendPostDetail = () => {
@@ -24,10 +25,10 @@ const RecommendPostDetail = () => {
     const commentAreaRef = useRef(null);
     const replyInputRef = useRef(null);
 
-    // [권한 설정]
+    // [권한 설정] mb_num/mbNum, mb_rol/mbLevel 서버 키 둘 다 대응
     const isLoggedIn = !!user; 
-    const currentUserNum = user ? user.mbNum : null; 
-    const isAdmin = user ? user.mbLevel >= 10 : false; 
+    const currentUserNum = getMemberNum(user); 
+    const isAdmin = user ? (Number(user.mbLevel ?? user.mb_score ?? 0) >= 10 || user.mb_rol === 'ADMIN') : false; 
 
     const isNumericId = id && !isNaN(Number(id)) && id !== "write";
 
@@ -220,11 +221,11 @@ const RecommendPostDetail = () => {
         else filtered.sort((a, b) => a.coNum - b.coNum);
 
         return filtered.map(comment => {
-            const isCommentOwner = isLoggedIn && comment.member && Number(comment.member.mbNum) === Number(currentUserNum);
+            const isCommentOwner = isLoggedIn && comment.member && getMemberNum(comment.member) === currentUserNum;
             const isReply = depth > 0;
             const isActiveEdit = editId === comment.coNum;
             const isActiveReply = replyTo === comment.coNum;
-            const authorDisplayName = `User ${comment.member?.mbNum || 'Unknown'}`;
+            const authorDisplayName = `User ${getMemberNum(comment.member) ?? 'Unknown'}`;
 
             return (
                 <div key={comment.coNum}>

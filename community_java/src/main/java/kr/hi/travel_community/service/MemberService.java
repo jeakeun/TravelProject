@@ -20,28 +20,26 @@ public class MemberService {
     private BCryptPasswordEncoder encoder;
 
     /**
-     * 회원가입 로직
+     * 회원가입 로직: 아이디, 비밀번호, 이메일 삽입 (비밀번호 확인은 프론트에서 검증)
      */
     public boolean signup(LoginDTO user) {
         try {
-            // 1. 기존 회원 여부 확인 (아이디와 이메일 중복 체크)
-            MemberVO member = memberDAO.selectMember(user);
-
-            // 2. 가입된 정보가 없으면 진행
-            if (member == null) {
-                // 3. 비밀번호 암호화 및 새로운 DTO 생성
-                // Record 객체이므로 .id(), .pw() 형태로 접근합니다.
-                MemberSignUpDTO signUpDTO = new MemberSignUpDTO(
-                    user.id(),
-                    encoder.encode(user.pw()), // 비밀번호 암호화
-                    user.email(),
-                    user.agree()
-                );
-
-                // 4. DB 저장 후 결과 반환
-                return memberDAO.insertMember(signUpDTO);
+            // 1. 아이디 중복 확인
+            if (memberDAO.selectMemberById(user.id()) != null) {
+                return false;
             }
-            return false; // 이미 가입된 아이디/이메일
+            // 2. 이메일 중복 확인
+            if (memberDAO.selectMemberByEmail(user.email()) != null) {
+                return false;
+            }
+            // 3. 비밀번호 암호화 후 DB 저장 (mb_agree varchar(1) -> "Y"/"N", mb_rol/mb_score 기본값)
+            MemberSignUpDTO signUpDTO = new MemberSignUpDTO(
+                user.id(),
+                encoder.encode(user.pw()),
+                user.email(),
+                user.agree() ? "Y" : "N"
+            );
+            return memberDAO.insertMember(signUpDTO);
         } catch (Exception e) {
             e.printStackTrace();
             return false;
