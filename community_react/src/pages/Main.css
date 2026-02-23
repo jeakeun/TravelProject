@@ -56,7 +56,7 @@ body {
 .App .nav-area .nav-list {
     display: flex;
     list-style: none;
-    gap: 40px;
+    gap: 180px;
 }
 
 .App .nav-area .nav-item a {
@@ -114,7 +114,7 @@ body {
     margin: 0 auto;
     display: flex;
     justify-content: space-between;
-    padding: 50px 60px;
+    padding: 50px 80px;
     opacity: 0;
     transition: opacity 0.2s;
 }
@@ -126,6 +126,17 @@ body {
 .App .nav-area .menu-column {
     flex: 1;
 }
+
+.menu-column:nth-child(2) {
+    /* 기존 margin-left 대신 transform 사용 */
+    transform: translateX(-80px); 
+}
+
+.menu-column:nth-child(3) {
+    /* 2번에 영향 주지 않고 3번만 왼쪽/오른쪽으로 이동 가능 */
+    transform: translateX(-138px); 
+}
+/* ================================================== */
 
 .App .nav-area .menu-column h3 {
     color: #000000;
@@ -155,30 +166,10 @@ body {
     font-weight: bold;
 }
 
-.App .nav-area .menu-promo {
-    flex: 1.5;
-    background: #f4f7f4;
-    padding: 25px;
-    border-radius: 15px;
-    margin-left: 30px;
-}
-
-.App .nav-area .menu-promo h4 {
-    margin-bottom: 10px;
-}
-
-.App .nav-area .promo-tag span {
-    background: #eee;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 12px;
-    margin-right: 5px;
-}
-
 .App .nav-area .user-menu {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 50px;
 }
 
 .App .nav-area .lang-selector {
