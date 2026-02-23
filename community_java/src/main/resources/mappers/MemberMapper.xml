@@ -2,30 +2,49 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="kr.hi.travel_community.dao.MemberDAO">
 
+    <!-- map-underscore-to-camel-case 시에도 MemberVO(mb_Uid, mb_pw 등)에 맞게 명시 매핑 -->
+    <resultMap id="MemberVOMap" type="kr.hi.travel_community.model.vo.MemberVO">
+        <id property="mb_num" column="mb_num"/>
+        <result property="mb_Uid" column="mb_uid"/>
+        <result property="mb_pw" column="mb_pw"/>
+        <result property="mb_email" column="mb_email"/>
+        <result property="mb_rol" column="mb_rol"/>
+        <result property="mb_score" column="mb_score"/>
+        <result property="mb_photo" column="mb_photo"/>
+        <result property="mb_agree" column="mb_agree"/>
+    </resultMap>
+
     <!-- 회원가입 시 아이디와 이메일로 중복 확인 -->
-    <select id="selectMember" resultType="kr.hi.travel_community.model.vo.MemberVO">
+    <select id="selectMember" resultMap="MemberVOMap">
         SELECT * FROM member
-        WHERE mb_Uid = #{id}
+        WHERE mb_uid = #{id}
           AND mb_email = #{email}
     </select>
 
     <!-- 로그인 시 아이디로 조회 -->
-    <select id="selectMemberById" resultType="kr.hi.travel_community.model.vo.MemberVO">
+    <select id="selectMemberById" resultMap="MemberVOMap">
         SELECT * FROM member
-        WHERE mb_Uid = #{id}
+        WHERE mb_uid = #{id}
     </select>
 
-    <!-- 새로운 회원정보 저장 -->
+    <!-- 회원가입 시 이메일 중복 확인 -->
+    <select id="selectMemberByEmail" resultMap="MemberVOMap">
+        SELECT * FROM member
+        WHERE mb_email = #{email}
+        LIMIT 1
+    </select>
+
+    <!-- 새로운 회원정보 저장 (테이블 컬럼: mb_uid, mb_pw, mb_email, mb_agree varchar(1), mb_rol, mb_score) -->
     <insert id="insertMember">
-        INSERT INTO member (mb_Uid, mb_pw, mb_email, mb_agree)
-        VALUES (#{id}, #{pw}, #{email}, #{agree})
+        INSERT INTO member (mb_uid, mb_pw, mb_email, mb_agree, mb_rol, mb_score)
+        VALUES (#{id}, #{pw}, #{email}, #{agree}, 'USER', 0)
     </insert>
 
     <!-- ✅ 아이디 + 이메일 검증 (비밀번호 찾기용) -->
-    <select id="selectMemberByIdAndEmail" resultType="kr.hi.travel_community.model.vo.MemberVO">
-        SELECT mb_num, mb_Uid, mb_pw, mb_email
+    <select id="selectMemberByIdAndEmail" resultMap="MemberVOMap">
+        SELECT mb_num, mb_uid, mb_pw, mb_email
         FROM member
-        WHERE mb_Uid = #{id}
+        WHERE mb_uid = #{id}
           AND mb_email = #{email}
         LIMIT 1
     </select>
@@ -34,7 +53,7 @@
     <update id="updatePasswordById">
         UPDATE member
         SET mb_pw = #{pw}
-        WHERE mb_Uid = #{id}
+        WHERE mb_uid = #{id}
     </update>
 
 </mapper>

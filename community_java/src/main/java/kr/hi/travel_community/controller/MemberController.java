@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import kr.hi.travel_community.dao.MemberDAO;
+import kr.hi.travel_community.model.dto.LoginDTO;
 import kr.hi.travel_community.model.dto.LoginRequestDTO;
 import kr.hi.travel_community.model.vo.MemberVO;
 import kr.hi.travel_community.security.jwt.JwtTokenProvider;
@@ -26,6 +27,38 @@ public class MemberController {
     @Autowired private MemberService memberService;
     @Autowired private JwtTokenProvider jwtTokenProvider;
     @Autowired private MemberDAO memberDAO;
+
+    /**
+     * 회원가입: 아이디, 비밀번호, 비밀번호 확인(프론트 검증), 이메일
+     */
+    @PostMapping("/signup")
+    public ResponseEntity<String> signup(@RequestBody LoginDTO dto) {
+        if (dto == null) {
+            return ResponseEntity.badRequest().body("입력 정보를 확인해주세요.");
+        }
+        String id = dto.id() != null ? dto.id().trim() : "";
+        String pw = dto.pw() != null ? dto.pw().trim() : "";
+        String email = dto.email() != null ? dto.email().trim() : "";
+
+        if (id.isEmpty()) {
+            return ResponseEntity.badRequest().body("아이디를 입력하세요.");
+        }
+        if (pw.isEmpty()) {
+            return ResponseEntity.badRequest().body("비밀번호를 입력하세요.");
+        }
+        if (email.isEmpty()) {
+            return ResponseEntity.badRequest().body("이메일을 입력하세요.");
+        }
+        if (!dto.agree()) {
+            return ResponseEntity.badRequest().body("개인정보 처리방침에 동의해주세요.");
+        }
+
+        boolean ok = memberService.signup(new LoginDTO(id, pw, email, dto.agree()));
+        if (ok) {
+            return ResponseEntity.ok("회원가입이 완료되었습니다.");
+        }
+        return ResponseEntity.badRequest().body("이미 사용 중인 아이디 또는 이메일입니다.");
+    }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO user) {

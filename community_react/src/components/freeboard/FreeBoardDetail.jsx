@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-// 🚩 수정: 실제 파일명인 FreeBoardDetail.css로 경로 수정
+import { getMemberNum } from '../../utils/user';
 import './FreeBoardDetail.css'; 
 
 const FreeBoardDetail = () => {
@@ -12,7 +12,7 @@ const FreeBoardDetail = () => {
     const [loading, setLoading] = useState(true);
 
     const isLoggedIn = !!user;
-    const currentUserNum = user?.mbNum;
+    const currentUserNum = getMemberNum(user);
 
     const fetchDetail = useCallback(async () => {
         try {

@@ -22,6 +22,11 @@ public interface MemberDAO {
 	MemberVO selectMemberById(@Param("id") String id);
 
 	/**
+	 * 이메일로 회원정보 조회 (회원가입 이메일 중복 확인용)
+	 */
+	MemberVO selectMemberByEmail(@Param("email") String email);
+
+	/**
 	 * 새로운 회원정보 저장 (회원가입 완료)
 	 * Mapper XML의 #{id}, #{pw}, #{email}, #{agree}와 매칭됩니다.
 	 */

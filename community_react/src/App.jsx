@@ -135,7 +135,13 @@ function App() {
   const [loading, setLoading] = useState(true); // 🚩 [수정] 로딩 상태를 App 수준으로 이동
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('user');
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    try {
+      const parsed = JSON.parse(saved);
+      return parsed?.member ?? parsed;
+    } catch {
+      return null;
+    }
   });
 
   const location = useLocation();
@@ -173,8 +179,10 @@ function App() {
   }, [loadPosts]);
 
   const handleLogin = useCallback((userData) => {
-    setUser(userData);
-    localStorage.setItem('user', JSON.stringify(userData));
+    // 로그인 응답이 { member, accessToken } 형태이면 member만 저장해 헤더에 아이디(mb_Uid) 표시
+    const member = userData?.member ?? userData;
+    setUser(member);
+    localStorage.setItem('user', JSON.stringify(member));
     setShowLogin(false);
   }, []);
 

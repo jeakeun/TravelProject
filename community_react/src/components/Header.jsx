@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { getUserId } from "../utils/user";
 
 const translations = {
   KR: {
@@ -69,7 +70,7 @@ function Header({ user, onLogout, setShowLogin, setShowSignup, currentLang, setC
           </div>
           {user ? (
             <>
-              <span className="menu-link">{user.mb_Uid}님</span>
+              <span className="menu-link">{getUserId(user)}님</span>
               <span className="menu-link" style={{ cursor: "pointer" }} onClick={() => onLogout && onLogout()}>로그아웃</span>
             </>
           ) : (
