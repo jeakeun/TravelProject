@@ -3,9 +3,12 @@ package kr.hi.travel_community.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.hi.travel_community.entity.RecommendPost;
+import kr.hi.travel_community.model.util.CustomUser;
+import kr.hi.travel_community.model.vo.MemberVO;
 import kr.hi.travel_community.service.RecommendPostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.*;
@@ -79,18 +82,30 @@ public class RecommendController {
 
     @PostMapping("/posts")
     public ResponseEntity<?> createPost(
+            Authentication authentication,
             @RequestParam(value = "poTitle") String poTitle,
             @RequestParam(value = "poContent") String poContent,
+            @RequestParam(value = "poMbNum", required = false) Integer requestMbNum,
             @RequestParam(value = "images", required = false) List<MultipartFile> images) {
         try {
+            int mbNum = resolveMbNum(authentication, requestMbNum);
             RecommendPost post = new RecommendPost();
             post.setPoTitle(poTitle);
             post.setPoContent(poContent);
+            post.setPoMbNum(mbNum); // 로그인 회원 번호와 동일하게
             recommendPostService.savePost(post, images);
             return ResponseEntity.ok("Success");
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(e.getMessage());
         }
+    }
+
+    private int resolveMbNum(Authentication authentication, Integer requestMbNum) {
+        if (authentication != null && authentication.getPrincipal() instanceof CustomUser) {
+            MemberVO member = ((CustomUser) authentication.getPrincipal()).getMember();
+            if (member != null) return member.getMb_num();
+        }
+        return requestMbNum != null ? requestMbNum : 1;
     }
 
     @PutMapping("/posts/{id}")

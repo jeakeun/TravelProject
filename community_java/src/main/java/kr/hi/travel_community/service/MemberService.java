@@ -89,12 +89,34 @@ public class MemberService {
     }
 
     /**
-     * ✅ 비밀번호 변경: 새 비밀번호를 BCrypt로 암호화해서 업데이트
+     * ✅ 비밀번호 변경: 새 비밀번호를 BCrypt로 암호화해서 업데이트 (비밀번호 찾기용)
      */
     public boolean resetPassword(String id, String newPw) {
         try {
             if (id == null || id.trim().isEmpty()) return false;
             if (newPw == null || newPw.trim().isEmpty()) return false;
+
+            String encodedPw = encoder.encode(newPw.trim());
+            int updated = memberDAO.updatePasswordById(id.trim(), encodedPw);
+            return updated > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * ✅ 로그인 사용자 비밀번호 변경: 현재 비밀번호 확인 후 새 비밀번호로 변경
+     */
+    public boolean changePassword(String id, String currentPw, String newPw) {
+        try {
+            if (id == null || id.trim().isEmpty()) return false;
+            if (currentPw == null || currentPw.trim().isEmpty()) return false;
+            if (newPw == null || newPw.trim().isEmpty()) return false;
+
+            MemberVO member = memberDAO.selectMemberById(id.trim());
+            if (member == null) return false;
+            if (!encoder.matches(currentPw.trim(), member.getMb_pw())) return false;
 
             String encodedPw = encoder.encode(newPw.trim());
             int updated = memberDAO.updatePasswordById(id.trim(), encodedPw);

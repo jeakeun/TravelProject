@@ -3,9 +3,12 @@ package kr.hi.travel_community.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.hi.travel_community.entity.FreePost;
+import kr.hi.travel_community.model.util.CustomUser;
+import kr.hi.travel_community.model.vo.MemberVO;
 import kr.hi.travel_community.service.FreePostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -44,25 +47,41 @@ public class FreeBoardController {
                 : ResponseEntity.status(404).body(Map.of("error", "게시글 없음"));
     }
 
-    // 🚩 게시글 등록
+    // 🚩 게시글 등록 - po_mb_num을 로그인 회원 mb_num과 동일하게 설정
     @PostMapping("/posts")
-    public ResponseEntity<?> create(@RequestParam("title") String title,
-                                    @RequestParam("content") String content,
-                                    @RequestParam("mbNum") Integer mbNum,
+    public ResponseEntity<?> create(Authentication authentication,
+                                    @RequestParam(value = "title", required = false) String title,
+                                    @RequestParam(value = "poTitle", required = false) String poTitle,
+                                    @RequestParam(value = "content", required = false) String content,
+                                    @RequestParam(value = "poContent", required = false) String poContent,
+                                    @RequestParam(value = "mbNum", required = false) Integer requestMbNum,
+                                    @RequestParam(value = "poMbNum", required = false) Integer requestPoMbNum,
                                     @RequestParam(value = "image", required = false) MultipartFile image) {
         try {
+            String finalTitle = (title != null && !title.isEmpty()) ? title : poTitle;
+            String finalContent = (content != null && !content.isEmpty()) ? content : poContent;
+            if (finalTitle == null || finalContent == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "제목과 내용을 입력하세요."));
+            }
+            int mbNum = resolveMbNum(authentication, requestMbNum != null ? requestMbNum : requestPoMbNum);
             FreePost post = new FreePost();
-            post.setPoTitle(title);
-            post.setPoContent(content);
-            post.setPoMbNum(mbNum); // 작성자 번호 설정
-            
+            post.setPoTitle(finalTitle);
+            post.setPoContent(finalContent);
+            post.setPoMbNum(mbNum);
             List<MultipartFile> images = (image != null) ? List.of(image) : Collections.emptyList();
             freePostService.savePost(post, images);
-            
             return ResponseEntity.ok("Success");
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "등록 실패: " + e.getMessage()));
         }
+    }
+
+    private int resolveMbNum(Authentication authentication, Integer requestMbNum) {
+        if (authentication != null && authentication.getPrincipal() instanceof CustomUser) {
+            MemberVO member = ((CustomUser) authentication.getPrincipal()).getMember();
+            if (member != null) return member.getMb_num();
+        }
+        return requestMbNum != null ? requestMbNum : 1;
     }
 
     // 🚩 게시글 수정

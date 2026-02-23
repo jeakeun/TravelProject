@@ -7,11 +7,13 @@ export function getUserId(userOrMember) {
   return userOrMember.mb_Uid ?? userOrMember.mb_uid ?? '';
 }
 
-/** 회원 번호 (mb_num / mbNum) */
+/** 회원 번호 (mb_num / mbNum) - DB 연동용 */
 export function getMemberNum(userOrMember) {
   if (!userOrMember || typeof userOrMember !== 'object') return null;
   const num = userOrMember.mbNum ?? userOrMember.mb_num;
-  return num != null ? Number(num) : null;
+  if (num == null || num === '') return null;
+  const n = Number(num);
+  return Number.isNaN(n) ? null : n;
 }
 
 /** 관리자 여부 (mb_rol === 'ADMIN' 또는 mb_score >= 10) */

@@ -209,7 +209,7 @@ public class MemberController {
     }
 
     /**
-     * 비밀번호 찾기 2단계: 새 비밀번호로 변경
+     * 비밀번호 찾기 2단계: 새 비밀번호로 변경 (아이디+이메일 인증 후)
      */
     @PostMapping("/auth/reset-password")
     public ResponseEntity<String> resetPassword(@RequestBody Map<String, String> body) {
@@ -223,6 +223,24 @@ public class MemberController {
             return ResponseEntity.ok("OK");
         }
         return ResponseEntity.badRequest().body("비밀번호 변경에 실패했습니다.");
+    }
+
+    /**
+     * 로그인 사용자 비밀번호 변경: 현재 비밀번호 확인 후 새 비밀번호로 변경
+     */
+    @PostMapping("/auth/change-password")
+    public ResponseEntity<String> changePassword(@RequestBody Map<String, String> body) {
+        String id = body != null ? (body.get("id") != null ? body.get("id").trim() : "") : "";
+        String currentPw = body != null ? (body.get("currentPw") != null ? body.get("currentPw").trim() : "") : "";
+        String newPw = body != null ? (body.get("newPw") != null ? body.get("newPw").trim() : "") : "";
+        if (id.isEmpty() || currentPw.isEmpty() || newPw.isEmpty()) {
+            return ResponseEntity.badRequest().body("현재 비밀번호와 새 비밀번호를 모두 입력하세요.");
+        }
+        boolean ok = memberService.changePassword(id, currentPw, newPw);
+        if (ok) {
+            return ResponseEntity.ok("OK");
+        }
+        return ResponseEntity.badRequest().body("현재 비밀번호가 일치하지 않거나 변경에 실패했습니다.");
     }
 
     /**
