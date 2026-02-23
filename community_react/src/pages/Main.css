@@ -22,7 +22,7 @@ body {
 .App .nav-area header {
     width: 100%;
     height: 70px;
-    background: linear-gradient(135deg, #1a6b2a, #228B22);
+    background: linear-gradient(135deg, #0b2310);
     display: flex;
     align-items: center;
     padding: 0 60px;
