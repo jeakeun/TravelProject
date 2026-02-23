@@ -81,14 +81,12 @@ const RecommendMain = ({ posts = [] }) => {
         const { poImg, fileName, fileUrl, image, poContent } = post;
         const targetUrl = poImg || fileName || fileUrl || image;
 
-        // 1. 이미지 관련 필드 체크
         if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null" && String(targetUrl) !== "undefined") {
             if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
             const extractedName = String(targetUrl).split(/[\\/]/).pop();
             return `${SERVER_URL}/pic/${extractedName}`;
         }
         
-        // 2. 본문 내 img 태그 추출
         if (poContent && typeof poContent === 'string') {
             const imgRegex = /<img[^>]+src=["']([^"']+)["']/;
             const match = poContent.match(imgRegex);
@@ -105,23 +103,6 @@ const RecommendMain = ({ posts = [] }) => {
             if (isNaN(date.getTime())) return "-";
             return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
         } catch (e) { return "-"; }
-    };
-
-    const searchBtnStyle = {
-        backgroundColor: '#2c3e50',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '20px',
-        padding: '0 20px',
-        height: '34px',
-        fontSize: '14px',
-        fontWeight: 'bold',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transition: 'background-color 0.2s',
-        whiteSpace: 'nowrap'
     };
 
     return (
@@ -191,45 +172,32 @@ const RecommendMain = ({ posts = [] }) => {
                 </table>
 
                 <div className="list-pagination-area">
-                    <div className="page-buttons" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', margin: '40px 0' }}>
+                    {/* 🚩 인라인 스타일을 제거하여 CSS 파일의 디자인이 적용되도록 수정함 */}
+                    <div className="page-buttons">
                         <button 
+                            className="prev-btn"
                             disabled={currentPage === 1} 
                             onClick={() => setCurrentPage(p => p - 1)}
-                            style={{ 
-                                ...searchBtnStyle,
-                                opacity: currentPage === 1 ? 0.5 : 1,
-                                cursor: currentPage === 1 ? 'default' : 'pointer'
-                            }}
                         >
-                            이전
+                            &lt;
                         </button>
                         
                         {[...Array(totalPages)].map((_, i) => (
                             <button 
                                 key={i+1} 
+                                className={currentPage === i+1 ? 'active' : ''}
                                 onClick={() => setCurrentPage(i+1)}
-                                style={{
-                                    width: '34px', height: '34px', borderRadius: '50%',
-                                    backgroundColor: currentPage === i+1 ? '#2c3e50' : '#fff',
-                                    color: currentPage === i+1 ? '#fff' : '#2c3e50',
-                                    border: '1px solid #2c3e50', cursor: 'pointer', fontWeight: 'bold',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                }}
                             >
                                 {i+1}
                             </button>
                         ))}
                         
                         <button 
+                            className="next-btn"
                             disabled={currentPage === totalPages} 
                             onClick={() => setCurrentPage(p => p + 1)}
-                            style={{ 
-                                ...searchBtnStyle,
-                                opacity: currentPage === totalPages ? 0.5 : 1,
-                                cursor: currentPage === totalPages ? 'default' : 'pointer'
-                            }}
                         >
-                            다음
+                            &gt;
                         </button>
                     </div>
                     

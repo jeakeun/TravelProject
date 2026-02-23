@@ -1,3 +1,4 @@
+/* [1. 상세 페이지 레이아웃 기초] */
 .recommend-detail-wrapper {
     width: 100%;
     background-color: #fff;
@@ -13,6 +14,7 @@
     box-sizing: border-box;
 }
 
+/* [2. 헤더 섹션] */
 .detail-header-section {
     margin-bottom: 30px;
     padding-bottom: 20px;
@@ -38,6 +40,7 @@
     color: #ddd;
 }
 
+/* [3. 본문 이미지 및 텍스트] */
 .detail-image-wrapper {
     width: 80%;
     margin: 0 auto 40px;
@@ -60,76 +63,103 @@
     margin: 40px 0 60px;
     min-height: 150px;
     word-break: break-all;
-    /* 긴 영문 텍스트 방지 */
 }
 
-/* 🚩 추가: 본문 내 삽입된 이미지가 박스를 나가지 않도록 설정 */
 .detail-body-text img {
     max-width: 100% !important;
     height: auto !important;
     border-radius: 12px;
 }
 
-/* 버튼 배치 영역 */
+/* [4. 하단 액션 버튼 영역 - 디자인 통일] */
 .detail-bottom-actions {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: 25px;
+    margin-top: 50px;
     margin-bottom: 40px;
 }
 
 .left-group {
     display: flex;
     gap: 15px;
+    justify-content: center;
 }
 
-/* 추천 및 신고 버튼 공통 디자인 적용 */
+/* 추천 및 신고 버튼 공통 스타일 */
 .btn-like-action,
 .btn-report-action {
-    background-color: #fff;
-    border: 2px solid #ff4d4d;
-    /* 레드 테두리 통일 */
-    color: #ff4d4d;
-    padding: 10px 25px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
     border-radius: 30px;
+    /* 완벽한 알약 모양 */
     font-weight: bold;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    border: 1px solid #ddd;
+    background-color: #fff;
+}
+
+/* 추천 버튼 (레드 포인트) */
+.btn-like-action {
+    border-color: #ff4d4f;
+    color: #ff4d4f;
 }
 
 .btn-like-action.active,
+.btn-like-action:hover {
+    background-color: #ff4d4f;
+    color: #fff;
+    border-color: #ff4d4f;
+}
+
+/* 신고 버튼 (기존 레드에서 차분한 톤으로 변경 권장하나 요청대로 유지) */
+.btn-report-action {
+    border-color: #ff4d4f;
+    color: #ff4d4f;
+}
+
 .btn-report-action:hover {
-    background-color: #ff4d4d;
+    background-color: #ff4d4f;
     color: #fff;
 }
 
+/* 목록으로 돌아가기 버튼 (리스트 페이지 테마 컬러 적용) */
 .btn-list-return {
     background-color: #2c3e50;
     color: #fff;
     border: none;
-    padding: 12px 45px;
+    padding: 14px 60px;
     border-radius: 30px;
+    /* 알약 모양 */
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
+    transition: all 0.3s ease;
 }
 
+.btn-list-return:hover {
+    background-color: #1a252f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* [5. 댓글 영역] */
 .section-divider {
     border: none;
     border-top: 1px solid #eee;
     margin: 40px 0;
 }
 
-/* 댓글 영역 */
 .comment-area .comment-title {
     font-size: 20px;
     font-weight: bold;
     margin-bottom: 20px;
+    color: #2c3e50;
 }
 
 .comment-write-box {
@@ -143,20 +173,35 @@
     height: 110px;
     padding: 18px;
     border: 1px solid #e0e0e0;
-    border-radius: 10px;
+    border-radius: 12px;
+    /* 라운드 증가 */
     resize: none;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
 }
 
+.comment-write-box textarea:focus {
+    border-color: #2c3e50;
+}
+
+/* 댓글 등록 버튼 */
 .btn-comment-submit {
     width: 110px;
     background-color: #2c3e50;
     color: #fff;
     border: none;
-    border-radius: 10px;
+    border-radius: 12px;
     cursor: pointer;
     font-weight: bold;
+    transition: background 0.2s;
 }
 
+.btn-comment-submit:hover {
+    background-color: #1a252f;
+}
+
+/* 댓글 리스트 단위 */
 .comment-unit {
     border-bottom: 1px solid #f9f9f9;
     padding: 25px 0;
@@ -181,55 +226,4 @@
 .comment-btns span:hover {
     text-decoration: underline;
     color: #2c3e50;
-}
-
-.detail-bottom-actions {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-    margin-top: 50px;
-}
-
-.left-group {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-}
-
-/* 🚩 신고 버튼 및 추천 버튼 스타일 명시 */
-.btn-like-action,
-.btn-report-action {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 25px;
-    border-radius: 30px;
-    font-weight: bold;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid #ddd;
-}
-
-.btn-report-action {
-    border-color: #ff4d4f;
-    color: #ff4d4f;
-    background-color: #fff;
-}
-
-.btn-report-action:hover {
-    background-color: #ff4d4f;
-    color: #fff;
-}
-
-.btn-list-return {
-    background-color: #2c3e50;
-    color: #fff;
-    border: none;
-    padding: 12px 45px;
-    border-radius: 30px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
 }
