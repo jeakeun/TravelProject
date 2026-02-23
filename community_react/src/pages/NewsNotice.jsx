@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'; // 1. useMemo 추가
 import axios from 'axios';
-import './Board.css';
-import { useNavigate } from "react-router-dom"; // Link는 안 쓰면 지워도 됨
+// import './Board.css';
+import { useNavigate } from "react-router-dom"; 
 import Header from '../components/Header'; // 2. 헤더 가져오기
 
 const NewsNotice = ({ goToDetail }) => {
@@ -64,7 +64,7 @@ const NewsNotice = ({ goToDetail }) => {
 
     return (
         <>
-            {/* 4. 헤더를 여기에 넣습니다! */}
+            {/* 4. 헤더 */}
             <Header /> 
 
             <div className="freeboard-list-wrapper">

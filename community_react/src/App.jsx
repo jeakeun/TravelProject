@@ -20,6 +20,8 @@ import RecommendPostDetail from './components/recommend/RecommendPostDetail';
 import ReviewBoardList from './components/reviewboard/ReviewBoardList';
 import ReviewBoardDetail from './components/reviewboard/ReviewBoardDetail';
 
+import NewsNotice from './pages/NewsNotice';
+
 import Login from './auth/login';
 import Signup from './auth/signup';
 
@@ -211,6 +213,7 @@ function App() {
         <Route path="/login" element={<OpenLoginModal setShowLogin={setShowLogin} />} />
         <Route path="/signup" element={<OpenSignupModal setShowSignup={setShowSignup} />} />
         <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
+        <Route path="/news/notice" element={<NewsNotice />} />
       </Route>
     </Routes>
   );

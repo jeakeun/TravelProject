@@ -89,7 +89,7 @@ function Header({ user, onLogout, setShowLogin, setShowSignup, currentLang, setC
           <div className="menu-column">
             <h3>{t.menu_news_title}</h3>
             <ul>
-              <li><Link to="/newsNotice">{t.news_notice}</Link></li>
+              <li><Link to="/news/notice">{t.news_notice}</Link></li>
               <li><Link to="/">{t.news_event}</Link></li>
               <li><Link to="/">{t.news_letter}</Link></li>
             </ul>
