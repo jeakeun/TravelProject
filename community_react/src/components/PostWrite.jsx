@@ -220,5 +220,5 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
     </div>
   );
 }
-1
+
 export default PostWrite;
