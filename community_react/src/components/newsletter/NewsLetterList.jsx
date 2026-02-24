@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-// 🚩 디자인 유지 및 에러 방지를 위해 NewsLetterDetail.css를 공용으로 사용합니다.
+// 🚩 디자인 일관성을 위해 NewsLetterDetail.css를 사용합니다.
 import './NewsLetterDetail.css'; 
 
 const NewsLetterList = ({ posts = [] }) => {
@@ -77,104 +77,107 @@ const NewsLetterList = ({ posts = [] }) => {
     };
 
     return (
-        <div className="main-content page-content-area">
-            <h2 className="board-title">| 뉴스레터</h2>
-            
-            <div className="gallery-grid">
-                {currentPosts.length > 0 ? (
-                    currentPosts.map((post) => (
-                        <div 
-                            key={post.po_num || post.poNum || post.id} 
-                            className="photo-card"
-                            onClick={() => navigate(`/newsletter/${post.po_num || post.poNum || post.id}`)}
-                        >
-                            <div className="img-placeholder">
-                                <img 
-                                    src={getImageUrl(post)} 
-                                    alt={post.po_title || post.poTitle} 
-                                    onError={(e) => { 
-                                        e.target.onerror = null; 
-                                        e.target.src = fallbackImage; 
-                                    }}
-                                />
-                            </div>
-                            <div className="photo-info">
-                                <p className="photo-title">
-                                    {post.po_title || post.poTitle} 
-                                </p>
-                                <div className="photo-meta">
-                                    <span className="post-author">관리자</span>
-                                    <span className="post-date">
-                                        {(post.po_date || post.poDate) ? (post.po_date || post.poDate).split('T')[0] : ''}
-                                    </span>
+        /* 🚩 [수정] 이벤트 게시판과 동일하게 news-container로 감싸 좌우 여백 및 중앙 정렬 적용 */
+        <div className="news-container">
+            <div className="main-content">
+                <h2 className="board-title">| 뉴스레터</h2>
+                
+                <div className="gallery-grid">
+                    {currentPosts.length > 0 ? (
+                        currentPosts.map((post) => (
+                            <div 
+                                key={post.po_num || post.poNum || post.id} 
+                                className="photo-card"
+                                onClick={() => navigate(`/news/newsletter/${post.po_num || post.poNum || post.id}`)}
+                            >
+                                <div className="img-placeholder">
+                                    <img 
+                                        src={getImageUrl(post)} 
+                                        alt={post.po_title || post.poTitle} 
+                                        onError={(e) => { 
+                                            e.target.onerror = null; 
+                                            e.target.src = fallbackImage; 
+                                        }}
+                                    />
+                                </div>
+                                <div className="photo-info">
+                                    <p className="photo-title">
+                                        {post.po_title || post.poTitle} 
+                                    </p>
+                                    <div className="photo-meta">
+                                        <span className="post-author">관리자</span>
+                                        <span className="post-date">
+                                            {(post.po_date || post.poDate) ? (post.po_date || post.poDate).split('T')[0] : ''}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
+                        ))
+                    ) : (
+                        <div className="no-data-full">
+                            등록된 뉴스레터가 없습니다.
                         </div>
-                    ))
-                ) : (
-                    <div className="no-data-full">
-                        등록된 뉴스레터가 없습니다.
-                    </div>
-                )}
-            </div>
-
-            <div className="list-pagination-area">
-                <div className="page-buttons">
-                    <button 
-                        className="prev" 
-                        onClick={() => paginate(currentPage - 1)}
-                        disabled={currentPage === 1}
-                    >
-                        &lt;
-                    </button>
-
-                    {[...Array(totalPages)].map((_, i) => (
-                        <button 
-                            key={i + 1} 
-                            className={currentPage === i + 1 ? 'active' : ''}
-                            onClick={() => paginate(i + 1)}
-                        >
-                            {i + 1}
-                        </button>
-                    ))}
-
-                    <button 
-                        className="next" 
-                        onClick={() => paginate(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                    >
-                        &gt;
-                    </button>
+                    )}
                 </div>
 
-                <div className="footer-action-row">
-                    <div className="search-footer">
-                        <select 
-                            className="search-select-box"
-                            value={searchType}
-                            onChange={(e) => setSearchType(e.target.value)}
+                <div className="list-pagination-area">
+                    <div className="page-buttons">
+                        <button 
+                            className="prev" 
+                            onClick={() => paginate(currentPage - 1)}
+                            disabled={currentPage === 1}
                         >
-                            <option value="title">제목</option>
-                            <option value="content">내용</option>
-                            <option value="title_content">제목+내용</option>
-                            <option value="author">작성자</option>
-                        </select>
-                        <div className="search-input-wrapper">
-                            <input 
-                                type="text" 
-                                placeholder="뉴스레터 검색" 
-                                value={searchKeyword}
-                                onChange={(e) => setSearchKeyword(e.target.value)}
-                            />
-                            <button className="btn-search">검색</button>
-                        </div>
+                            &lt;
+                        </button>
+
+                        {[...Array(totalPages)].map((_, i) => (
+                            <button 
+                                key={i + 1} 
+                                className={currentPage === i + 1 ? 'active' : ''}
+                                onClick={() => paginate(i + 1)}
+                            >
+                                {i + 1}
+                            </button>
+                        ))}
+
+                        <button 
+                            className="next" 
+                            onClick={() => paginate(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                        >
+                            &gt;
+                        </button>
                     </div>
 
-                    {isAdmin && (
-                        <button className="btn-write-footer" onClick={() => navigate('/community/write', { state: { type: 'NEWS' } })}>
-                            뉴스레터 작성
-                        </button>
-                    )}
+                    <div className="footer-action-row">
+                        <div className="search-footer">
+                            <select 
+                                className="search-select-box"
+                                value={searchType}
+                                onChange={(e) => setSearchType(e.target.value)}
+                            >
+                                <option value="title">제목</option>
+                                <option value="content">내용</option>
+                                <option value="title_content">제목+내용</option>
+                                <option value="author">작성자</option>
+                            </select>
+                            <div className="search-input-wrapper">
+                                <input 
+                                    type="text" 
+                                    placeholder="뉴스레터 검색" 
+                                    value={searchKeyword}
+                                    onChange={(e) => setSearchKeyword(e.target.value)}
+                                />
+                                <button className="btn-search">검색</button>
+                            </div>
+                        </div>
+
+                        {isAdmin && (
+                            <button className="btn-write-footer" onClick={() => navigate('/news/newsletter/write', { state: { type: 'NEWS', boardType: 'newsletter' } })}>
+                                뉴스레터 작성
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

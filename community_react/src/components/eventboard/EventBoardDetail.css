@@ -1,17 +1,26 @@
-/* [1. 그리드 레이아웃 및 카드 - 기존 스타일 유지] */
+/* [0. 컨테이너 설정 - 가로폭 확장 및 중앙 정렬] */
+.news-container {
+    max-width: 1400px;       /* 1200px에서 1400px로 확장하여 좌우 여유 확보 */
+    margin: 0 auto;          /* 중앙 정렬 */
+    padding: 0 40px;         /* 좌우 기본 여백 */
+    box-sizing: border-box;
+}
+
+/* [1. 그리드 레이아웃 및 카드 - 높이 최적화로 한 화면에 배치] */
 .gallery-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(2, 360px);
-    gap: 25px;
+    /* 행 높이를 310px에서 280px로 축소하여 세로 길이를 줄임 */
+    grid-template-rows: repeat(2, 280px); 
+    gap: 20px;               /* 간격을 살짝 좁힘 */
     margin-top: 20px;
 }
 
 .photo-card {
     background: white;
-    border-radius: 15px;
+    border-radius: 12px;
     overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
     transition: all 0.3s ease;
     cursor: pointer;
     display: flex;
@@ -21,12 +30,12 @@
 }
 
 .photo-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
 }
 
 .img-placeholder {
-    flex: 4;
+    flex: 3;                 /* 이미지 영역 비율을 살짝 줄임 */
     overflow: hidden;
     background-color: #f9f9f9;
 }
@@ -39,12 +48,12 @@
 }
 
 .photo-card:hover .img-placeholder img {
-    transform: scale(1.1);
+    transform: scale(1.08);
 }
 
 .photo-info {
-    flex: 1;
-    padding: 15px;
+    flex: 1.1;               /* 텍스트 영역 비율 축소 */
+    padding: 10px 15px;      /* 상하 패딩 축소 */
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -53,9 +62,9 @@
 }
 
 .photo-title {
-    margin: 0 0 5px 0;
-    font-weight: 800;
-    font-size: 1.1rem;
+    margin: 0 0 4px 0;
+    font-weight: 700;
+    font-size: 1.05rem;
     color: #2c3e50;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -63,18 +72,19 @@
 }
 
 .post-date {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: #95a5a6;
 }
 
-/* 🚩 [2. 하단 컨트롤 영역 - Recommend 게시판 스타일 적용] */
+/* 🚩 [2. 하단 컨트롤 영역 - 상단 마진 대폭 축소] */
 .list-pagination-area {
-    margin-top: 50px;
+    margin-top: 25px;        /* 50px에서 25px로 줄여 한 화면에 보이게 함 */
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 30px;
+    gap: 15px;               /* 요소 간 간격 축소 */
     width: 100%;
+    padding-bottom: 30px;    /* 하단 여백 축소 */
 }
 
 .page-buttons {
@@ -83,15 +93,12 @@
     gap: 10px;
 }
 
-/* 🚩 숫자 및 이전/다음 버튼: 완벽한 원형 스타일 */
 .page-buttons button {
-    width: 40px;
-    /* Recommend 게시판 규격 */
-    height: 40px;
+    width: 36px;             /* 버튼 크기 미세 축소 */
+    height: 36px;
     border: 1px solid #ddd;
     background: #fff;
     border-radius: 50% !important;
-    /* 무조건 동그랗게 유지 */
     cursor: pointer;
     font-weight: 600;
     font-size: 14px;
@@ -103,53 +110,48 @@
     padding: 0;
 }
 
-/* 활성화된 페이지 (다크 네이비) */
 .page-buttons button.active {
     background: #2c3e50 !important;
     color: #fff !important;
     border-color: #2c3e50 !important;
 }
 
-/* 호버 효과 */
 .page-buttons button:hover:not(:disabled) {
     background-color: #f8f9fa;
     border-color: #2c3e50;
     color: #2c3e50;
 }
 
-/* 이전/다음 버튼이 비활성화(disabled) 되어도 공간은 유지됨 */
 .page-buttons button:disabled {
     cursor: default;
     opacity: 0.4;
     background-color: #fdfdfd;
 }
 
-/* 🚩 [3. 검색창 및 푸터 액션 - Recommend 스타일] */
+/* 🚩 [3. 검색창 및 푸터 액션] */
 .footer-action-row {
     width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 10px;
+    margin-top: 5px;         /* 상단 마진 최소화 */
     position: relative;
 }
 
 .search-footer {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-right: 140px;
-    /* 글쓰기 버튼과의 간격 확보 */
+    gap: 10px;
+    margin-right: 0;         /* 중앙 정렬을 위해 마진 제거 */
 }
 
 .search-select-box {
-    height: 46px;
-    padding: 0 15px;
+    height: 38px;            /* 높이 축소 */
+    padding: 0 12px;
     border: 1px solid #ddd;
     border-radius: 30px;
-    /* 알약 모양 */
     background-color: #fff;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #333;
     outline: none;
     cursor: pointer;
@@ -158,10 +160,9 @@
 .search-input-wrapper {
     display: flex;
     align-items: center;
-    height: 46px;
+    height: 38px;            /* 높이 축소 */
     border: 1px solid #ddd;
     border-radius: 30px;
-    /* 알약 모양 */
     padding: 3px 5px 3px 15px;
     background: #fff;
 }
@@ -170,12 +171,12 @@
     padding: 8px;
     border: none;
     outline: none;
-    width: 250px;
-    font-size: 0.9rem;
+    width: 200px;            /* 너비 살짝 조절 */
+    font-size: 0.85rem;
 }
 
 .btn-search {
-    padding: 8px 22px;
+    padding: 6px 16px;       /* 버튼 크기 조절 */
     background: #2c3e50;
     color: #fff;
     border: none;
@@ -184,17 +185,18 @@
     cursor: pointer;
     transition: background 0.3s;
     white-space: nowrap;
+    font-size: 0.85rem;
 }
 
 .btn-search:hover {
     background-color: #1a252f;
 }
 
-/* 🚩 [4. 후기 작성 버튼 - Recommend 스타일] */
+/* 🚩 [4. 후기 작성 버튼] */
 .btn-write-footer {
     position: absolute;
     right: 0;
-    padding: 12px 28px;
+    padding: 8px 20px;       /* 버튼 크기 조절 */
     background: #2c3e50;
     color: #fff;
     border: none;
@@ -204,6 +206,7 @@
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
     white-space: nowrap;
+    font-size: 0.85rem;
 }
 
 .btn-write-footer:hover {
@@ -212,28 +215,14 @@
     box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
 }
 
-/* [4. 상세 페이지 래퍼 - 양옆 여백 통일] */
-.event-detail-wrapper {
-    padding: 40px 40px 48px;
-    background-color: #f8f9fa;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-@media (max-width: 768px) {
-    .event-detail-wrapper {
-        padding: 24px 20px 40px;
-    }
-}
-
-/* [5. 상세 페이지 스타일 - 기존 스타일 유지] */
+/* [5. 상세 페이지 스타일] */
 .detail-card {
     background: white;
     padding: 40px;
     border-radius: 20px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
     max-width: 900px;
-    margin: 0 auto;
+    margin: 40px auto;
 }
 
 .detail-title {

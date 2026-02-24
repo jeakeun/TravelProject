@@ -24,7 +24,7 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
   };
 
   // 🚩 기본 이미지 경로 (8080 서버 법 준수)
-  const FALLBACK_IMAGE = "https://placehold.co";
+  const FALLBACK_IMAGE = "https://placehold.co/300x200?text=No+Image";
 
   useEffect(() => {
     setAppliedSearch('');
@@ -108,6 +108,14 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
     cursor: 'pointer',
     fontWeight: 'bold',
     fontSize: '14px'
+  };
+
+  // 🚩 [추가] 메뉴별 글쓰기 경로 분기 로직
+  const getWritePath = () => {
+    const menu = activeMenu.trim();
+    if (menu === '이벤트' || menu === '이벤트 게시판') return '/news/event/write';
+    if (menu === '뉴스레터') return '/news/newsletter/write';
+    return '/community/write'; // 기본값 (자유/추천 게시판)
   };
 
   return (
@@ -219,9 +227,10 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
             <button className="pagination-btn nav-btn" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>다음</button>
           </div>
 
-          {['여행 추천 게시판', '여행 후기 게시판', '자유 게시판'].includes(activeMenu.trim()) && (
+          {/* 🚩 글쓰기 버튼 경로 최적화 적용 */}
+          {['여행 추천 게시판', '여행 후기 게시판', '자유 게시판', '이벤트', '뉴스레터'].includes(activeMenu.trim()) && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-45px', paddingRight: '20px' }}>
-              <button className="write-btn" onClick={() => navigate('/community/write')}>글쓰기</button>
+              <button className="write-btn" onClick={() => navigate(getWritePath())}>글쓰기</button>
             </div>
           )}
 
