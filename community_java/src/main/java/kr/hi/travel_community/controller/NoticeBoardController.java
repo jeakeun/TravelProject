@@ -13,7 +13,7 @@ import kr.hi.travel_community.service.NoticePostService;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/news/notice")
+@RequestMapping("/api/notice")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 public class NoticeBoardController {

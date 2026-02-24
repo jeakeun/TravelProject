@@ -15,10 +15,11 @@ const NoticeDetail = () => {
     const currentUserNum = getMemberNum(user);
 
     const fetchDetail = useCallback(async () => {
-        if (id === 'write') return;
+        if (!id || id === 'undefined' || id === 'write') return;
+        
         try {
             setLoading(true);
-            const res = await axios.get(`http://localhost:8080/api/news/notice/posts/${id}`, { withCredentials: true });
+            const res = await axios.get(`http://localhost:8080/api/notice/posts/${id}`, { withCredentials: true });
             setPost(res.data);
         } catch (err) {
             alert("게시글을 불러올 수 없습니다.");
@@ -41,7 +42,7 @@ const NoticeDetail = () => {
         }
     };
 
-    if (loading) return <div className="loading-box">로딩 중...</div>;
+    if (loading) return <div>로딩 중...</div>;
     if (!post) return null;
 
     const isOwner = isLoggedIn && Number(post.nnMbNum) === Number(currentUserNum);
@@ -49,6 +50,7 @@ const NoticeDetail = () => {
     return (
         <div className="review-detail-wrapper">
             <div className="detail-container">
+                
                 <div className="detail-header-section">
                     <h1 className="detail-main-title">{post.nnTitle}</h1>
                     <div className="detail-sub-info">
@@ -61,21 +63,21 @@ const NoticeDetail = () => {
                 </div>
 
                 <div className="detail-body-text">
-                    {/* 이미지 영역 삭제됨 */}
                     <div dangerouslySetInnerHTML={{ __html: post.nnContent }} />
                 </div>
                 
                 <div className="detail-bottom-actions">
-                    <div className="left-group">
+                    <div style={{ display: 'flex', gap: '10px' }}>
                         {isOwner && (
                             <>
-                                <button className="btn-edit-action" onClick={() => navigate(`/news/notice/edit/${id}`)}>✏️ 수정</button>
-                                <button className="btn-delete-action" onClick={handleDelete}>🗑️ 삭제</button>
+                                <button className="btn-edit-action" onClick={() => navigate(`/news/notice/edit/${id}`)}>수정</button>
+                                <button className="btn-delete-action" onClick={handleDelete}>삭제</button>
                             </>
                         )}
                     </div>
                     <button className="btn-list-return" onClick={() => navigate('/news/notice')}>목록으로</button>
                 </div>
+
             </div>
         </div>
     );
