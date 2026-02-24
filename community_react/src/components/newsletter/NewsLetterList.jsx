@@ -1,9 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './ReviewBoardDetail.css'; 
+import { useNavigate, useOutletContext } from 'react-router-dom';
+// 🚩 디자인 유지 및 에러 방지를 위해 NewsLetterDetail.css를 공용으로 사용합니다.
+import './NewsLetterDetail.css'; 
 
-const ReviewBoardList = ({ posts = [] }) => {
+const NewsLetterList = ({ posts = [] }) => {
     const navigate = useNavigate();
+    
+    // App.jsx의 Outlet context에서 유저 정보를 받아옵니다.
+    const { user } = useOutletContext() || {};
     
     const [searchType, setSearchType] = useState("title");
     const [searchKeyword, setSearchKeyword] = useState("");
@@ -13,20 +17,24 @@ const ReviewBoardList = ({ posts = [] }) => {
     const SERVER_URL = "http://localhost:8080";
     const fallbackImage = "https://placehold.co/300x200?text=No+Image";
 
+    // 관리자 여부 확인
+    const isAdmin = user && (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN');
+
     const getImageUrl = (post) => {
         if (!post) return fallbackImage;
-        const { poImg, fileUrl, fileName, poContent } = post;
-        const targetUrl = poImg || fileUrl || fileName;
+        const { po_img, poImg, fileUrl, fileName, po_content, poContent } = post;
+        const targetUrl = po_img || poImg || fileUrl || fileName;
 
         if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null") {
             if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
-            const extractedName = String(targetUrl).split(/[\\/]/).pop();
+            const extractedName = String(targetUrl).split(',')[0].split(/[\\/]/).pop();
             return `${SERVER_URL}/pic/${extractedName}`;
         }
         
-        if (poContent) {
+        const content = po_content || poContent;
+        if (content) {
             const imgRegex = /<img[^>]+src=["']([^"']+)["']/;
-            const match = poContent.match(imgRegex);
+            const match = content.match(imgRegex);
             if (match && match[1]) return match[1];
         }
 
@@ -34,20 +42,27 @@ const ReviewBoardList = ({ posts = [] }) => {
     };
 
     const filteredPosts = useMemo(() => {
-        if (!searchKeyword) return [...posts].sort((a, b) => (b.poNum || 0) - (a.poNum || 0));
+        // 최신순 정렬
+        const sortedPosts = [...posts].sort((a, b) => {
+            const aId = a.po_num || a.poNum || a.id || 0;
+            const bId = b.po_num || b.poNum || b.id || 0;
+            return bId - aId;
+        });
+        
+        if (!searchKeyword) return sortedPosts;
 
-        return posts
-            .filter(post => {
-                const keyword = searchKeyword.toLowerCase();
-                if (searchType === "title") return post.poTitle?.toLowerCase().includes(keyword);
-                if (searchType === "content") return post.poContent?.toLowerCase().includes(keyword);
-                if (searchType === "title_content") {
-                    return post.poTitle?.toLowerCase().includes(keyword) || post.poContent?.toLowerCase().includes(keyword);
-                }
-                if (searchType === "author") return String(post.poMbNum).includes(keyword);
-                return true;
-            })
-            .sort((a, b) => (b.poNum || 0) - (a.poNum || 0));
+        return sortedPosts.filter(post => {
+            const keyword = searchKeyword.toLowerCase();
+            const title = (post.po_title || post.poTitle || "").toLowerCase();
+            const content = (post.po_content || post.poContent || "").toLowerCase();
+            const author = String(post.po_mb_num || post.poMbNum || "");
+
+            if (searchType === "title") return title.includes(keyword);
+            if (searchType === "content") return content.includes(keyword);
+            if (searchType === "title_content") return title.includes(keyword) || content.includes(keyword);
+            if (searchType === "author") return author.includes(keyword);
+            return true;
+        });
     }, [posts, searchKeyword, searchType]);
 
     const indexOfLastPost = currentPage * postsPerPage;
@@ -63,20 +78,20 @@ const ReviewBoardList = ({ posts = [] }) => {
 
     return (
         <div className="main-content">
-            <h2 className="board-title">| 여행 후기 게시판</h2>
+            <h2 className="board-title">| 뉴스레터</h2>
             
             <div className="gallery-grid">
                 {currentPosts.length > 0 ? (
                     currentPosts.map((post) => (
                         <div 
-                            key={post.poNum || post.postId} 
+                            key={post.po_num || post.poNum || post.id} 
                             className="photo-card"
-                            onClick={() => navigate(`/community/reviewboard/${post.poNum || post.postId}`)}
+                            onClick={() => navigate(`/newsletter/${post.po_num || post.poNum || post.id}`)}
                         >
                             <div className="img-placeholder">
                                 <img 
                                     src={getImageUrl(post)} 
-                                    alt={post.poTitle} 
+                                    alt={post.po_title || post.poTitle} 
                                     onError={(e) => { 
                                         e.target.onerror = null; 
                                         e.target.src = fallbackImage; 
@@ -85,27 +100,26 @@ const ReviewBoardList = ({ posts = [] }) => {
                             </div>
                             <div className="photo-info">
                                 <p className="photo-title">
-                                    {post.poTitle} 
-                                    {(post.commentCount > 0) && <span className="co-count"> [{post.commentCount}]</span>}
+                                    {post.po_title || post.poTitle} 
                                 </p>
                                 <div className="photo-meta">
-                                    <span className="post-author">User {post.poMbNum}</span>
+                                    <span className="post-author">관리자</span>
                                     <span className="post-date">
-                                        {post.poDate ? post.poDate.split('T')[0] : ''}
+                                        {(post.po_date || post.poDate) ? (post.po_date || post.poDate).split('T')[0] : ''}
                                     </span>
                                 </div>
                             </div>
                         </div>
                     ))
                 ) : (
-                    <div className="no-data-full">등록된 후기가 없습니다.</div>
+                    <div className="no-data-full">
+                        등록된 뉴스레터가 없습니다.
+                    </div>
                 )}
             </div>
 
-            {/* 🚩 수정된 페이지네이션 영역 */}
             <div className="list-pagination-area">
                 <div className="page-buttons">
-                    {/* 이전 버튼: 항상 노출 */}
                     <button 
                         className="prev" 
                         onClick={() => paginate(currentPage - 1)}
@@ -114,7 +128,6 @@ const ReviewBoardList = ({ posts = [] }) => {
                         &lt;
                     </button>
 
-                    {/* 숫자 버튼: 인라인 스타일 제거 및 둥근 버튼 적용 */}
                     {[...Array(totalPages)].map((_, i) => (
                         <button 
                             key={i + 1} 
@@ -125,7 +138,6 @@ const ReviewBoardList = ({ posts = [] }) => {
                         </button>
                     ))}
 
-                    {/* 다음 버튼: 항상 노출 */}
                     <button 
                         className="next" 
                         onClick={() => paginate(currentPage + 1)}
@@ -150,7 +162,7 @@ const ReviewBoardList = ({ posts = [] }) => {
                         <div className="search-input-wrapper">
                             <input 
                                 type="text" 
-                                placeholder="후기 검색" 
+                                placeholder="뉴스레터 검색" 
                                 value={searchKeyword}
                                 onChange={(e) => setSearchKeyword(e.target.value)}
                             />
@@ -158,13 +170,15 @@ const ReviewBoardList = ({ posts = [] }) => {
                         </div>
                     </div>
 
-                    <button className="btn-write-footer" onClick={() => navigate('/community/write')}>
-                        후기 작성
-                    </button>
+                    {isAdmin && (
+                        <button className="btn-write-footer" onClick={() => navigate('/community/write', { state: { type: 'NEWS' } })}>
+                            뉴스레터 작성
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
     );
 };
 
-export default ReviewBoardList;
+export default NewsLetterList;
