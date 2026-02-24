@@ -1,10 +1,10 @@
 /* 마이페이지 - 화면 전체, 다른 페이지와 색상 통일 */
 .mypage-wrapper {
   width: 100%;
-  max-width: 1200px;
+  max-width: var(--page-size);
+  min-height: calc(100vh - var(--header-height));
   margin: 0 auto;
-  padding: 32px 40px 40px;
-  min-height: calc(100vh - 70px);
+  padding: var(--page-padding-top) var(--page-padding-x) var(--page-padding-bottom);
   display: flex;
   flex-direction: column;
   background: #f8f8f8;

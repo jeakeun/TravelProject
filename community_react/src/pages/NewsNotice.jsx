@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate, useOutletContext } from "react-router-dom"; 
-import Header from '../components/Header';
 import '../components/freeboard/FreeBoardDetail.css';
 
 const NewsNotice = ({ goToDetail }) => {
@@ -64,28 +63,12 @@ const NewsNotice = ({ goToDetail }) => {
     };
 
     // 공통 Header Props 설정 (코드 중복 방지)
-    const headerProps = {
-        user,
-        onLogout,
-        currentLang,
-        setCurrentLang,
-        // 기존 Header가 사용하는 이름(openLogin)에 setShowLogin 함수를 연결합니다.
-        openLogin: () => setShowLogin(true),
-        openSignup: () => setShowSignup(true)
-    };
-
     if (loading) return (
-        <>
-            <Header {...headerProps} />
-            <div style={{ textAlign: 'center', marginTop: '100px' }}>데이터 로딩 중...</div>
-        </>
+        <div className="freeboard-list-wrapper" style={{ textAlign: 'center' }}>데이터 로딩 중...</div>
     );
 
     return (
-        <>
-            <Header {...headerProps} /> 
-
-            <div className="freeboard-list-wrapper">
+        <div className="freeboard-list-wrapper">
                 <h2 className="board-title">| 공지사항</h2>
                 
                 <table className="freeboard-table">
@@ -162,7 +145,6 @@ const NewsNotice = ({ goToDetail }) => {
                     </div>
                 </div>
             </div>
-        </>
     );
 };
 

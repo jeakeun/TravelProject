@@ -1,6 +1,14 @@
 /* =========================================
    1. 기본 설정 및 초기화 (Reset & Base)
    ========================================= */
+:root {
+    --header-height: 70px;
+    --page-size: 1200px;
+    --page-padding-x: 40px;
+    --page-padding-top: 32px;
+    --page-padding-bottom: 48px;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -405,16 +413,16 @@ body {
     cursor: default;
 }
 
-/* 전체 사이트: 헤더 아래 본문이 겹치지 않도록 상단 여백 */
-.App .main-content {
-    padding-top: 70px;
-    min-height: 100vh;
+/* 전체 사이트: 헤더 아래 본문이 겹치지 않도록 상단 여백 (main만 적용, 중첩 .main-content 제외) */
+.App > main.main-content {
+    padding-top: var(--header-height);
+    min-height: calc(100vh - var(--header-height));
 }
 
 /* 헤더(70px) 제외한 뷰포트만큼만 쓰여 영상이 잘리지 않음 */
 #main-video {
     width: 100%;
-    height: calc(100vh - 70px);
+    height: calc(100vh - var(--header-height));
     min-height: 320px;
     background: #000;
     position: relative;
@@ -468,7 +476,7 @@ body {
 
 /* 두 번째 섹션: 랭킹 */
 #ranking {
-    min-height: 100vh;
+    min-height: calc(100vh - var(--header-height));
     padding: 60px 24px 40px;
     display: flex;
     flex-direction: column;
@@ -489,9 +497,9 @@ body {
 .carousel-outer {
     position: relative;
     width: 100%;
-    max-width: 1220px; /* 1100(카드영역) + 좌우 여백만 두어 버튼–카드 간격 최소화 */
+    max-width: var(--page-size);
     margin: 0 auto;
-    padding: 0 56px;
+    padding: 0 var(--page-padding-x);
 }
 
 /* 3D 캐러셀 컨테이너 (카드 영역만) */

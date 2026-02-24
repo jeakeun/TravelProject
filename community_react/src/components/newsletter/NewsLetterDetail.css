@@ -175,9 +175,10 @@
 
 /* [4. 상세 페이지 스타일 - 양옆 여백 통일] */
 .event-detail-wrapper {
-    padding: 40px 40px 48px;
+    padding: var(--page-padding-top) var(--page-padding-x) var(--page-padding-bottom);
     background-color: #f8f9fa;
-    max-width: 1200px;
+    max-width: var(--page-size);
+    min-height: calc(100vh - var(--header-height));
     margin: 0 auto;
 }
 

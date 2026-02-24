@@ -1,8 +1,9 @@
 .inquiry-page {
   width: 100%;
-  max-width: 1200px;
+  max-width: var(--page-size);
+  min-height: calc(100vh - var(--header-height));
   margin: 0 auto;
-  padding: 32px 40px 48px;
+  padding: var(--page-padding-top) var(--page-padding-x) var(--page-padding-bottom);
   box-sizing: border-box;
 }
 

@@ -1,10 +1,11 @@
 /* 1. 전체 컨테이너: 사이드바와 게시판을 묶어 화면 중앙 정렬 */
 .container {
   display: flex;
+  align-items: flex-start;
   width: 100%;
   max-width: 1550px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: var(--page-padding-top) var(--page-padding-x);
   gap: 50px;
 
   /* ✅ 좁은 화면에서 overflow(가로스크롤) 방지 */
@@ -96,9 +97,10 @@
 /* 메뉴바/사이드바 없는 페이지 공통: 양옆 여백 통일 */
 .page-content-area {
   width: 100%;
-  max-width: 1200px;
+  max-width: var(--page-size);
+  min-height: calc(100vh - var(--header-height));
   margin: 0 auto;
-  padding: 32px 40px 48px;
+  padding: var(--page-padding-top) var(--page-padding-x) var(--page-padding-bottom);
   box-sizing: border-box;
 }
 
