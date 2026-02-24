@@ -39,12 +39,9 @@ public class AdminService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public void updateInquiryStatus(Integer ibNum, String status) {
-        InquiryBox ib = inquiryRepository.findById(ibNum).orElse(null);
-        if (ib != null) {
-            ib.setIbStatus(status);
-            inquiryRepository.save(ib);
-        }
+        inquiryRepository.updateStatus(ibNum, status != null ? status : "Y");
     }
 
     @Transactional
@@ -52,12 +49,9 @@ public class AdminService {
         inquiryRepository.updateReplyAndStatus(ibNum, reply != null ? reply : "");
     }
 
+    @Transactional
     public void updateReportStatus(Integer rbNum, String status) {
-        ReportBox rb = reportRepository.findById(rbNum).orElse(null);
-        if (rb != null) {
-            rb.setRbManage(status);
-            reportRepository.save(rb);
-        }
+        reportRepository.updateManage(rbNum, status != null ? status : "Y");
     }
 
     /** 신고 처리: action = Y(처리완료), D(삭제), H(보류) */
@@ -65,8 +59,8 @@ public class AdminService {
     public void processReport(Integer rbNum, String action) {
         ReportBox rb = reportRepository.findById(rbNum).orElse(null);
         if (rb == null) return;
-        rb.setRbManage(action != null ? action : "Y");
-        reportRepository.save(rb);
+        String manage = action != null ? action : "Y";
+        reportRepository.updateManage(rbNum, manage);
         if ("D".equals(action)) {
             deleteReportedContent(rb.getRbName(), rb.getRbId());
         }
@@ -96,12 +90,9 @@ public class AdminService {
         }
     }
 
+    @Transactional
     public void updateReportReply(Integer rbNum, String reply) {
-        ReportBox rb = reportRepository.findById(rbNum).orElse(null);
-        if (rb != null) {
-            rb.setRbReply(reply);
-            reportRepository.save(rb);
-        }
+        reportRepository.updateReply(rbNum, reply != null ? reply : "");
     }
 
     private Map<String, Object> toInquiryMap(InquiryBox ib) {

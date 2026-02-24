@@ -322,6 +322,15 @@
   flex-wrap: wrap;
 }
 
+.admin-reply-actions-right {
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.admin-reply-view .admin-reply-block {
+  margin-bottom: 0;
+}
+
 .admin-btn-reply {
   padding: 8px 18px;
   background: linear-gradient(135deg, #1a6b2a, #228B22);

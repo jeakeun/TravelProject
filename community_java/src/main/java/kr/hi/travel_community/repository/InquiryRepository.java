@@ -16,7 +16,11 @@ public interface InquiryRepository extends JpaRepository<InquiryBox, Integer> {
 
     List<InquiryBox> findByIbMbNumOrderByIbNumDesc(Integer ibMbNum);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query(value = "UPDATE inquiry_box SET ib_reply = :reply, ib_status = 'Y' WHERE ib_num = :ibNum", nativeQuery = true)
     int updateReplyAndStatus(@Param("ibNum") Integer ibNum, @Param("reply") String reply);
+
+    @Modifying(clearAutomatically = true)
+    @Query(value = "UPDATE inquiry_box SET ib_status = :status WHERE ib_num = :ibNum", nativeQuery = true)
+    int updateStatus(@Param("ibNum") Integer ibNum, @Param("status") String status);
 }
