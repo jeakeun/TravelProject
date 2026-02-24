@@ -23,4 +23,8 @@ public interface InquiryRepository extends JpaRepository<InquiryBox, Integer> {
     @Modifying(clearAutomatically = true)
     @Query(value = "UPDATE inquiry_box SET ib_status = :status WHERE ib_num = :ibNum", nativeQuery = true)
     int updateStatus(@Param("ibNum") Integer ibNum, @Param("status") String status);
+
+    @Modifying(clearAutomatically = true)
+    @Query(value = "UPDATE inquiry_box SET ib_seen = 'Y' WHERE ib_num = :ibNum AND ib_mb_num = :mbNum", nativeQuery = true)
+    int markSeen(@Param("ibNum") Integer ibNum, @Param("mbNum") Integer mbNum);
 }

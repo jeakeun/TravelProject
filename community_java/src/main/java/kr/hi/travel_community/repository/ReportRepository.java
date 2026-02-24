@@ -28,4 +28,8 @@ public interface ReportRepository extends JpaRepository<ReportBox, Integer> {
     @Modifying(clearAutomatically = true)
     @Query(value = "UPDATE report_box SET rb_manage = :manage WHERE rb_num = :rbNum", nativeQuery = true)
     int updateManage(@Param("rbNum") Integer rbNum, @Param("manage") String manage);
+
+    @Modifying(clearAutomatically = true)
+    @Query(value = "UPDATE report_box SET rb_seen = 'Y' WHERE rb_num = :rbNum AND rb_mb_num = :mbNum", nativeQuery = true)
+    int markSeen(@Param("rbNum") Integer rbNum, @Param("mbNum") Integer mbNum);
 }
