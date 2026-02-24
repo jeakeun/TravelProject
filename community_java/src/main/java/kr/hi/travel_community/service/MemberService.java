@@ -38,7 +38,8 @@ public class MemberService {
                 user.id(),
                 encoder.encode(user.pw()),
                 user.email(),
-                user.agree() ? "Y" : "N"
+                user.agree() ? "Y" : "N",
+                user.id()
             );
             return memberDAO.insertMember(signUpDTO);
         } catch (Exception e) {
@@ -121,6 +122,30 @@ public class MemberService {
 
             String encodedPw = encoder.encode(newPw.trim());
             int updated = memberDAO.updatePasswordById(id.trim(), encodedPw);
+            return updated > 0;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * ✅ 닉네임 변경: 로그인 사용자 본인만 가능. 2~15자, 특수문자 제한.
+     */
+    @Transactional
+    public boolean updateNickname(String id, String newNickname) {
+        try {
+            if (id == null || id.trim().isEmpty()) return false;
+            if (newNickname == null || newNickname.trim().isEmpty()) return false;
+
+            MemberVO member = memberDAO.selectMemberById(id.trim());
+            if (member == null) return false;
+
+            String nick = newNickname.trim();
+            if (nick.length() < 2 || nick.length() > 15) return false;
+            if (!nick.matches("^[가-힣a-zA-Z0-9_]+$")) return false;
+
+            int updated = memberDAO.updateNicknameById(id.trim(), nick);
             return updated > 0;
         } catch (Exception e) {
             e.printStackTrace();

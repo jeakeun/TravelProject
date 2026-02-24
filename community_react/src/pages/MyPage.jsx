@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { getUserId } from "../utils/user";
+import { getUserId, getNickname } from "../utils/user";
 import api from "../api/axios";
 import "./MyPage.css";
 
@@ -23,6 +23,9 @@ function MyPage() {
   const [isEditingEmail, setIsEditingEmail] = useState(false);
   const [editEmailValue, setEditEmailValue] = useState("");
   const [emailSaving, setEmailSaving] = useState(false);
+  const [isEditingNickname, setIsEditingNickname] = useState(false);
+  const [editNicknameValue, setEditNicknameValue] = useState("");
+  const [nicknameSaving, setNicknameSaving] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawPassword, setWithdrawPassword] = useState("");
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
@@ -114,6 +117,51 @@ function MyPage() {
     }
   };
 
+  const startEditNickname = () => {
+    setEditNicknameValue(getNickname(user));
+    setIsEditingNickname(true);
+  };
+
+  const cancelEditNickname = () => {
+    setIsEditingNickname(false);
+    setEditNicknameValue("");
+  };
+
+  const saveNickname = async () => {
+    const trimmed = (editNicknameValue || "").trim();
+    if (!trimmed) {
+      alert("닉네임을 입력하세요.");
+      return;
+    }
+    if (trimmed.length < 2 || trimmed.length > 15) {
+      alert("닉네임은 2~15자로 입력하세요.");
+      return;
+    }
+    if (!/^[가-힣a-zA-Z0-9_]+$/.test(trimmed)) {
+      alert("닉네임은 한글, 영문, 숫자, 밑줄만 사용 가능합니다.");
+      return;
+    }
+    setNicknameSaving(true);
+    try {
+      const res = await api.post("/auth/update-nickname", { nickname: trimmed });
+      if (res.status === 200) {
+        const updated = { ...user, mb_nickname: trimmed, mbNickname: trimmed };
+        setUser?.(updated);
+        try {
+          localStorage.setItem("user", JSON.stringify(updated));
+        } catch (_) {}
+        setIsEditingNickname(false);
+        setEditNicknameValue("");
+        alert("닉네임이 변경되었습니다.");
+      }
+    } catch (err) {
+      const msg = err.response?.data ?? "닉네임 변경에 실패했습니다.";
+      alert(typeof msg === "string" ? msg : "닉네임 변경에 실패했습니다.");
+    } finally {
+      setNicknameSaving(false);
+    }
+  };
+
   const saveEmail = async () => {
     const trimmed = (editEmailValue || "").trim();
     if (!trimmed) {
@@ -175,6 +223,36 @@ function MyPage() {
         </div>
         <div className="mypage-profile-info">
           <div className="mypage-info-list">
+            <div className="mypage-info-row">
+              <span className="mypage-info-icon" aria-hidden>📝</span>
+              <span className="mypage-info-label">닉네임</span>
+              {!isEditingNickname ? (
+                <>
+                  <span className="mypage-info-text">{getNickname(user)}</span>
+                  <button type="button" className="mypage-info-btn" onClick={startEditNickname}>
+                    수정
+                  </button>
+                </>
+              ) : (
+                <div className="mypage-email-edit">
+                  <input
+                    type="text"
+                    className="mypage-email-input"
+                    value={editNicknameValue}
+                    onChange={(e) => setEditNicknameValue(e.target.value)}
+                    placeholder="닉네임 입력 (2~15자)"
+                    aria-label="닉네임"
+                    maxLength={15}
+                  />
+                  <button type="button" className="mypage-info-btn" onClick={saveNickname} disabled={nicknameSaving}>
+                    {nicknameSaving ? "저장 중..." : "저장"}
+                  </button>
+                  <button type="button" className="mypage-info-btn mypage-email-cancel" onClick={cancelEditNickname} disabled={nicknameSaving}>
+                    취소
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="mypage-info-row">
               <span className="mypage-info-icon" aria-hidden>👤</span>
               <span className="mypage-info-label">아이디</span>

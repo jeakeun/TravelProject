@@ -244,6 +244,26 @@ public class MemberController {
     }
 
     /**
+     * ✅ 로그인 사용자 닉네임 변경 (JWT로 본인 확인)
+     */
+    @PostMapping("/auth/update-nickname")
+    public ResponseEntity<String> updateNickname(Authentication authentication, @RequestBody Map<String, String> body) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUser)) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+        String id = ((CustomUser) authentication.getPrincipal()).getMember().getMb_Uid();
+        String newNickname = body != null ? (body.get("nickname") != null ? body.get("nickname").trim() : "") : "";
+        if (newNickname.isEmpty()) {
+            return ResponseEntity.badRequest().body("닉네임을 입력하세요.");
+        }
+        boolean ok = memberService.updateNickname(id, newNickname);
+        if (ok) {
+            return ResponseEntity.ok("OK");
+        }
+        return ResponseEntity.badRequest().body("닉네임은 2~15자, 한글/영문/숫자/밑줄만 가능합니다.");
+    }
+
+    /**
      * ✅ 로그인 사용자 이메일 변경 (JWT로 본인 확인)
      */
     @PostMapping("/auth/update-email")

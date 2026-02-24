@@ -6,6 +6,7 @@
     <resultMap id="MemberVOMap" type="kr.hi.travel_community.model.vo.MemberVO">
         <id property="mb_num" column="mb_num"/>
         <result property="mb_Uid" column="mb_uid"/>
+        <result property="mb_nickname" column="mb_nickname"/>
         <result property="mb_pw" column="mb_pw"/>
         <result property="mb_email" column="mb_email"/>
         <result property="mb_rol" column="mb_rol"/>
@@ -34,10 +35,10 @@
         LIMIT 1
     </select>
 
-    <!-- 새로운 회원정보 저장 (테이블 컬럼: mb_uid, mb_pw, mb_email, mb_agree varchar(1), mb_rol, mb_score) -->
+    <!-- 새로운 회원정보 저장 (회원가입 시 닉네임=아이디) -->
     <insert id="insertMember">
-        INSERT INTO member (mb_uid, mb_pw, mb_email, mb_agree, mb_rol, mb_score)
-        VALUES (#{id}, #{pw}, #{email}, #{agree}, 'USER', 0)
+        INSERT INTO member (mb_uid, mb_nickname, mb_pw, mb_email, mb_agree, mb_rol, mb_score)
+        VALUES (#{id}, #{nickname}, #{pw}, #{email}, #{agree}, 'USER', 0)
     </insert>
 
     <!-- ✅ 아이디 + 이메일 검증 (비밀번호 찾기용) -->
@@ -60,6 +61,13 @@
     <update id="updateEmailById">
         UPDATE member
         SET mb_email = #{email}
+        WHERE mb_uid = #{id}
+    </update>
+
+    <!-- ✅ 닉네임 변경 -->
+    <update id="updateNicknameById">
+        UPDATE member
+        SET mb_nickname = #{nickname}
         WHERE mb_uid = #{id}
     </update>
 

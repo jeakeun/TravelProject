@@ -41,6 +41,9 @@ public interface MemberDAO {
     // ✅ 이메일 변경
     int updateEmailById(@Param("id") String id, @Param("email") String email);
 
+    // ✅ 닉네임 변경
+    int updateNicknameById(@Param("id") String id, @Param("nickname") String nickname);
+
     // ✅ 회원 탈퇴
     int deleteMemberById(@Param("id") String id);
 }

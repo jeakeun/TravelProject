@@ -15,6 +15,7 @@ public class MemberVO {
     @JsonProperty("mb_num")
     private int mb_num;      // 회원 번호 (PK) - 마이페이지 내가 쓴 글 조회용
     private String mb_Uid;   // 회원 아이디
+    private String mb_nickname; // 닉네임 (없으면 아이디 표시)
     private String mb_pw;    // 회원 비밀번호
     private String mb_email; // 회원 이메일
     private String mb_rol;   // 회원 권한

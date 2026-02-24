@@ -7,6 +7,14 @@ export function getUserId(userOrMember) {
   return userOrMember.mb_Uid ?? userOrMember.mb_uid ?? '';
 }
 
+/** 닉네임 (없으면 아이디) - 헤더 등 표시용 */
+export function getNickname(userOrMember) {
+  if (!userOrMember || typeof userOrMember !== 'object') return '';
+  const nick = userOrMember.mb_nickname ?? userOrMember.mbNickname ?? '';
+  if (nick.trim()) return nick;
+  return getUserId(userOrMember);
+}
+
 /** 회원 번호 (mb_num / mbNum) - DB 연동용 */
 export function getMemberNum(userOrMember) {
   if (!userOrMember || typeof userOrMember !== 'object') return null;

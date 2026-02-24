@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { getUserId, isAdmin } from "../utils/user";
+import { getNickname, isAdmin } from "../utils/user";
 
 const translations = {
   KR: {
@@ -124,7 +124,7 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
                 aria-expanded={isUserMenuOpen}
                 aria-haspopup="true"
               >
-                <span className="menu-link user-name-text">{getUserId(user)}님</span>
+                <span className="menu-link user-name-text">{getNickname(user)}님</span>
                 <span className="user-name-arrow">▾</span>
                 {isUserMenuOpen && (
                   <ul className="user-dropdown" onClick={(e) => e.stopPropagation()}>

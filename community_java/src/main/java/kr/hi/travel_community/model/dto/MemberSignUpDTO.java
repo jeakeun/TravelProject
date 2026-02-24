@@ -5,5 +5,6 @@ public record MemberSignUpDTO(
 	String id,
 	String pw,
 	String email,
-	String agree
+	String agree,
+	String nickname
 ) {}
