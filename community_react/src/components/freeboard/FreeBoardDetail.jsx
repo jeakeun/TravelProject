@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
+// 🚩 수정: 경로를 ../에서 ../../로 변경하여 상위 폴더의 utils를 참조하게 합니다.
+import { getMemberNum } from '../../utils/user'; 
 import './FreeBoardDetail.css'; 
 
 const FreeBoardDetail = () => {
@@ -60,7 +62,7 @@ const FreeBoardDetail = () => {
                     <div dangerouslySetInnerHTML={{ __html: post.poContent }} />
                 </div>
                 
-                {/* 🚩 하단 버튼 영역: 리뷰보드(ReviewBoard)와 레이아웃/클래스 완벽 통일 */}
+                {/* 하단 버튼 영역: 리뷰보드(ReviewBoard)와 레이아웃/클래스 완벽 통일 */}
                 <div className="detail-bottom-actions">
                     <div className="left-group">
                         {isOwner && (

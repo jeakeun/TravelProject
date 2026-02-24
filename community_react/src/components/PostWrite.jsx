@@ -6,8 +6,13 @@ import { getMemberNum } from '../utils/user';
 function PostWrite({ user, refreshPosts, activeMenu }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useOutletContext() || {};
   
+  // 변수명 중복 해결: user 대신 contextUser라는 이름을 사용합니다.
+  const { user: contextUser } = useOutletContext() || {};
+  
+  // Props로 받은 user가 있으면 그것을 쓰고, 없으면 context의 user를 사용합니다.
+  const currentUser = user || contextUser;
+
   const isEdit = location.state?.mode === 'edit';
   const existingPost = location.state?.postData;
 
@@ -64,10 +69,9 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
     }
 
     const formData = new FormData();
-    const authorNum = user?.mbNum || user?.mb_Num || 1;
+    // currentUser를 참조하도록 수정
+    const authorNum = currentUser?.mbNum || currentUser?.mb_Num || 1;
 
-    // 🚩 [핵심 수정] 서버 컨트롤러가 게시판마다 다를 수 있으므로 가능한 모든 명칭을 전송
-    // 'poTitle'을 찾는 컨트롤러와 'title'을 찾는 컨트롤러 모두 대응합니다.
     formData.append('poTitle', title);
     formData.append('title', title);
     
@@ -77,7 +81,6 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
     formData.append('poMbNum', String(authorNum));
     formData.append('mbNum', String(authorNum));
 
-    // 이미지 파일 처리
     if (imageFiles.length > 0) {
       formData.append('image', imageFiles[0]);
     }
