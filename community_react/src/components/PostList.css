@@ -1,7 +1,8 @@
 .post-list-container {
-    max-width: 1000px;
+    max-width: var(--page-size);
+    min-height: calc(100vh - var(--header-height));
     margin: 50px auto;
-    padding: 0 20px;
+    padding: 0 var(--page-padding-x);
 }
 
 .list-header {

@@ -3,11 +3,11 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-width: 1250px;
+    max-width: var(--page-size);
+    min-height: calc(100vh - var(--header-height));
     margin: 0 auto;
-    padding: 20px;
+    padding: var(--page-padding-top) var(--page-padding-x) var(--page-padding-bottom);
     font-family: 'Pretendard', sans-serif;
-    margin-top: 80px;
 }
 
 .top-combined-section {
@@ -296,11 +296,11 @@
 
 /* 🚩 [4. 하단 페이지네이션 및 검색 영역 - ReviewBoard와 완벽 동기화] */
 .list-pagination-area {
-    margin-top: 50px;
+    margin-top: 24px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 30px;
+    gap: 14px;
     width: 100%;
 }
 
@@ -355,15 +355,15 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 10px;
+    margin-top: 4px;
     position: relative;
 }
 
 .search-footer {
     display: flex;
     align-items: center;
-    gap: 15px;
-    margin-right: 140px;
+    gap: 12px;
+    margin-right: 40px;
 }
 
 .search-select-box {

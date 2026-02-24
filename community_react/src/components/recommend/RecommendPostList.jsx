@@ -145,7 +145,11 @@ const RecommendPostList = () => {
                 </table>
 
                 <div className="list-pagination-area">
-                    <div className="page-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '20px' }}>
+                    <div className="page-buttons">
+                        <button 
+                            disabled={currentPage === 1}
+                            onClick={(e) => { e.stopPropagation(); setCurrentPage(p => Math.max(p - 1, 1)); }}
+                        >&lt;</button>
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
                             <button 
                                 key={pageNum} 
@@ -154,16 +158,14 @@ const RecommendPostList = () => {
                                     e.stopPropagation(); 
                                     setCurrentPage(pageNum);
                                 }}
-                                style={{
-                                    width: '38px', height: '38px', border: '1px solid #ddd', borderRadius: '50%',
-                                    backgroundColor: currentPage === pageNum ? '#2c3e50' : '#fff',
-                                    color: currentPage === pageNum ? '#fff' : '#333',
-                                    cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                }}
                             >
                                 {pageNum}
                             </button>
                         ))}
+                        <button 
+                            disabled={currentPage === totalPages}
+                            onClick={(e) => { e.stopPropagation(); setCurrentPage(p => Math.min(p + 1, totalPages)); }}
+                        >&gt;</button>
                     </div>
 
                     <div className="footer-action-row">

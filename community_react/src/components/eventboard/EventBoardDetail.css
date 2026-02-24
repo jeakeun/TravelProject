@@ -69,11 +69,11 @@
 
 /* 🚩 [2. 하단 컨트롤 영역 - Recommend 게시판 스타일 적용] */
 .list-pagination-area {
-    margin-top: 50px;
+    margin-top: 24px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 30px;
+    gap: 14px;
     width: 100%;
 }
 
@@ -130,7 +130,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 10px;
+    margin-top: 4px;
     position: relative;
 }
 
@@ -138,8 +138,7 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-right: 140px;
-    /* 글쓰기 버튼과의 간격 확보 */
+    margin-right: 40px;
 }
 
 .search-select-box {
@@ -214,9 +213,10 @@
 
 /* [4. 상세 페이지 래퍼 - 양옆 여백 통일] */
 .event-detail-wrapper {
-    padding: 40px 40px 48px;
+    padding: var(--page-padding-top) var(--page-padding-x) var(--page-padding-bottom);
     background-color: #f8f9fa;
-    max-width: 1200px;
+    max-width: var(--page-size);
+    min-height: calc(100vh - var(--header-height));
     margin: 0 auto;
 }
 

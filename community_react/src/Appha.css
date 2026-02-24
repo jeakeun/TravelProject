@@ -1,10 +1,11 @@
 /* 1. 전체 컨테이너: 사이드바와 게시판을 묶어 화면 중앙 정렬 */
 .container {
   display: flex;
+  align-items: flex-start;
   width: 100%;
   max-width: 1550px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: var(--page-padding-top) var(--page-padding-x);
   gap: 50px;
 
   /* ✅ 좁은 화면에서 overflow(가로스크롤) 방지 */
@@ -96,9 +97,10 @@
 /* 메뉴바/사이드바 없는 페이지 공통: 양옆 여백 통일 */
 .page-content-area {
   width: 100%;
-  max-width: 1200px;
+  max-width: var(--page-size);
+  min-height: calc(100vh - var(--header-height));
   margin: 0 auto;
-  padding: 32px 40px 48px;
+  padding: var(--page-padding-top) var(--page-padding-x) var(--page-padding-bottom);
   box-sizing: border-box;
 }
 
@@ -187,40 +189,70 @@
   overflow: hidden;
 }
 
-/* 4. 페이지네이션 */
-.pagination {
+/* 4. 페이지네이션 - 원형 버튼 통일 */
+.board-footer-wrapper {
   display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: center;
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 16px;
   width: 100%;
 }
 
-.pagination-btn {
-  min-width: 40px;
-  height: 40px;
-  border: 1px solid #d1d8e0;
+.pagination,
+.page-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+  width: 100%;
+}
+
+.pagination-btn,
+.page-buttons button,
+.pagination .nav-btn,
+.pagination .page-num {
+  width: 40px !important;
+  min-width: 40px !important;
+  height: 40px !important;
+  border: 1px solid #ddd;
   background: #fff;
-  color: #4b6584;
+  color: #333;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 50% !important;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  transition: all 0.2s;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  padding: 0;
 }
 
-.pagination-btn:hover {
+.pagination-btn:hover:not(:disabled),
+.page-buttons button:hover:not(:disabled),
+.pagination .nav-btn:hover:not(:disabled),
+.pagination .page-num:hover {
+  background-color: #f8f9fa;
   border-color: #34495e;
   color: #34495e;
 }
 
-.pagination-btn.active {
-  background: #34495e;
-  color: #fff;
-  border-color: #34495e;
+.pagination-btn.active,
+.page-buttons button.active,
+.pagination .page-num.active {
+  background: #2c3e50 !important;
+  color: #fff !important;
+  border-color: #2c3e50 !important;
+}
+
+.pagination-btn:disabled,
+.page-buttons button:disabled,
+.pagination .nav-btn:disabled {
+  cursor: default;
+  opacity: 0.4;
 }
 
 /* 5. 글쓰기 버튼 */
@@ -245,6 +277,7 @@
 /* ✅ 접근성: 키보드 탭 포커스 보이게 */
 .write-btn:focus-visible,
 .pagination-btn:focus-visible,
+.page-buttons button:focus-visible,
 .search-box button:focus-visible {
   outline: 3px solid rgba(52, 73, 94, 0.35);
   outline-offset: 2px;
