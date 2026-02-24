@@ -125,6 +125,25 @@ CREATE TABLE `free_photo` (
 );
 
 -- ==========================================
+-- 4-4.공지사항 (NewsNotice)
+-- ==========================================
+DROP TABLE IF EXISTS `notice_post`;
+CREATE TABLE `notice_post` (
+    `nn_num`    int PRIMARY KEY AUTO_INCREMENT,
+    `nn_title`  varchar(100) NOT NULL,
+    `nn_content`    longtext NOT NULL,
+    `nn_date`    datetime default current_timestamp not    NULL,
+    `nn_view`    int    NOT NULL DEFAULT 0,
+    `nn_up`      int    NOT NULL DEFAULT 0,
+    `nn_down`    int    NOT NULL DEFAULT 0,
+    `nn_report` int    NOT NULL DEFAULT 0,
+    `nn_del`    char(1)    NOT NULL DEFAULT "N",
+    `nn_mb_num` int    NOT NULL,
+    FOREIGN KEY (`nn_mb_num`) REFERENCES `member` (`mb_num`)
+);
+
+
+-- ==========================================
 -- 5. 댓글 테이블 (기존 유지)
 -- ==========================================
 DROP TABLE IF EXISTS `comment`;
