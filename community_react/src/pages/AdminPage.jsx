@@ -16,6 +16,8 @@ function AdminPage() {
   const [inquiryReply, setInquiryReply] = useState("");
   const [reportReply, setReportReply] = useState("");
   const [savingReply, setSavingReply] = useState(false);
+  const [editingInquiry, setEditingInquiry] = useState(null);
+  const [editingReport, setEditingReport] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -78,6 +80,7 @@ function AdminPage() {
   const openInquiry = (q) => {
     setExpandedInquiry(q?.ibNum === expandedInquiry ? null : q?.ibNum);
     setInquiryReply(q?.ibReply ?? "");
+    setEditingInquiry(null);
     setExpandedReport(null);
   };
 
@@ -96,6 +99,8 @@ function AdminPage() {
         )
       );
       alert("답변이 저장되었습니다.");
+      setExpandedInquiry(null);
+      setEditingInquiry(null);
     } catch (err) {
       const data = err?.response?.data;
       const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "저장 실패");
@@ -108,6 +113,7 @@ function AdminPage() {
   const openReport = (r) => {
     setExpandedReport(r?.rbNum === expandedReport ? null : r?.rbNum);
     setReportReply(r?.rbReply ?? "");
+    setEditingReport(null);
     setExpandedInquiry(null);
   };
 
@@ -126,6 +132,8 @@ function AdminPage() {
         )
       );
       alert("답변이 저장되었습니다.");
+      setExpandedReport(null);
+      setEditingReport(null);
     } catch (err) {
       const data = err?.response?.data;
       const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "저장 실패");
@@ -207,40 +215,61 @@ function AdminPage() {
                   {expandedInquiry === q.ibNum && (
                     <div className="admin-message-detail" onClick={(e) => e.stopPropagation()}>
                       <div className="admin-message-full">{q.ibContent}</div>
-                      {q.ibReply && (
-                        <div className="admin-reply-block">
-                          <strong>관리자 답변:</strong>
-                          <p>{q.ibReply}</p>
-                        </div>
-                      )}
-                      <div className="admin-reply-form">
-                        <label>답변 작성</label>
-                        <textarea
-                          value={inquiryReply}
-                          onChange={(e) => setInquiryReply(e.target.value)}
-                          placeholder="답변을 입력하세요"
-                          rows={6}
-                        />
-                        <div className="admin-reply-actions">
-                          <button
-                            type="button"
-                            className="admin-btn-reply"
-                            onClick={saveInquiryReply}
-                            disabled={savingReply}
-                          >
-                            {savingReply ? "저장 중..." : "답변 저장"}
-                          </button>
-                          {q.ibStatus !== "Y" && (
+                      {q.ibReply && editingInquiry !== q.ibNum ? (
+                        <div className="admin-reply-view">
+                          <div className="admin-reply-block">
+                            <strong>관리자 답변:</strong>
+                            <p>{q.ibReply}</p>
+                          </div>
+                          <div className="admin-reply-actions admin-reply-actions-right">
                             <button
                               type="button"
-                              className="admin-btn-process"
-                              onClick={() => handleInquiryStatus(q.ibNum, "Y")}
+                              className="admin-btn-reply"
+                              onClick={() => { setEditingInquiry(q.ibNum); setInquiryReply(q.ibReply ?? ""); }}
                             >
-                              처리완료
+                              수정
                             </button>
-                          )}
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="admin-reply-form">
+                          <label>{q.ibReply ? "답변 수정" : "답변 작성"}</label>
+                          <textarea
+                            value={inquiryReply}
+                            onChange={(e) => setInquiryReply(e.target.value)}
+                            placeholder="답변을 입력하세요"
+                            rows={6}
+                          />
+                          <div className="admin-reply-actions">
+                            <button
+                              type="button"
+                              className="admin-btn-reply"
+                              onClick={saveInquiryReply}
+                              disabled={savingReply}
+                            >
+                              {savingReply ? "저장 중..." : (q.ibReply ? "수정" : "답변 저장")}
+                            </button>
+                            {q.ibReply && (
+                              <button
+                                type="button"
+                                className="admin-btn-hold"
+                                onClick={() => setEditingInquiry(null)}
+                              >
+                                취소
+                              </button>
+                            )}
+                            {q.ibStatus !== "Y" && (
+                              <button
+                                type="button"
+                                className="admin-btn-process"
+                                onClick={() => handleInquiryStatus(q.ibNum, "Y")}
+                              >
+                                처리완료
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -280,56 +309,81 @@ function AdminPage() {
                   {expandedReport === r.rbNum && (
                     <div className="admin-post-detail" onClick={(e) => e.stopPropagation()}>
                       <div className="admin-post-full">{r.rbContent}</div>
-                      {r.rbReply && (
-                        <div className="admin-reply-block">
-                          <strong>관리자 답변:</strong>
-                          <p>{r.rbReply}</p>
+                      {r.rbReply && editingReport !== r.rbNum ? (
+                        <div className="admin-reply-view">
+                          <div className="admin-reply-block">
+                            <strong>관리자 답변:</strong>
+                            <p>{r.rbReply}</p>
+                          </div>
+                          <div className="admin-reply-actions admin-reply-actions-right">
+                            <button
+                              type="button"
+                              className="admin-btn-reply"
+                              onClick={() => { setEditingReport(r.rbNum); setReportReply(r.rbReply ?? ""); }}
+                            >
+                              수정
+                            </button>
+                          </div>
                         </div>
-                      )}
-                      <div className="admin-reply-form">
-                        <label>답변 작성 (댓글 아님)</label>
-                        <textarea
-                          value={reportReply}
-                          onChange={(e) => setReportReply(e.target.value)}
-                          placeholder="관리자 답변을 입력하세요"
-                          rows={6}
-                        />
-                        <div className="admin-reply-actions">
-                          <button
-                            type="button"
-                            className="admin-btn-reply"
-                            onClick={saveReportReply}
-                            disabled={savingReply}
-                          >
-                            {savingReply ? "저장 중..." : "답변 저장"}
-                          </button>
-                          {r.rbManage !== "Y" && r.rbManage !== "D" && (
-                            <>
-                              <button
-                                type="button"
-                                className="admin-btn-delete"
-                                onClick={() => handleReportProcess(r.rbNum, "D")}
-                              >
-                                삭제
-                              </button>
+                      ) : (
+                        <div className="admin-reply-form">
+                          <label>{r.rbReply ? "답변 수정 (댓글 아님)" : "답변 작성 (댓글 아님)"}</label>
+                          <textarea
+                            value={reportReply}
+                            onChange={(e) => setReportReply(e.target.value)}
+                            placeholder="관리자 답변을 입력하세요"
+                            rows={6}
+                          />
+                          <div className="admin-reply-actions">
+                            <button
+                              type="button"
+                              className="admin-btn-reply"
+                              onClick={saveReportReply}
+                              disabled={savingReply}
+                            >
+                              {savingReply ? "저장 중..." : (r.rbReply ? "수정" : "답변 저장")}
+                            </button>
+                            {r.rbReply && (
                               <button
                                 type="button"
                                 className="admin-btn-hold"
-                                onClick={() => handleReportProcess(r.rbNum, "H")}
+                                onClick={() => setEditingReport(null)}
                               >
-                                보류
+                                취소
                               </button>
-                              <button
-                                type="button"
-                                className="admin-btn-process"
-                                onClick={() => handleReportProcess(r.rbNum, "Y")}
-                              >
-                                처리완료
-                              </button>
-                            </>
-                          )}
+                            )}
+                            {r.rbManage !== "D" && (
+                              <>
+                                {r.rbManage !== "Y" && r.rbManage !== "D" && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="admin-btn-delete"
+                                      onClick={() => handleReportProcess(r.rbNum, "D")}
+                                    >
+                                      삭제
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="admin-btn-hold"
+                                      onClick={() => handleReportProcess(r.rbNum, "H")}
+                                    >
+                                      보류
+                                    </button>
+                                  </>
+                                )}
+                                <button
+                                  type="button"
+                                  className="admin-btn-process"
+                                  onClick={() => handleReportProcess(r.rbNum, "Y")}
+                                >
+                                  처리완료
+                                </button>
+                              </>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
                 </article>
