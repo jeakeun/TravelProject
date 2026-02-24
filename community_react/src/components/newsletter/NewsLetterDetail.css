@@ -1,8 +1,17 @@
-/* [1. 그리드 레이아웃 및 카드] */
+/* [0. 컨테이너 설정 - 가로폭 확장 및 중앙 정렬] */
+.news-container {
+    max-width: 1400px;       /* 1200px에서 1400px로 확장 */
+    margin: 0 auto;          /* 중앙 정렬 */
+    padding: 0 40px;         /* 좌우 여백 */
+    box-sizing: border-box;
+}
+
+/* [1. 그리드 레이아웃 및 카드 - 세로 높이 최적화] */
 .gallery-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(2, 360px);
+    /* 행 높이를 360px에서 280px로 압축하여 스크롤 발생 방지 */
+    grid-template-rows: repeat(2, 280px); 
     gap: 25px;
     margin-top: 20px;
 }
@@ -26,7 +35,7 @@
 }
 
 .img-placeholder {
-    flex: 4;
+    flex: 3;                 /* 이미지 비율 소폭 조정 */
     overflow: hidden;
     background-color: #f9f9f9;
 }
@@ -43,8 +52,8 @@
 }
 
 .photo-info {
-    flex: 1;
-    padding: 15px;
+    flex: 1.2;               /* 텍스트 영역 비율 최적화 */
+    padding: 10px 15px;      /* 상하 패딩 소폭 축소 */
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -55,7 +64,7 @@
 .photo-title {
     margin: 0 0 5px 0;
     font-weight: 800;
-    font-size: 1.1rem;
+    font-size: 1.05rem;      /* 1.1rem에서 미세 조정 */
     color: #2c3e50;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -67,14 +76,15 @@
     color: #95a5a6;
 }
 
-/* [2. 하단 컨트롤 영역] */
+/* [2. 하단 컨트롤 영역 - 간격 대폭 축소] */
 .list-pagination-area {
-    margin-top: 50px;
+    margin-top: 25px;        /* 50px에서 25px로 축소 */
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 30px;
+    gap: 15px;               /* 구성 요소 간 간격 30px에서 15px로 축소 */
     width: 100%;
+    padding-bottom: 30px;    /* 하단 여백 최적화 */
 }
 
 .page-buttons {
@@ -84,8 +94,8 @@
 }
 
 .page-buttons button {
-    width: 40px;
-    height: 40px;
+    width: 36px;             /* 40px에서 36px로 축소 */
+    height: 36px;
     border: 1px solid #ddd;
     background: #fff;
     border-radius: 50% !important;
@@ -111,13 +121,13 @@
     opacity: 0.4;
 }
 
-/* [3. 검색창 및 푸터 액션] */
+/* [3. 검색창 및 푸터 액션 - 높이 및 마진 조정] */
 .footer-action-row {
     width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 10px;
+    margin-top: 5px;         /* 상단 마진 최소화 */
     position: relative;
 }
 
@@ -125,21 +135,22 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-right: 140px;
+    margin-right: 0;         /* 중앙 정렬을 위해 우측 마진 제거 */
 }
 
 .search-select-box {
-    height: 46px;
+    height: 38px;            /* 46px에서 38px로 압축 */
     padding: 0 15px;
     border: 1px solid #ddd;
     border-radius: 30px;
     background-color: #fff;
+    font-size: 0.85rem;
 }
 
 .search-input-wrapper {
     display: flex;
     align-items: center;
-    height: 46px;
+    height: 38px;            /* 46px에서 38px로 압축 */
     border: 1px solid #ddd;
     border-radius: 30px;
     padding: 3px 5px 3px 15px;
@@ -149,28 +160,32 @@
 .search-input-wrapper input {
     border: none;
     outline: none;
-    width: 250px;
+    width: 200px;            /* 250px에서 200px로 조정 */
+    font-size: 0.85rem;
 }
 
 .btn-search {
-    padding: 8px 22px;
+    padding: 6px 18px;       /* 패딩 미세 조정 */
     background: #2c3e50;
     color: #fff;
     border: none;
     border-radius: 20px;
     cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: bold;
 }
 
 .btn-write-footer {
     position: absolute;
     right: 0;
-    padding: 12px 28px;
+    padding: 10px 24px;      /* 12px 28px에서 소폭 축소 */
     background: #2c3e50;
     color: #fff;
     border: none;
     border-radius: 30px;
     font-weight: bold;
     cursor: pointer;
+    font-size: 0.85rem;
 }
 
 /* [4. 상세 페이지 스타일] */

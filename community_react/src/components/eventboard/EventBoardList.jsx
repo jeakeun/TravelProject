@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-// 🚩 [에러 해결] 존재하지 않는 EventBoardList.css 대신 실제 프로젝트에 존재하는 EventBoardDetail.css로 연결
+// 🚩 디자인 일관성을 위해 NewsLetterDetail.css 또는 통합된 스타일 파일을 사용하세요.
 import './EventBoardDetail.css'; 
 
 const EventBoardList = ({ posts = [] }) => {
@@ -78,105 +78,106 @@ const EventBoardList = ({ posts = [] }) => {
     };
 
     return (
-        <div className="main-content">
-            <h2 className="board-title">| 이벤트 게시판</h2>
-            
-            <div className="gallery-grid">
-                {currentPosts.length > 0 ? (
-                    currentPosts.map((post) => {
-                        const poNum = post.po_num || post.poNum || post.id;
-                        return (
-                            <div 
-                                key={poNum} 
-                                className="photo-card"
-                                onClick={() => navigate(`/news/event/${poNum}`)}
-                            >
-                                <div className="img-placeholder">
-                                    <img 
-                                        src={getImageUrl(post)} 
-                                        alt={post.po_title || post.poTitle} 
-                                        onError={(e) => { 
-                                            e.target.onerror = null; 
-                                            e.target.src = fallbackImage; 
-                                        }}
-                                    />
-                                </div>
-                                <div className="photo-info">
-                                    <p className="photo-title">
-                                        {post.po_title || post.poTitle} 
-                                    </p>
-                                    <div className="photo-meta">
-                                        <span className="post-author">관리자</span>
-                                        <span className="post-date">
-                                            {(post.po_date || post.poDate) ? (post.po_date || post.poDate).split('T')[0] : ''}
-                                        </span>
+        <div className="news-container">
+            <div className="main-content">
+                <h2 className="board-title">| 이벤트 게시판</h2>
+                
+                <div className="gallery-grid">
+                    {currentPosts.length > 0 ? (
+                        currentPosts.map((post) => {
+                            const poNum = post.po_num || post.poNum || post.id;
+                            return (
+                                <div 
+                                    key={poNum} 
+                                    className="photo-card"
+                                    onClick={() => navigate(`/news/event/${poNum}`)}
+                                >
+                                    <div className="img-placeholder">
+                                        <img 
+                                            src={getImageUrl(post)} 
+                                            alt={post.po_title || post.poTitle} 
+                                            onError={(e) => { 
+                                                e.target.onerror = null; 
+                                                e.target.src = fallbackImage; 
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="photo-info">
+                                        <p className="photo-title">
+                                            {post.po_title || post.poTitle} 
+                                        </p>
+                                        <div className="photo-meta">
+                                            <span className="post-author">관리자</span>
+                                            <span className="post-date">
+                                                {(post.po_date || post.poDate) ? (post.po_date || post.poDate).split('T')[0] : ''}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })
-                ) : (
-                    <div className="no-data-full">등록된 이벤트가 없습니다.</div>
-                )}
-            </div>
-
-            <div className="list-pagination-area">
-                <div className="page-buttons">
-                    <button 
-                        className="prev" 
-                        onClick={() => paginate(currentPage - 1)}
-                        disabled={currentPage === 1}
-                    >
-                        &lt;
-                    </button>
-
-                    {[...Array(totalPages)].map((_, i) => (
-                        <button 
-                            key={i + 1} 
-                            className={currentPage === i + 1 ? 'active' : ''}
-                            onClick={() => paginate(i + 1)}
-                        >
-                            {i + 1}
-                        </button>
-                    ))}
-
-                    <button 
-                        className="next" 
-                        onClick={() => paginate(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                    >
-                        &gt;
-                    </button>
+                            );
+                        })
+                    ) : (
+                        <div className="no-data-full">등록된 이벤트가 없습니다.</div>
+                    )}
                 </div>
 
-                <div className="footer-action-row">
-                    <div className="search-footer">
-                        <select 
-                            className="search-select-box"
-                            value={searchType}
-                            onChange={(e) => setSearchType(e.target.value)}
+                <div className="list-pagination-area">
+                    <div className="page-buttons">
+                        <button 
+                            className="prev" 
+                            onClick={() => paginate(currentPage - 1)}
+                            disabled={currentPage === 1}
                         >
-                            <option value="title">제목</option>
-                            <option value="content">내용</option>
-                            <option value="title_content">제목+내용</option>
-                        </select>
-                        <div className="search-input-wrapper">
-                            <input 
-                                type="text" 
-                                placeholder="이벤트 검색" 
-                                value={searchKeyword}
-                                onChange={(e) => setSearchKeyword(e.target.value)}
-                            />
-                            <button className="btn-search">검색</button>
-                        </div>
+                            &lt;
+                        </button>
+
+                        {[...Array(totalPages)].map((_, i) => (
+                            <button 
+                                key={i + 1} 
+                                className={currentPage === i + 1 ? 'active' : ''}
+                                onClick={() => paginate(i + 1)}
+                            >
+                                {i + 1}
+                            </button>
+                        ))}
+
+                        <button 
+                            className="next" 
+                            onClick={() => paginate(currentPage + 1)}
+                            disabled={currentPage === totalPages}
+                        >
+                            &gt;
+                        </button>
                     </div>
 
-                    {isAdmin && (
-                        /* 🚩 [수정 완료] /community/write 대신 정확한 이벤트 전용 경로인 /news/event/write로 이동 */
-                        <button className="btn-write-footer" onClick={() => navigate('/news/event/write')}>
-                            이벤트 작성
-                        </button>
-                    )}
+                    <div className="footer-action-row">
+                        <div className="search-footer">
+                            <select 
+                                className="search-select-box"
+                                value={searchType}
+                                onChange={(e) => setSearchType(e.target.value)}
+                            >
+                                <option value="title">제목</option>
+                                <option value="content">내용</option>
+                                <option value="title_content">제목+내용</option>
+                            </select>
+                            <div className="search-input-wrapper">
+                                <input 
+                                    type="text" 
+                                    placeholder="이벤트 검색" 
+                                    value={searchKeyword}
+                                    onChange={(e) => setSearchKeyword(e.target.value)}
+                                />
+                                <button className="btn-search">검색</button>
+                            </div>
+                        </div>
+
+                        {isAdmin && (
+                            <button className="btn-write-footer" onClick={() => navigate('/news/event/write')}>
+                                이벤트 작성
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
