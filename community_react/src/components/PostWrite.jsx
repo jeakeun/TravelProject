@@ -7,14 +7,15 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // 변수명 중복 해결: user 대신 contextUser라는 이름을 사용합니다.
-  const { user: contextUser } = useOutletContext() || {};
-  
-  // Props로 받은 user가 있으면 그것을 쓰고, 없으면 context의 user를 사용합니다.
+  const queryParams = new URLSearchParams(location.search);
+  const boardParam = queryParams.get('board');
+
+  const { user: contextUser, loadPosts } = useOutletContext() || {};
   const currentUser = user || contextUser;
 
   const isEdit = location.state?.mode === 'edit';
   const existingPost = location.state?.postData;
+  const stateBoardType = location.state?.boardType;
 
   const [title, setTitle] = useState('');
   const [imageFiles, setImageFiles] = useState([]);      
@@ -46,7 +47,9 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
   const handleImageChange = (e) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
+      // 🚩 기존 파일 리스트에 추가 (누적 선택 가능)
       setImageFiles((prev) => [...prev, ...files]);
+      
       files.forEach((file) => {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -68,27 +71,29 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
       return;
     }
 
+    // 🚩 FormData 구성 최적화
     const formData = new FormData();
     // currentUser를 참조하도록 수정
     const authorNum = currentUser?.mbNum || currentUser?.mb_Num || 1;
 
+    // 스프링 부트 컨트롤러의 DTO/파라미터 명칭과 일치시킵니다.
     formData.append('poTitle', title);
-    formData.append('title', title);
-    
     formData.append('poContent', htmlContent);
-    formData.append('content', htmlContent);
-    
     formData.append('poMbNum', String(authorNum));
-    formData.append('mbNum', String(authorNum));
 
+    // 🚩 [핵심 수정] 단일 파일('image')이 아닌 리스트('images')로 모든 파일 전송
     if (imageFiles.length > 0) {
-      formData.append('image', imageFiles[0]);
+      imageFiles.forEach((file) => {
+        formData.append('images', file); 
+      });
     }
 
     const apiMap = {
       '여행 추천 게시판': 'recommend',
       '여행 후기 게시판': 'reviewboard',
-      '자유 게시판': 'freeboard'
+      '자유 게시판': 'freeboard',
+      '이벤트': 'event',
+      '뉴스레터': 'newsletter'
     };
     
     const categoryPath = apiMap[activeMenu] || 'freeboard';
@@ -96,20 +101,25 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
       ? `http://localhost:8080/api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.postId}`
       : `http://localhost:8080/api/${categoryPath}/posts`;
 
+    const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
+
     try {
       const response = await axios({
         method: isEdit ? 'put' : 'post',
         url: apiUrl,
         data: formData,
         headers: { 
-          'Content-Type': 'multipart/form-data' 
+          'Content-Type': 'multipart/form-data',
+          ...(token && { 'Authorization': `Bearer ${token}` })
         },
         withCredentials: true
       });
 
+      // 🚩 서버 응답 조건 유연화
       if (response.status === 200 || response.status === 201 || String(response.data).includes("Success")) {
-        alert(isEdit ? "글이 수정되었습니다!" : `${activeMenu}에 글이 등록되었습니다!`);
-        if (refreshPosts) await refreshPosts(); 
+        alert(isEdit ? "글이 수정되었습니다!" : "글이 등록되었습니다!");
+        if (refreshPosts) await refreshPosts();
+        else if (loadPosts) await loadPosts();
         navigate(-1); 
       }
     } catch (error) {
@@ -117,6 +127,7 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
       
       let errorMsg = "서버와 통신 중 오류가 발생했습니다.";
       if (error.response?.data) {
+        // 서버에서 보낸 에러 메시지 추출
         errorMsg = typeof error.response.data === 'string' 
           ? error.response.data 
           : (error.response.data.message || error.response.data.error || JSON.stringify(error.response.data));

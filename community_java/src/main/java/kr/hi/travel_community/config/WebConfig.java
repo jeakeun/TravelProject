@@ -1,5 +1,6 @@
 package kr.hi.travel_community.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
@@ -10,10 +11,14 @@ import java.io.File;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
+    // 🚩 [수정] 서비스 클래스에서 사용하는 경로와 일치하도록 기본값 수정
+    @Value("${file.upload-dir:C:/travel_contents/uploads/pic/}")
+    private String uploadDir;
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // uploads/pic 폴더를 /pic/** 으로 서빙 (user.dir 기준, 이식성 확보)
-        String uploadPath = System.getProperty("user.dir") + File.separator + "uploads" + File.separator + "pic" + File.separator;
+        // 1. 운영체제에 상관없이 경로 구분자를 슬래시(/)로 통일
+        String path = uploadDir.replace("\\", "/");
         
         File directory = new File(uploadPath);
         
@@ -23,7 +28,13 @@ public class WebConfig implements WebMvcConfigurer {
             System.out.println("디렉토리 생성 여부: " + created);
         }
 
-        String resourceLocation = "file:///" + uploadPath.replace("\\", "/");
+        // 3. 서버 시작 시 해당 폴더가 없으면 자동 생성
+        File directory = new File(path);
+        if (!directory.exists()) {
+            if (directory.mkdirs()) {
+                System.out.println("🚩 업로드 디렉토리가 생성되었습니다: " + path);
+            }
+        }
 
         // 🚩 /pic/** 요청을 물리적 폴더로 연결
         registry.addResourceHandler("/pic/**")
@@ -39,9 +50,13 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // 리액트(3000포트)와의 통신을 위한 CORS 설정
+        // 리액트 및 외부 접속 허용 설정
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:3000")
+                .allowedOriginPatterns(
+                    "http://localhost:3000", 
+                    "http://127.0.0.1:3000",
+                    "http://*:3000" // 다른 PC의 브라우저 접속 허용
+                )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)
