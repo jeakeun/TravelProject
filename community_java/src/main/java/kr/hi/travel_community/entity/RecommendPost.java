@@ -1,10 +1,16 @@
 package kr.hi.travel_community.entity;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "recommend_post") // 추천 게시판 전용 테이블
+@Table(name = "recommend_post")
+@Getter // Lombok: Getter 자동 생성
+@Setter // Lombok: Setter 자동 생성
+@NoArgsConstructor // Lombok: 기본 생성자 자동 생성
 public class RecommendPost {
     
     @Id
@@ -39,13 +45,20 @@ public class RecommendPost {
     @Column(name = "po_mb_num", nullable = false)
     private Integer poMbNum;
 
-    // [핵심 수정] DB의 po_img 컬럼과 매핑
-    @Column(name = "po_img", length = 100)
+    /**
+     * 🚩 [핵심 수정] po_img 길이 대폭 확장
+     * UUID(36자) + 확장자(4자) + 콤마(1자) = 사진당 약 41자 소요
+     * 1000자로 설정하여 약 20장 이상의 사진 파일명도 안전하게 보관 가능하게 합니다.
+     */
+    @Column(name = "po_img", length = 1000) 
     private String poImg; 
 
-    @Transient // DB 테이블에 없는 필드이므로 영속성 제외
+    @Transient // DB 테이블에 저장되지 않는 필드
     private boolean isLikedByMe; 
 
+    /**
+     * 🚩 데이터 저장 전 실행되는 로직
+     */
     @PrePersist
     public void prePersist() {
         if (this.poView == null) this.poView = 0;
@@ -55,45 +68,4 @@ public class RecommendPost {
         if (this.poDel == null) this.poDel = "N";
         if (this.poDate == null) this.poDate = LocalDateTime.now();
     }
-
-    public RecommendPost() {}
-
-    // ================= Getter & Setter =================
-    
-    public Integer getPoNum() { return poNum; }
-    public void setPoNum(Integer poNum) { this.poNum = poNum; }
-
-    public String getPoTitle() { return poTitle; }
-    public void setPoTitle(String poTitle) { this.poTitle = poTitle; }
-
-    public String getPoContent() { return poContent; }
-    public void setPoContent(String poContent) { this.poContent = poContent; }
-
-    public LocalDateTime getPoDate() { return poDate; }
-    public void setPoDate(LocalDateTime poDate) { this.poDate = poDate; }
-
-    public Integer getPoView() { return poView; }
-    public void setPoView(Integer poView) { this.poView = poView; }
-
-    public Integer getPoUp() { return poUp; }
-    public void setPoUp(Integer poUp) { this.poUp = poUp; }
-
-    public Integer getPoDown() { return poDown; }
-    public void setPoDown(Integer poDown) { this.poDown = poDown; }
-
-    public Integer getPoReport() { return poReport; }
-    public void setPoReport(Integer poReport) { this.poReport = poReport; }
-
-    public String getPoDel() { return poDel; }
-    public void setPoDel(String poDel) { this.poDel = poDel; }
-
-    public Integer getPoMbNum() { return poMbNum; }
-    public void setPoMbNum(Integer poMbNum) { this.poMbNum = poMbNum; }
-
-    // [수정된 Getter/Setter] 필드명 변경에 대응
-    public String getPoImg() { return poImg; }
-    public void setPoImg(String poImg) { this.poImg = poImg; }
-
-    public boolean isLikedByMe() { return isLikedByMe; }
-    public void setLikedByMe(boolean isLikedByMe) { this.isLikedByMe = isLikedByMe; }
 }

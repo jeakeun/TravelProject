@@ -8,6 +8,7 @@ import kr.hi.travel_community.repository.CommentRepository;
 import kr.hi.travel_community.repository.ReportRepository;
 import kr.hi.travel_community.entity.Comment;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,7 +31,13 @@ public class RecommendPostService {
     private final LikeMapper likeMapper; 
     private final CommentRepository commentRepository;
     private final ReportRepository reportRepository; 
-    private final String SERVER_URL = "http://localhost:8080/pic/";
+    
+    // 🚩 [수정] application.properties에서 지정한 물리 경로를 읽어옵니다. (기본값 설정)
+    @Value("${file.upload-dir:C:/travel_contents/uploads/pic/}")
+    private String uploadRoot;
+
+    // 🚩 [수정] WebConfig에서 설정한 Resource Handler 경로와 일치시킵니다.
+    private final String SERVER_URL = "/pic/";
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getAllPosts() {
@@ -135,7 +142,6 @@ public class RecommendPostService {
         post.setPoView(0); 
         post.setPoUp(0);
         post.setPoDel("N");
-        // po_mb_num은 컨트롤러에서 로그인 회원 번호로 설정
         if (post.getPoMbNum() == null) {
             post.setPoMbNum(1);
         }
@@ -203,25 +209,37 @@ public class RecommendPostService {
         });
     }
 
+    /**
+     * 🚩 이미지 저장 로직
+     * 외부 경로에 파일을 저장하여 서버 재시작 시에도 데이터를 유지합니다.
+     */
     private void handleImages(RecommendPost post, List<MultipartFile> images) throws Exception {
         if (images == null || images.isEmpty()) return;
-        String uploadDir = System.getProperty("user.dir") + File.separator + "uploads" + File.separator + "pic" + File.separator;
-        File dir = new File(uploadDir);
+        
+        File dir = new File(uploadRoot);
         if (!dir.exists()) dir.mkdirs();
+        
         List<String> savedNames = new ArrayList<>();
         for (MultipartFile file : images) {
             if (!file.isEmpty()) {
-                String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-                Files.copy(file.getInputStream(), Paths.get(uploadDir + fileName), StandardCopyOption.REPLACE_EXISTING);
+                String originalFileName = file.getOriginalFilename();
+                String extension = "";
+                if (originalFileName != null && originalFileName.contains(".")) {
+                    extension = originalFileName.substring(originalFileName.lastIndexOf("."));
+                }
+                String fileName = UUID.randomUUID().toString() + extension;
+                
+                // 🚩 Paths.get을 사용하여 경로 구분자 문제 방지
+                Path targetPath = Paths.get(uploadRoot).resolve(fileName);
+                Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
                 savedNames.add(fileName);
             }
         }
-        if (!savedNames.isEmpty()) post.setPoImg(String.join(",", savedNames));
+        if (!savedNames.isEmpty()) {
+            post.setPoImg(String.join(",", savedNames));
+        }
     }
 
-    /**
-     * [주요 수정 영역] 썸네일 노출을 위한 데이터 매핑 로직 보강
-     */
     private Map<String, Object> convertToMap(RecommendPost p) {
         Map<String, Object> map = new HashMap<>();
         map.put("postId", p.getPoNum());
@@ -236,18 +254,16 @@ public class RecommendPostService {
         long commentCount = commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getPoNum(), "RECOMMEND", "N");
         map.put("commentCount", commentCount);
 
-        // 점수 계산 (poView가 null일 경우 대비)
         int views = p.getPoView() != null ? p.getPoView() : 0;
         int likes = p.getPoUp() != null ? p.getPoUp() : 0;
         int score = views + (likes * 2) + ((int) commentCount * 3);
         map.put("score", score);
 
-        // 썸네일 경로 처리: poImg 필드 사용
+        // 🚩 [수정] 프론트엔드에서 도메인에 상관없이 접근할 수 있도록 SERVER_URL(/pic/) 사용
         if (p.getPoImg() != null && !p.getPoImg().trim().isEmpty()) {
-            // 첫 번째 이미지 추출 및 공백 제거
             String firstImg = p.getPoImg().split(",")[0].trim();
             map.put("fileUrl", SERVER_URL + firstImg);
-            map.put("poImg", SERVER_URL + firstImg); // 호환성을 위해 poImg 키도 추가
+            map.put("poImg", SERVER_URL + firstImg); 
         } else {
             map.put("fileUrl", null);
             map.put("poImg", null);

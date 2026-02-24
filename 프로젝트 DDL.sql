@@ -2,172 +2,123 @@ DROP DATABASE IF EXISTS travel;
 CREATE DATABASE travel;
 USE travel;
 
--- ==========================================
--- 1. 회원 테이블
--- ==========================================
-DROP TABLE IF EXISTS `member`;
+-- 1. 기초 테이블
 CREATE TABLE `member` (
-    `mb_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `mb_uid`    varchar(30)    unique NOT NULL,
-    `mb_nickname` varchar(30)  NULL,
-    `mb_pw`     varchar(255)   NULL,
-    `mb_email`  varchar(50)    NULL,
-    `mb_rol`    varchar(10)    default "USER" NOT NULL,
-    `mb_score`  int    NOT NULL DEFAULT 0,
+    `mb_num` int PRIMARY KEY AUTO_INCREMENT,
+    `mb_uid` varchar(30) UNIQUE NOT NULL,
+    `mb_nickname` varchar(30) NULL,
+    `mb_pw` varchar(255) NULL,
+    `mb_email` varchar(50) NULL,
+    `mb_rol` varchar(10) DEFAULT 'USER' NOT NULL,
+    `mb_score` int NOT NULL DEFAULT 0,
     `mb_photo_data` LONGBLOB NULL,
     `mb_photo_type` varchar(30) NULL,
     `mb_photo_ver` int NULL,
-    `mb_agree`  char(1)    NOT NULL DEFAULT "N"
+    `mb_agree` char(1) NOT NULL DEFAULT 'N'
 );
 
--- ==========================================
--- 2. 게시판 테이블
--- ==========================================
-DROP TABLE IF EXISTS `board`;
 CREATE TABLE `board` (
-    `bo_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `bo_name`    varchar(100) unique NOT NULL
+    `bo_num` int PRIMARY KEY AUTO_INCREMENT,
+    `bo_name` varchar(100) UNIQUE NOT NULL
 );
 
--- ==========================================
--- 3. 카테고리 테이블
--- ==========================================
-DROP TABLE IF EXISTS `category`;
 CREATE TABLE `category` (
-    `cg_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `cg_kind`    varchar(10) unique NOT NULL,
-    `cg_display`    char(1) NOT    NULL,
-    `cg_bo_num` int    NOT NULL,
+    `cg_num` int PRIMARY KEY AUTO_INCREMENT,
+    `cg_kind` varchar(100) UNIQUE NOT NULL,
+    `cg_display` char(1) NOT NULL,
+    `cg_bo_num` int NOT NULL,
     FOREIGN KEY (`cg_bo_num`) REFERENCES `board` (`bo_num`) ON DELETE CASCADE
 );
 
--- ==========================================
--- 4-1. 여행 추천 게시판 (Recommend)
--- ==========================================
-DROP TABLE IF EXISTS `recommend_post`;
+CREATE TABLE `kind` (
+    `ki_num` int PRIMARY KEY AUTO_INCREMENT,
+    `ki_name` varchar(10) UNIQUE NOT NULL
+);
+
+CREATE TABLE `travel` (
+    `tv_num` int PRIMARY KEY AUTO_INCREMENT,
+    `tv_API` varchar(100) NOT NULL,
+    `tv_lat` DOUBLE NULL,
+    `tv_lng` DOUBLE NULL,
+    `tv_geo_status` ENUM('NO_COORD', 'READY') DEFAULT 'NO_COORD',
+    `tv_mapAPI` varchar(100) NOT NULL,
+    `tv_cg_num` int NOT NULL,
+    FOREIGN KEY (`tv_cg_num`) REFERENCES `category` (`cg_num`)
+);
+
+-- 2. 게시판 테이블
 CREATE TABLE `recommend_post` (
-    `po_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `po_title`  varchar(100) NOT NULL,
-    `po_content`    longtext NOT NULL,
-    `po_img`    varchar(100) NULL,
-    `po_date`    datetime default current_timestamp not    NULL,
-    `po_view`    int    NOT NULL DEFAULT 0,
-    `po_up`      int    NOT NULL DEFAULT 0,
-    `po_down`    int    NOT NULL DEFAULT 0,
-    `po_report` int    NOT NULL DEFAULT 0,
-    `po_del`    char(1)    NOT NULL DEFAULT "N",
-    `po_mb_num` int    NOT NULL,
+    `po_num` int PRIMARY KEY AUTO_INCREMENT,
+    `po_title` varchar(100) NOT NULL,
+    `po_content` LONGTEXT NOT NULL,
+    `po_img` varchar(1000) NULL,
+    `po_date` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    `po_view` int NOT NULL DEFAULT 0,
+    `po_up` int NOT NULL DEFAULT 0,
+    `po_down` int NOT NULL DEFAULT 0,
+    `po_report` int NOT NULL DEFAULT 0,
+    `po_del` char(1) NOT NULL DEFAULT 'N',
+    `po_mb_num` int NOT NULL,
     FOREIGN KEY (`po_mb_num`) REFERENCES `member` (`mb_num`)
 );
 
-DROP TABLE IF EXISTS `recommend_photo`;
-CREATE TABLE `recommend_photo` (
-    `ph_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `ph_ori_name`    varchar(100) NOT NULL,
-    `ph_name`    varchar(100) NOT NULL,
-    `ph_po_num` int    NOT NULL,
-    FOREIGN KEY (`ph_po_num`) REFERENCES `recommend_post` (`po_num`) ON DELETE CASCADE
-);
-
--- ==========================================
--- 4-2. 여행 후기 게시판 (ReviewBoard)
--- ==========================================
-DROP TABLE IF EXISTS `review_post`;
 CREATE TABLE `review_post` (
-    `po_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `po_title`  varchar(100) NOT NULL,
-    `po_content`    longtext NOT NULL,
-    `po_img`    varchar(100) NULL,
-    `po_date`    datetime default current_timestamp not    NULL,
-    `po_view`    int    NOT NULL DEFAULT 0,
-    `po_up`      int    NOT NULL DEFAULT 0,
-    `po_down`    int    NOT NULL DEFAULT 0,
-    `po_report` int    NOT NULL DEFAULT 0,
-    `po_del`    char(1)    NOT NULL DEFAULT "N",
-    `po_mb_num` int    NOT NULL,
+    `po_num` int PRIMARY KEY AUTO_INCREMENT,
+    `po_title` varchar(100) NOT NULL,
+    `po_content` LONGTEXT NOT NULL,
+    `po_img` varchar(1000) NULL,
+    `po_date` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    `po_view` int NOT NULL DEFAULT 0,
+    `po_up` int NOT NULL DEFAULT 0,
+    `po_down` int NOT NULL DEFAULT 0,
+    `po_report` int NOT NULL DEFAULT 0,
+    `po_del` char(1) NOT NULL DEFAULT 'N',
+    `po_mb_num` int NOT NULL,
     FOREIGN KEY (`po_mb_num`) REFERENCES `member` (`mb_num`)
 );
 
-DROP TABLE IF EXISTS `review_photo`;
-CREATE TABLE `review_photo` (
-    `ph_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `ph_ori_name`    varchar(100) NOT NULL,
-    `ph_name`    varchar(100) NOT NULL,
-    `ph_po_num` int    NOT NULL,
-    FOREIGN KEY (`ph_po_num`) REFERENCES `review_post` (`po_num`) ON DELETE CASCADE
-);
-
--- ==========================================
--- 4-3. 자유 게시판 (FreeBoard)
--- ==========================================
-DROP TABLE IF EXISTS `free_post`;
 CREATE TABLE `free_post` (
-    `po_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `po_title`  varchar(100) NOT NULL,
-    `po_content`    longtext NOT NULL,
-    `po_date`    datetime default current_timestamp not    NULL,
-    `po_view`    int    NOT NULL DEFAULT 0,
-    `po_up`      int    NOT NULL DEFAULT 0,
-    `po_down`    int    NOT NULL DEFAULT 0,
-    `po_report` int    NOT NULL DEFAULT 0,
-    `po_del`    char(1)    NOT NULL DEFAULT "N",
-    `po_mb_num` int    NOT NULL,
+    `po_num` int PRIMARY KEY AUTO_INCREMENT,
+    `po_title` varchar(100) NOT NULL,
+    `po_content` LONGTEXT NOT NULL,
+    `po_img` varchar(1000) NULL,
+    `po_date` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    `po_view` int NOT NULL DEFAULT 0,
+    `po_up` int NOT NULL DEFAULT 0,
+    `po_down` int NOT NULL DEFAULT 0,
+    `po_report` int NOT NULL DEFAULT 0,
+    `po_del` char(1) NOT NULL DEFAULT 'N',
+    `po_mb_num` int NOT NULL,
     FOREIGN KEY (`po_mb_num`) REFERENCES `member` (`mb_num`)
 );
 
-DROP TABLE IF EXISTS `free_photo`;
-CREATE TABLE `free_photo` (
-    `ph_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `ph_ori_name`    varchar(100) NOT NULL,
-    `ph_name`    varchar(100) NOT NULL,
-    `ph_po_num` int    NOT NULL,
-    FOREIGN KEY (`ph_po_num`) REFERENCES `free_post` (`po_num`) ON DELETE CASCADE
-);
-
--- ==========================================
--- 4-4. 이벤트 게시판 (EventBoard) - 추가됨
--- ==========================================
-DROP TABLE IF EXISTS `event_post`;
 CREATE TABLE `event_post` (
-    `po_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `po_title`  varchar(100) NOT NULL,
-    `po_content`    longtext NOT NULL,
-    `po_img`    varchar(100) NULL, -- 리스트 썸네일
-    `po_date`    datetime default current_timestamp not    NULL,
-    `po_view`    int    NOT NULL DEFAULT 0,
-    `po_up`      int    NOT NULL DEFAULT 0,
-    `po_down`    int    NOT NULL DEFAULT 0,
-    `po_report` int    NOT NULL DEFAULT 0,
-    `po_del`    char(1)    NOT NULL DEFAULT "N",
-    `po_mb_num` int    NOT NULL,
+    `po_num` int PRIMARY KEY AUTO_INCREMENT,
+    `po_title` varchar(100) NOT NULL,
+    `po_content` LONGTEXT NOT NULL,
+    `po_img` varchar(1000) NULL,
+    `po_date` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    `po_view` int NOT NULL DEFAULT 0,
+    `po_up?` int NOT NULL DEFAULT 0,
+    `po_down` int NOT NULL DEFAULT 0,
+    `po_report` int NOT NULL DEFAULT 0,
+    `po_del` char(1) NOT NULL DEFAULT 'N',
+    `po_mb_num` int NOT NULL,
     FOREIGN KEY (`po_mb_num`) REFERENCES `member` (`mb_num`)
 );
 
-DROP TABLE IF EXISTS `event_photo`;
-CREATE TABLE `event_photo` (
-    `ph_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `ph_ori_name`    varchar(100) NOT NULL,
-    `ph_name`    varchar(100) NOT NULL,
-    `ph_po_num` int    NOT NULL,
-    FOREIGN KEY (`ph_po_num`) REFERENCES `event_post` (`po_num`) ON DELETE CASCADE
-);
-
--- ==========================================
--- 4-5. 뉴스레터 게시판 (Newsletter) - 추가됨
--- ==========================================
-DROP TABLE IF EXISTS `newsletter_post`;
 CREATE TABLE `newsletter_post` (
-    `po_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `po_title`  varchar(100) NOT NULL,
-    `po_content`    longtext NOT NULL,
-    `po_img`    varchar(100) NULL, -- 리스트 썸네일
-    `po_date`    datetime default current_timestamp not    NULL,
-    `po_view`    int    NOT NULL DEFAULT 0,
-    `po_up`      int    NOT NULL DEFAULT 0,
-    `po_down`    int    NOT NULL DEFAULT 0,
-    `po_report` int    NOT NULL DEFAULT 0,
-    `po_del`    char(1)    NOT NULL DEFAULT "N",
-    `po_mb_num` int    NOT NULL,
+    `po_num` int PRIMARY KEY AUTO_INCREMENT,
+    `po_title` varchar(100) NOT NULL,
+    `po_content` LONGTEXT NOT NULL,
+    `po_img` varchar(1000) NULL,
+    `po_date` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    `po_view?` int NOT NULL DEFAULT 0,
+    `po_up` int NOT NULL DEFAULT 0,
+    `po_down` int NOT NULL DEFAULT 0,
+    `po_report` int NOT NULL DEFAULT 0,
+    `po_del` char(1) NOT NULL DEFAULT 'N',
+    `po_mb_num` int NOT NULL,
     FOREIGN KEY (`po_mb_num`) REFERENCES `member` (`mb_num`)
 );
 
@@ -185,161 +136,111 @@ CREATE TABLE `newsletter_photo` (
 -- ==========================================
 DROP TABLE IF EXISTS `comment`;
 CREATE TABLE `comment` (
-    `co_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `co_content`    text NOT NULL,
-    `co_date`    datetime default current_timestamp not    NULL,
-    `co_like`    int    NOT NULL DEFAULT 0,
-    `co_del`     char(1)    NOT NULL DEFAULT "N",
-    `co_ori_num`    int    NULL, 
-    `co_po_num` int    NOT NULL, 
-    `co_po_type` varchar(20) NOT NULL, 
-    `co_mb_num` int    NOT NULL,
+    `co_num` int PRIMARY KEY AUTO_INCREMENT,
+    `co_content` text NOT NULL,
+    `co_date` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    `co_like` int NOT NULL DEFAULT 0,
+    `co_del` char(1) NOT NULL DEFAULT 'N',
+    `co_ori_num` int NULL,
+    `co_po_num` int NOT NULL,
+    `co_po_type` varchar(20) NOT NULL,
+    `co_mb_num` int NOT NULL,
     FOREIGN KEY (`co_ori_num`) REFERENCES `comment` (`co_num`) ON DELETE CASCADE,
     FOREIGN KEY (`co_mb_num`) REFERENCES `member` (`mb_num`)
 );
 
--- ==========================================
--- 6. 보조 및 연관 테이블 (유지)
--- ==========================================
-DROP TABLE IF EXISTS `live_rank`;
+CREATE TABLE `mark` (
+    `ma_num` int PRIMARY KEY AUTO_INCREMENT,
+    `ma_score` int NOT NULL DEFAULT 0,
+    `ma_ki_num` int NOT NULL,
+    `ma_po_num` int NOT NULL,
+    `ma_po_type` varchar(20) NOT NULL,
+    FOREIGN KEY (`ma_ki_num`) REFERENCES `kind` (`ki_num`) ON DELETE CASCADE
+);
+
+CREATE TABLE `likes` (
+    `li_num` int PRIMARY KEY AUTO_INCREMENT,
+    `li_state` int NOT NULL,
+    `li_id` int NOT NULL,
+    `li_name` varchar(10) NOT NULL,
+    `li_time` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    `li_mb_num` int NOT NULL,
+    FOREIGN KEY (`li_mb_num`) REFERENCES `member` (`mb_num`)
+);
+
+CREATE TABLE `bookmark` (
+    `bm_num` int PRIMARY KEY AUTO_INCREMENT,
+    `bm_po_num` int NOT NULL,
+    `bm_po_type` varchar(20) NOT NULL,
+    `bm_mb_num` int NOT NULL,
+    FOREIGN KEY (`bm_mb_num`) REFERENCES `member` (`mb_num`)
+);
+
 CREATE TABLE `live_rank` (
-    `lr_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `lr_time`    datetime default current_timestamp not    NULL,
+    `lr_num` int PRIMARY KEY AUTO_INCREMENT,
+    `lr_time` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
     `lr_ori_num` int NOT NULL,
-    `lr_po_num` int    NOT NULL,
+    `lr_po_num` int NOT NULL,
     `lr_po_type` varchar(20) NOT NULL
 );
 
-DROP TABLE IF EXISTS `history`;
 CREATE TABLE `history` (
-    `ht_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `ht_time`    datetime default current_timestamp not    NULL,
-    `ht_po_num` int    NOT NULL,
+    `ht_num` int PRIMARY KEY AUTO_INCREMENT,
+    `ht_time` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    `ht_po_num` int NOT NULL,
     `ht_po_type` varchar(20) NOT NULL,
-    `ht_me_num` int    NOT NULL,
+    `ht_me_num` int NOT NULL,
     FOREIGN KEY (`ht_me_num`) REFERENCES `member` (`mb_num`)
 );
 
--- ==========================================
--- 문의함/신고함 (ib_reply, rb_reply, rb_manage 포함)
--- ==========================================
-DROP TABLE IF EXISTS `inquiry_box`;
 CREATE TABLE `inquiry_box` (
-    `ib_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `ib_title`  varchar(200) NOT NULL,
+    `ib_num` int PRIMARY KEY AUTO_INCREMENT,
+    `ib_title?` varchar(200) NOT NULL,
     `ib_content` text NOT NULL,
-    `ib_reply`   text NULL,
-    `ib_date`   datetime DEFAULT current_timestamp NOT NULL,
+    `ib_reply` text NULL,
+    `ib_date` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
     `ib_status` char(1) NOT NULL DEFAULT 'N',
     `ib_mb_num` int NOT NULL,
     FOREIGN KEY (`ib_mb_num`) REFERENCES `member` (`mb_num`)
 );
 
-DROP TABLE IF EXISTS `report_box`;
 CREATE TABLE `report_box` (
-    `rb_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `rb_content`    text NOT NULL,
-    `rb_reply`  text NULL,
-    `rb_manage` char(1)    NULL DEFAULT 'N',
-    `rb_id` int    NOT NULL,
-    `rb_name`    varchar(30)    NOT NULL,
-    `rb_mb_num` int    NOT NULL,
+    `rb_num` int PRIMARY KEY AUTO_INCREMENT,
+    `rb_content` text NOT NULL,
+    `rb_reply` text NULL,
+    `rb_manage` char(1) DEFAULT 'N',
+    `rb_id` int NOT NULL,
+    `rb_name` varchar(30) NOT NULL,
+    `rb_mb_num` int NOT NULL,
     FOREIGN KEY (`rb_mb_num`) REFERENCES `member` (`mb_num`)
 );
 
-DROP TABLE IF EXISTS `travel`;
-CREATE TABLE `travel` (
-    `tv_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `tv_API`    varchar(100) NOT NULL,
-    `tv_lat`    DOUBLE NULL,
-    `tv_lng`    DOUBLE NULL,
-    `tv_geo_status` ENUM("NO_COORD", "READY") DEFAULT "NO_COORD",
-    `tv_mapAPI` varchar(100) NOT NULL,
-    `tv_cg_num` int    NOT NULL,
-    FOREIGN KEY (`tv_cg_num`) REFERENCES `category` (`cg_num`)
-);
-
-DROP TABLE IF EXISTS `kind`;
-CREATE TABLE `kind` (
-    `ki_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `ki_name`    varchar(10) unique NOT NULL
-);
-
-DROP TABLE IF EXISTS `bookmark`;
-CREATE TABLE `bookmark` (
-    `bm_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `bm_po_num` int    NOT NULL,
-    `bm_po_type` varchar(20) NOT NULL,
-    `bm_mb_num` int    NOT NULL,
-    FOREIGN KEY (`bm_mb_num`) REFERENCES `member` (`mb_num`)
-);
-
-DROP TABLE IF EXISTS `main_photo`;
 CREATE TABLE `main_photo` (
-    `mp_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `mp_name`    varchar(100) NOT NULL,
-    `mp_tv_num` int    NOT NULL,
+    `mp_num` int PRIMARY KEY AUTO_INCREMENT,
+    `mp_name` varchar(100) NOT NULL,
+    `mp_tv_num` int NOT NULL,
     FOREIGN KEY (`mp_tv_num`) REFERENCES `travel` (`tv_num`)
 );
 
-DROP TABLE IF EXISTS `mark`;
-CREATE TABLE `mark` (
-    `ma_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `ma_score`  int    NOT NULL DEFAULT 0,
-    `ma_ki_num` int    NOT NULL,
-    `ma_po_num` int    NOT NULL,
-    `ma_po_type` varchar(20) NOT NULL,
-    FOREIGN KEY (`ma_ki_num`) REFERENCES `kind` (`ki_num`) ON DELETE CASCADE
-);
+-- 5. 데이터 삽입 (수정된 핵심 부분)
+-- 🚩 mb_num을 1, 2로 명시하여 스프링/리액트의 authorNum = 1 참조 오류를 방지함
+INSERT INTO `member` (mb_num, mb_uid, mb_pw, mb_email, mb_nickname, mb_rol) VALUES 
+(1, '123', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'admin@test.com', 'admin', 'ADMIN'),
+(2, '456', '$2a$10$8K1p/a0dL2LXMIgoEDFrwOfMQfKUtEbPQ8dNFqLqjnM/zIIElKjQu', 'user@test.com', 'user', 'USER');
 
-DROP TABLE IF EXISTS `review`;
-CREATE TABLE `review` (
-    `rv_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `rv_content`    text NOT NULL,
-    `rv_up` int    NOT NULL DEFAULT 0,
-    `rv_down`    int    NOT NULL DEFAULT 0,
-    `rv_del`    char(1) NOT    NULL DEFAULT "N",
-    `rv_view`    int    NOT NULL DEFAULT 0,
-    `rv_date`    datetime default current_timestamp not    NULL,
-    `rv_tv_num` int    NOT NULL,
-    `rv_mb_num` int    NOT NULL,
-    FOREIGN KEY (`rv_tv_num`) REFERENCES `travel` (`tv_num`) ON DELETE CASCADE,
-    FOREIGN KEY (`rv_mb_num`) REFERENCES `member` (`mb_num`)
-);
+-- 🚩 bo_num과 cg_num도 명시적으로 삽입하여 참조 무결성 확보
+INSERT INTO `board` (bo_num, bo_name) VALUES (1, '전체게시판');
 
-DROP TABLE IF EXISTS `likes`;
-CREATE TABLE `likes` (
-    `li_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `li_state`  int    NOT NULL,
-    `li_id`     int    NOT NULL,
-    `li_name`    varchar(10) NOT    NULL,
-    `li_time`    datetime default current_timestamp not    NULL,
-    `li_mb_num` int    NOT NULL,
-    FOREIGN KEY (`li_mb_num`) REFERENCES `member` (`mb_num`)
-);
+INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES 
+(1, '여행 추천 게시판', 'Y', 1),
+(2, '여행 후기 게시판', 'Y', 1),
+(3, '자유 게시판', 'Y', 1),
+(4, '이벤트 게시판', 'Y', 1),
+(5, '뉴스레터 게시판', 'Y', 1);
 
--- ==========================================
--- 7. 초기 데이터 삽입
--- ==========================================
--- 초기 회원 2명 (비밀번호 BCrypt 암호화: 123->$2a$10$..., 456->$2a$10$...)
--- 로그인: admin(123/123), user(456/456)
-INSERT INTO `member` (mb_num, mb_uid, mb_pw, mb_email, mb_nickname, mb_rol) VALUES (1, '123', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'admin@test.com', 'admin', 'ADMIN');
-INSERT INTO `member` (mb_num, mb_uid, mb_pw, mb_email, mb_nickname, mb_rol) VALUES (2, '456', '$2a$10$8K1p/a0dL2LXMIgoEDFrwOfMQfKUtEbPQ8dNFqLqjnM/zIIElKjQu', 'user@test.com', 'user', 'USER');
-INSERT INTO `board` (bo_name) VALUES ('전체게시판');
+INSERT INTO `kind` (ki_num, ki_name) VALUES (1, '추천점수');
 
--- 카테고리 삽입 (이벤트 및 뉴스레터 추가)
-INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (1, '여행 추천 게시판', 'Y', 1);
-INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (2, '여행 후기 게시판', 'Y', 1);
-INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (3, '자유 게시판', 'Y', 1);
-INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (4, '이벤트 게시판', 'Y', 1);
-INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (5, '뉴스레터 게시판', 'Y', 1);
-
--- 테스트 데이터
-INSERT INTO `recommend_post` (po_title, po_content, po_mb_num, po_del) 
-VALUES ('안녕하세요 추천 테스트 게시글입니다', '내용입니다.', 1, 'N');
-
-INSERT INTO `event_post` (po_title, po_content, po_mb_num, po_del) 
-VALUES ('진행중인 이벤트입니다', '이벤트 내용입니다.', 1, 'N');
-
-INSERT INTO `newsletter_post` (po_title, po_content, po_mb_num, po_del) 
-VALUES ('2월의 여행 뉴스레터', '뉴스레터 내용입니다.', 1, 'N');
+-- 🚩 실제 생성된 mb_num = 1을 정상적으로 참조함
+INSERT INTO `recommend_post` (po_title, po_content, po_mb_num, po_del) VALUES ('안녕하세요 추천 테스트 게시글입니다', '내용입니다.', 1, 'N');
+INSERT INTO `event_post` (po_title, po_content, po_mb_num, po_del) VALUES ('진행중인 이벤트입니다', '이벤트 내용입니다.', 1, 'N');
+INSERT INTO `newsletter_post` (po_title, po_content, po_mb_num, po_del) VALUES ('2월의 여행 뉴스레터', '뉴스레터 내용입니다.', 1, 'N');
