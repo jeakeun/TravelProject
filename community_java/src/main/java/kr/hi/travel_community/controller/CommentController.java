@@ -2,6 +2,7 @@ package kr.hi.travel_community.controller;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -27,30 +28,62 @@ public class CommentController {
     private final CommentLikeRepository commentLikeRepository;
     private final ReportRepository reportRepository;
 
-    // 🚩 [수정] Repository 메서드명 일치 (OrderByCoDateAsc 추가)
+    /**
+     * 댓글 목록 조회
+     */
     @GetMapping("/list/{postId}")
-    public ResponseEntity<List<Comment>> getComments(
+    public ResponseEntity<List<Map<String, Object>>> getComments(
             @PathVariable("postId") Integer postId,
             @RequestParam(value = "type", defaultValue = "RECOMMEND") String type){
         
-        return ResponseEntity.ok(commentRepository.findByCoPoNumAndCoPoTypeAndCoDelOrderByCoDateAsc(postId, type, "N"));
+        List<Comment> comments = commentRepository.findByCoPoNumAndCoPoTypeAndCoDelOrderByCoDateAsc(postId, type, "N");
+        
+        List<Map<String, Object>> result = comments.stream().map(c -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("coNum", c.getCoNum());
+            map.put("coContent", c.getCoContent());
+            map.put("coDate", c.getCoDate());
+            map.put("coLike", (c.getCoLike() == null) ? 0 : c.getCoLike());
+            map.put("coOriNum", c.getCoOriNum());
+            map.put("coPoNum", c.getCoPoNum());
+            map.put("coMbNum", c.getCoMbNum());
+
+            // 🚩 작성자 닉네임 조회 로직 보강
+            String nickname = "알 수 없는 사용자";
+            if (c.getCoMbNum() != null) {
+                nickname = memberRepository.findById(c.getCoMbNum())
+                        .map(Member::getMbNickname)
+                        .orElse("탈퇴한 사용자");
+            }
+            map.put("coNickname", nickname);
+            
+            return map;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(result);
     }
 
+    /**
+     * 댓글 등록
+     */
     @PostMapping("/add/{postId}")
     public ResponseEntity<?> addComment(@PathVariable("postId") Integer postId,
                                         @RequestBody Map<String, Object> payload){
         
-        // 실제 운영시는 세션에서 가져와야 함 (현재는 테스트용 1번 멤버)
-        Integer mbNum = 1; 
+        Object mbNumObj = payload.get("mbNum");
+        if (mbNumObj == null) return ResponseEntity.status(401).body(Map.of("error","로그인 정보가 없습니다."));
+        
+        Integer mbNum = Integer.parseInt(mbNumObj.toString());
         Member member = memberRepository.findById(mbNum).orElse(null); 
-        if(member == null) return ResponseEntity.status(401).body(Map.of("error","로그인 필요"));
+        if(member == null) return ResponseEntity.status(401).body(Map.of("error","사용자를 찾을 e수 없습니다."));
 
         String content = (String) payload.get("content");
         String type = (String) payload.getOrDefault("type", "RECOMMEND");
         
+        // 🚩 부모 댓글 번호(답글) 처리 로직 안정화
         Integer parentId = null;
         Object parentIdObj = payload.get("parentId");
-        if (parentIdObj != null) {
+        if (parentIdObj != null && !parentIdObj.toString().isEmpty()) {
             try {
                 parentId = Integer.parseInt(parentIdObj.toString());
                 if (parentId == 0) parentId = null;
@@ -59,13 +92,12 @@ public class CommentController {
             }
         }
         
-        // 🚩 [수정] Comment 엔티티의 필드명(coPoNum, coPoType, coMbNum)에 맞춰 빌더 구성
         Comment comment = Comment.builder()
                 .coContent(content)
                 .coDate(LocalDateTime.now())
                 .coLike(0)
                 .coDel("N")
-                .coOriNum(parentId)
+                .coOriNum(parentId) // 답글인 경우 부모 ID 저장
                 .coPoNum(postId)
                 .coPoType(type)
                 .coMbNum(member.getMbNum()) 
@@ -75,6 +107,7 @@ public class CommentController {
         
         Map<String, Object> response = new HashMap<>();
         response.put("coNum", comment.getCoNum());
+        response.put("coNickname", member.getMbNickname()); // 즉시 반영용
         response.put("msg", "댓글 작성 완료");
         return ResponseEntity.ok(response);
     }
@@ -83,7 +116,7 @@ public class CommentController {
     public ResponseEntity<?> updateComment(@PathVariable("commentId") Integer commentId,
                                            @RequestBody Map<String, String> payload){
         Comment comment = commentRepository.findById(commentId).orElse(null);
-        if(comment == null) return ResponseEntity.status(404).body(Map.of("error","댓글 없음"));
+        if(comment == null) return ResponseEntity.status(404).body(Map.of("error","댓글을 찾을 수 없습니다."));
 
         comment.setCoContent(payload.get("content"));
         commentRepository.save(comment);
@@ -93,14 +126,13 @@ public class CommentController {
     @DeleteMapping("/delete/{commentId}")
     public ResponseEntity<?> deleteComment(@PathVariable("commentId") Integer commentId){
         Comment comment = commentRepository.findById(commentId).orElse(null);
-        if(comment == null) return ResponseEntity.status(404).body(Map.of("error","댓글 없음"));
+        if(comment == null) return ResponseEntity.status(404).body(Map.of("error","댓글을 찾을 수 없습니다."));
 
-        comment.setCoDel("Y");
+        comment.setCoDel("Y"); // 소프트 삭제
         commentRepository.save(comment);
         return ResponseEntity.ok(Map.of("msg","삭제 완료"));
     }
 
-    // 🚩 [수정] CommentLike 처리 로직
     @PostMapping("/like/{commentId}")
     public ResponseEntity<?> likeComment(@PathVariable("commentId") Integer commentId, 
                                          @RequestBody Map<String, Integer> payload) {
@@ -114,13 +146,13 @@ public class CommentController {
         
         if(comment == null || member == null) return ResponseEntity.status(404).build();
 
-        // [주의] CommentLikeRepository에 findByMemberAndComment가 정의되어 있어야 함
         Optional<CommentLike> existingLike = commentLikeRepository.findByMemberAndComment(member, comment);
         Map<String, Object> response = new HashMap<>();
 
+        int currentLikes = (comment.getCoLike() == null) ? 0 : comment.getCoLike();
+
         if (existingLike.isPresent()) {
             commentLikeRepository.delete(existingLike.get());
-            int currentLikes = (comment.getCoLike() == null) ? 0 : comment.getCoLike();
             comment.setCoLike(Math.max(0, currentLikes - 1));
             response.put("status", "unliked");
         } else {
@@ -129,7 +161,6 @@ public class CommentController {
                     .comment(comment)
                     .build();
             commentLikeRepository.save(newLike);
-            int currentLikes = (comment.getCoLike() == null) ? 0 : comment.getCoLike();
             comment.setCoLike(currentLikes + 1);
             response.put("status", "liked");
         }
@@ -142,13 +173,19 @@ public class CommentController {
     @PostMapping("/report/{commentId}")
     public ResponseEntity<?> reportComment(@PathVariable("commentId") Integer commentId, 
                                            @RequestBody Map<String, Object> payload) {
-        String category = payload != null && payload.get("category") != null ? payload.get("category").toString().trim() : "";
-        String reason = payload != null && payload.get("reason") != null ? payload.get("reason").toString().trim() : "";
+        if (payload == null) return ResponseEntity.badRequest().body("잘못된 요청입니다.");
+
+        String category = payload.get("category") != null ? payload.get("category").toString().trim() : "";
+        String reason = payload.get("reason") != null ? payload.get("reason").toString().trim() : "";
         String combined = (category.isEmpty() ? "" : "[" + category + "] ") + reason;
+        
         if (combined.trim().isEmpty()) combined = "신고 사유 없음";
-        Integer mbNum = payload != null && payload.get("mbNum") != null ? Integer.parseInt(payload.get("mbNum").toString()) : null;
+        
+        Integer mbNum = payload.get("mbNum") != null ? Integer.parseInt(payload.get("mbNum").toString()) : null;
+        
         Comment comment = commentRepository.findById(commentId).orElse(null);
         if (comment == null) return ResponseEntity.status(404).body(Map.of("error", "댓글을 찾을 수 없습니다."));
+        
         if (mbNum != null && mbNum > 0) {
             if (reportRepository.existsByRbIdAndRbNameAndRbMbNum(commentId, "RECOMMEND_COMMENT", mbNum)) {
                 return ResponseEntity.badRequest().body("이미 신고하신 댓글입니다.");

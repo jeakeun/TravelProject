@@ -16,7 +16,8 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/freeboard")
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+// 🚩 [유지] 다른 PC 및 리액트 접속 허용
+@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"}, allowCredentials = "true")
 @RequiredArgsConstructor
 public class FreeBoardController {
 
@@ -47,7 +48,10 @@ public class FreeBoardController {
                 : ResponseEntity.status(404).body(Map.of("error", "게시글 없음"));
     }
 
-    // 🚩 게시글 등록 - po_mb_num을 로그인 회원 mb_num과 동일하게 설정
+    /**
+     * 🚩 게시글 등록
+     * 서비스 계층을 통해 외부 폴더(C:/travel_contents)에 이미지를 영구 저장합니다.
+     */
     @PostMapping("/posts")
     public ResponseEntity<?> create(Authentication authentication,
                                     @RequestParam(value = "title", required = false) String title,
@@ -60,16 +64,22 @@ public class FreeBoardController {
         try {
             String finalTitle = (title != null && !title.isEmpty()) ? title : poTitle;
             String finalContent = (content != null && !content.isEmpty()) ? content : poContent;
+            
             if (finalTitle == null || finalContent == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "제목과 내용을 입력하세요."));
             }
+            
             int mbNum = resolveMbNum(authentication, requestMbNum != null ? requestMbNum : requestPoMbNum);
+            
             FreePost post = new FreePost();
             post.setPoTitle(finalTitle);
             post.setPoContent(finalContent);
             post.setPoMbNum(mbNum);
+            
+            // ✅ 이미지가 존재할 경우 리스트로 변환하여 서비스에 전달
             List<MultipartFile> images = (image != null) ? List.of(image) : Collections.emptyList();
             freePostService.savePost(post, images);
+            
             return ResponseEntity.ok("Success");
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "등록 실패: " + e.getMessage()));

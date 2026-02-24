@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-// 🚩 [수정] 에러 원인이었던 잘못된 CSS 경로를 실제 존재하는 파일로 변경
+// 🚩 디자인 일관성을 위해 기존 스타일 파일을 유지합니다.
 import './EventBoardDetail.css'; 
 
 const EventBoardList = ({ posts = [] }) => {
@@ -17,42 +17,52 @@ const EventBoardList = ({ posts = [] }) => {
     const SERVER_URL = "http://localhost:8080";
     const fallbackImage = "https://placehold.co/300x200?text=No+Image";
 
-    // 관리자 여부 확인 (mb_rol 필드 기준)
-    const isAdmin = user && (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN');
+    // 관리자 여부 확인
+    const isAdmin = user && (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN' || user.mbLevel >= 10);
 
+    /**
+     * 🚩 이미지 경로 처리 유틸리티
+     */
     const getImageUrl = (post) => {
         if (!post) return fallbackImage;
+        
+        // 1. 우선순위: 이미지 필드 확인
         const { po_img, poImg, fileUrl, fileName, po_content, poContent } = post;
         const targetUrl = po_img || poImg || fileUrl || fileName;
 
-        if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null") {
+        if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null" && String(targetUrl) !== "undefined") {
             if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
             const extractedName = String(targetUrl).split(/[\\/]/).pop();
             return `${SERVER_URL}/pic/${extractedName}`;
         }
         
+        // 2. 차선책: 본문(po_content/poContent) 내 이미지 추출
         const content = po_content || poContent;
-        if (content) {
+        if (content && typeof content === 'string') {
             const imgRegex = /<img[^>]+src=["']([^"']+)["']/;
             const match = content.match(imgRegex);
-            if (match && match[1]) return match[1];
+            if (match && match[1]) {
+                const src = match[1];
+                if (src.startsWith('/pic/')) return `${SERVER_URL}${src}`;
+                return src;
+            }
         }
-
         return fallbackImage;
     };
 
+    // 정렬 및 검색 필터링
     const filteredPosts = useMemo(() => {
-        // po_num 또는 id 기반 정렬
-        const sortedPosts = [...posts].sort((a, b) => {
-            const aId = a.po_num || a.poNum || a.id || 0;
-            const bId = b.po_num || b.poNum || b.id || 0;
+        const safePosts = Array.isArray(posts) ? posts : [];
+        const sortedPosts = [...safePosts].sort((a, b) => {
+            const aId = Number(a.po_num || a.poNum || a.id || 0);
+            const bId = Number(b.po_num || b.poNum || b.id || 0);
             return bId - aId;
         });
         
-        if (!searchKeyword) return sortedPosts;
+        if (!searchKeyword.trim()) return sortedPosts;
 
+        const keyword = searchKeyword.toLowerCase();
         return sortedPosts.filter(post => {
-            const keyword = searchKeyword.toLowerCase();
             const title = (post.po_title || post.poTitle || "").toLowerCase();
             const content = (post.po_content || post.poContent || "").toLowerCase();
             const author = String(post.po_mb_num || post.poMbNum || "");
@@ -77,44 +87,51 @@ const EventBoardList = ({ posts = [] }) => {
     };
 
     return (
-        <div className="main-content page-content-area">
-            <h2 className="board-title">| 이벤트 게시판</h2>
-            
-            <div className="gallery-grid">
-                {currentPosts.length > 0 ? (
-                    currentPosts.map((post) => (
-                        <div 
-                            key={post.po_num || post.poNum || post.id} 
-                            className="photo-card"
-                            // 🚩 상세 페이지 경로를 App.jsx 라우트 설정(/event/:poNum)에 맞게 연결
-                            onClick={() => navigate(`/event/${post.po_num || post.poNum || post.id}`)}
-                        >
-                            <div className="img-placeholder">
-                                <img 
-                                    src={getImageUrl(post)} 
-                                    alt={post.po_title || post.poTitle} 
-                                    onError={(e) => { 
-                                        e.target.onerror = null; 
-                                        e.target.src = fallbackImage; 
-                                    }}
-                                />
-                            </div>
-                            <div className="photo-info">
-                                <p className="photo-title">
-                                    {post.po_title || post.poTitle} 
-                                </p>
-                                <div className="photo-meta">
-                                    <span className="post-author">관리자</span>
-                                    <span className="post-date">
-                                        {(post.po_date || post.poDate) ? (post.po_date || post.poDate).split('T')[0] : ''}
-                                    </span>
+        <div className="news-container">
+            <div className="main-content">
+                <h2 className="board-title">| 이벤트 게시판</h2>
+                
+                <div className="gallery-grid">
+                    {currentPosts.length > 0 ? (
+                        currentPosts.map((post) => {
+                            const poNum = post.po_num || post.poNum || post.id;
+                            const dateValue = post.po_date || post.poDate;
+                            return (
+                                <div 
+                                    key={poNum || Math.random()} 
+                                    className="photo-card"
+                                    onClick={() => navigate(`/news/event/${poNum}`)}
+                                >
+                                    <div className="img-placeholder">
+                                        <img 
+                                            src={getImageUrl(post)} 
+                                            alt={post.po_title || post.poTitle} 
+                                            onError={(e) => { 
+                                                e.target.onerror = null; 
+                                                e.target.src = fallbackImage; 
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="photo-info">
+                                        <p className="photo-title">
+                                            {post.po_title || post.poTitle || "제목 없음"} 
+                                        </p>
+                                        <div className="photo-meta">
+                                            <span className="post-author">관리자</span>
+                                            <span className="post-date">
+                                                {dateValue ? String(dateValue).split('T')[0] : '-'}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            );
+                        })
+                    ) : (
+                        <div className="no-data-full" style={{ gridColumn: '1/-1', textAlign: 'center', padding: '100px 0' }}>
+                            등록된 이벤트가 없습니다.
                         </div>
-                    ))
-                ) : (
-                    <div className="no-data-full">등록된 이벤트가 없습니다.</div>
-                )}
+                    )}
+                </div>
             </div>
 
             <div className="list-pagination-area">
@@ -164,17 +181,18 @@ const EventBoardList = ({ posts = [] }) => {
                                 placeholder="이벤트 검색" 
                                 value={searchKeyword}
                                 onChange={(e) => setSearchKeyword(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && setCurrentPage(1)}
                             />
-                            <button className="btn-search">검색</button>
+                            <button className="btn-search" onClick={() => setCurrentPage(1)}>검색</button>
                         </div>
                     </div>
-
-                    {isAdmin && (
-                        <button className="btn-write-footer" onClick={() => navigate('/news/event/write')}>
-                            이벤트 작성
-                        </button>
-                    )}
                 </div>
+
+                {isAdmin && (
+                    <button className="btn-write-footer" onClick={() => navigate('/news/event/write')}>
+                        이벤트 작성
+                    </button>
+                )}
             </div>
         </div>
     );

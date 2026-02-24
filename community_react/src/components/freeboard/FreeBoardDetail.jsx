@@ -16,6 +16,17 @@ const FreeBoardDetail = () => {
 
     const isLoggedIn = !!user;
     const currentUserNum = getMemberNum(user);
+    const SERVER_URL = "http://localhost:8080";
+
+    /**
+     * 🚩 본문 내 이미지 경로를 영구 저장소 경로로 변환
+     * 에디터에서 삽입된 상대 경로(/pic/...)를 서버의 전체 URL로 변환하여 영구 보존 대응
+     */
+    const formatContent = (content) => {
+        if (!content) return "";
+        // /pic/ 경로로 시작하는 이미지 src를 서버 주소와 결합
+        return content.replace(/src="\/pic\//g, `src="${SERVER_URL}/pic/`);
+    };
 
     const fetchDetail = useCallback(async () => {
         if (id === 'write') {
@@ -25,7 +36,7 @@ const FreeBoardDetail = () => {
 
         try {
             setLoading(true);
-            const res = await axios.get(`http://localhost:8080/api/freeboard/posts/${id}`);
+            const res = await axios.get(`${SERVER_URL}/api/freeboard/posts/${id}`);
             setPost(res.data);
             addRecentView({ boardType: 'freeboard', poNum: Number(id), poTitle: res.data?.poTitle });
         } catch (err) {
@@ -72,9 +83,9 @@ const FreeBoardDetail = () => {
                     </div>
                 </div>
 
-                {/* 본문 섹션 */}
+                {/* 본문 섹션: 이미지 경로 치환 로직 적용 */}
                 <div className="detail-body-text">
-                    <div dangerouslySetInnerHTML={{ __html: post.poContent }} />
+                    <div dangerouslySetInnerHTML={{ __html: formatContent(post.poContent) }} />
                 </div>
                 
                 {/* 하단 버튼 영역: 리뷰보드(ReviewBoard)와 레이아웃/클래스 완벽 통일 */}
@@ -95,7 +106,7 @@ const FreeBoardDetail = () => {
                                 </button>
                                 <button 
                                     className="btn-delete-action" 
-                                    onClick={() => { if(window.confirm("삭제하시겠습니까?")) { /* 삭제 로직 */ } }}
+                                    onClick={() => { if(window.confirm("삭제하시겠습니까?")) { /* 삭제 로직은 기존과 동일하게 유지 */ } }}
                                 >
                                     🗑️ 삭제
                                 </button>

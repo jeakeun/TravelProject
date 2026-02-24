@@ -120,7 +120,6 @@ function CommunityContainer({ posts, loadPosts, loading }) {
     '자유 게시판': '/community/freeboard'
   }), []);
 
-  // 그룹 판별 변수
   const isDestinationGroup = location.pathname.startsWith('/domestic') || location.pathname.startsWith('/foreigncountry');
   const isCommunityGroup = location.pathname.startsWith('/community');
 
@@ -159,7 +158,6 @@ function CommunityContainer({ posts, loadPosts, loading }) {
       </aside>
       <main className="main-content">
         <Routes>
-          {/* 🚩 여행지 그룹일 때: 리다이렉트 없이 해당 페이지 직접 노출 */}
           {isDestinationGroup && (
             <>
               <Route path="/" element={
@@ -170,7 +168,6 @@ function CommunityContainer({ posts, loadPosts, loading }) {
             </>
           )}
 
-          {/* 🚩 커뮤니티 그룹일 때: 하위 경로 라우팅 유지 */}
           {isCommunityGroup && (
             <>
               <Route path="recommend/write" element={<PostWrite activeMenu="여행 추천 게시판" boardType="recommend" refreshPosts={loadPosts} />} />
@@ -183,7 +180,6 @@ function CommunityContainer({ posts, loadPosts, loading }) {
               
               <Route path="write" element={<PostWrite activeMenu={activeMenu} boardType={activeMenu === '여행 추천 게시판' ? 'recommend' : 'freeboard'} refreshPosts={loadPosts} />} />
               
-              {/* 커뮤니티 기본 주소로 왔을 때만 freeboard로 리다이렉트 */}
               <Route path="/" element={<Navigate to="freeboard" replace />} />
             </>
           )}
@@ -246,10 +242,28 @@ function App() {
 
       const response = await axios.get(apiUrl);
       if (response.data && Array.isArray(response.data)) {
-        const cleanData = response.data.map(post => ({
-          ...post,
-          id: post.poNum || post.po_num || post.postId 
-        }));
+        const storageChange = localStorage.getItem('bookmark_changed');
+        let syncData = null;
+        if (storageChange) {
+            try { syncData = JSON.parse(storageChange); } catch(e) {}
+        }
+
+        const cleanData = response.data.map(post => {
+          const pId = post.poNum || post.po_num || post.postId;
+          let isBookmarked = post.isBookmarked;
+          
+          if (syncData && Number(syncData.id) === Number(pId)) {
+            isBookmarked = syncData.state ? 'Y' : 'N';
+          }
+
+          return {
+            ...post,
+            id: pId,
+            isBookmarked: isBookmarked,
+            // 🚩 [수정] 백엔드에서 내려오는 mbNickname 필드를 최우선으로 매핑하여 authorNick으로 통일
+            authorNick: post.mbNickname || post.mb_nickname || post.mb_nick || post.mbNick || post.member?.mbNickname || post.member?.mb_nickname || `User ${post.poMbNum || post.po_mb_num}`
+          };
+        });
         setPosts(cleanData);
       } else {
         setPosts([]);
@@ -265,6 +279,22 @@ function App() {
   useEffect(() => {
     loadPosts();
   }, [loadPosts]);
+
+  useEffect(() => {
+    const handleSync = (e) => {
+      if (e.key === 'bookmark_changed') {
+        const data = JSON.parse(e.newValue);
+        setPosts(prev => prev.map(p => {
+          if (Number(p.id) === Number(data.id)) {
+            return { ...p, isBookmarked: data.state ? 'Y' : 'N' };
+          }
+          return p;
+        }));
+      }
+    };
+    window.addEventListener('storage', handleSync);
+    return () => window.removeEventListener('storage', handleSync);
+  }, []);
 
   useEffect(() => {
     const saved = localStorage.getItem('user');
@@ -339,12 +369,10 @@ function App() {
       }>
         <Route path="/" element={<Main />} />
         
-        {/* 여행지 그룹 */}
         <Route path="/domestic" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
         <Route path="/foreigncountry" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
         <Route path="/Domestic" element={<Navigate to="/domestic" replace />} />
 
-        {/* 게시판 그룹 */}
         <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
 
         <Route path="/news/event" element={<EventBoardList posts={posts} />} />

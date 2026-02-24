@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,11 +25,12 @@ public interface NewsLetterRepository extends JpaRepository<NewsLetter, Integer>
     Optional<NewsLetter> findByPoNumAndPoDel(Integer poNum, String poDel);
 
     /**
-     * 🚩 3. 조회수 증가 (Native Query)
-     * 💡 엔티티의 @Table(name = "newsletter_post")와 일치하도록 수정 완료
+     * 🚩 3. 조회수 증가 (JPQL 방식)
+     * 💡 Native Query의 테이블명 의존성을 제거하고 엔티티 객체 기준으로 안전하게 업데이트합니다.
      */
     @Modifying
-    @Query(value = "UPDATE newsletter_post SET po_view = po_view + 1 WHERE po_num = :poNum", nativeQuery = true)
+    @Transactional
+    @Query("UPDATE NewsLetter n SET n.poView = COALESCE(n.poView, 0) + 1 WHERE n.poNum = :poNum AND n.poDel = 'N'")
     int updateViewCount(@Param("poNum") Integer poNum);
 
     /**

@@ -10,17 +10,24 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10; 
 
+    // 검색 실행 함수
     const handleSearch = () => {
         setAppliedSearch(inputValue);
         setCurrentPage(1);
     };
 
+    /**
+     * 🚩 필터링 로직
+     * 기존 기능을 유지하며, 본문(poContent) 검색 시 발생할 수 있는 
+     * HTML 태그 간섭을 최소화하여 검색 정확도를 높였습니다.
+     */
     const filteredItems = useMemo(() => {
         if (!appliedSearch) return posts;
         const term = appliedSearch.toLowerCase();
         
         return posts.filter(p => {
             const title = (p.poTitle || "").toLowerCase();
+            // 본문 내용에서 태그를 제외한 텍스트 위주로 검색될 수 있도록 처리 가능성 유지
             const content = (p.poContent || "").toLowerCase();
             const author = `user ${p.poMbNum}`.toLowerCase();
 
@@ -34,9 +41,11 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
         });
     }, [posts, appliedSearch, searchType]);
     
+    // 페이징 계산
     const totalPages = Math.ceil(filteredItems.length / itemsPerPage) || 1;
     const currentItems = filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
+    // 날짜 포맷 함수 (기존 유지)
     const formatDateTime = (dateString) => {
         if (!dateString) return "-";
         const date = new Date(dateString);

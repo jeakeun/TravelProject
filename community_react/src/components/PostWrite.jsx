@@ -72,14 +72,15 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
 
     // 🚩 FormData 구성 최적화
     const formData = new FormData();
-    const authorNum = currentUser?.mbNum || currentUser?.mb_num || 1;
+    // mbNum, mb_num, id 등 다양한 사용자 식별자 대응
+    const authorNum = currentUser?.mbNum || currentUser?.mb_num || currentUser?.id || 1;
 
     // 스프링 부트 컨트롤러의 DTO/파라미터 명칭과 일치시킵니다.
     formData.append('poTitle', title);
     formData.append('poContent', htmlContent);
     formData.append('poMbNum', String(authorNum));
 
-    // 🚩 [핵심 수정] 단일 파일('image')이 아닌 리스트('images')로 모든 파일 전송
+    // 🚩 [핵심] 단일 파일('image')이 아닌 리스트('images')로 모든 파일 전송
     if (imageFiles.length > 0) {
       imageFiles.forEach((file) => {
         formData.append('images', file); 
@@ -104,6 +105,7 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
 
     let categoryPath = propsBoardType || stateBoardType || urlDerivedBoard || boardParam || apiMap[activeMenu] || 'freeboard';
 
+    // 한글명 카테고리를 영문 API 경로로 변환
     if (categoryPath === '이벤트' || categoryPath === '이벤트 게시판') categoryPath = 'event';
     if (categoryPath === '뉴스레터') categoryPath = 'newsletter';
     if (categoryPath === '여행 추천 게시판') categoryPath = 'recommend';
@@ -127,7 +129,6 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
         withCredentials: true
       });
 
-      // 🚩 서버 응답 조건 유연화
       if (response.status === 200 || response.status === 201 || String(response.data).includes("Success")) {
         alert(isEdit ? "글이 수정되었습니다!" : "글이 등록되었습니다!");
         if (refreshPosts) await refreshPosts();
@@ -138,7 +139,6 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
       console.error("저장 실패 상세:", error.response);
       let errorMsg = "서버와 통신 중 오류가 발생했습니다.";
       if (error.response?.data) {
-        // 서버에서 보낸 에러 메시지 추출
         errorMsg = typeof error.response.data === 'string' 
           ? error.response.data 
           : (error.response.data.message || error.response.data.error || JSON.stringify(error.response.data));

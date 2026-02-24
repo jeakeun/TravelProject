@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-// 🚩 [에러 해결] 네 파일 이름인 EventBoardDetail.css로 정확히 연결했다. 이제 에러 안 날 거야.
+// 🚩 디자인 및 기능을 유지하면서 참조 파일 확인
 import './EventBoardDetail.css'; 
 
 const EventBoardDetail = () => {
@@ -17,25 +17,37 @@ const EventBoardDetail = () => {
     const [isLiked, setIsLiked] = useState(false);
 
     const isLoggedIn = !!user; 
+    const SERVER_URL = "http://localhost:8080";
+
     // 유저 번호 추출 (mb_num 또는 mbNum 대응)
     const currentUserNum = user ? (user.mb_num || user.mbNum) : null; 
     // 관리자 여부 판단 (mb_rol 또는 mbRol 대응)
-    const isAdmin = user ? (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN') : false; 
+    const isAdmin = user ? (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN' || user.mbLevel >= 10) : false; 
 
     const isNumericId = poNum && !isNaN(Number(poNum));
+
+    /**
+     * 🚩 본문 내 이미지 경로를 영구 저장소 경로로 변환
+     * 에디터에서 삽입된 상대 경로(/pic/...)를 서버의 전체 URL로 변환하여 영구 보존 대응
+     */
+    const formatContent = (content) => {
+        if (!content) return "";
+        // /pic/ 경로로 시작하는 이미지 src를 서버 주소와 결합
+        return content.replace(/src="\/pic\//g, `src="${SERVER_URL}/pic/`);
+    };
 
     const fetchPostData = useCallback(async () => {
         if (!isNumericId) return;
         try {
             setLoading(true);
             // 이벤트 전용 엔드포인트 호출
-            const postRes = await axios.get(`http://localhost:8080/api/event/posts/${poNum}?mbNum=${currentUserNum || ''}`);
+            const postRes = await axios.get(`${SERVER_URL}/api/event/posts/${poNum}?mbNum=${currentUserNum || ''}`);
             
             const data = postRes.data;
             // 필드명 정규화 (Snake case / Camel case 모두 대응하여 데이터 유실 방지)
             const normalizedData = {
                 ...data,
-                po_title: data.po_title || data.poTitle || "",
+                po_title: data.po_title || data.poTitle || "제목 없음",
                 po_content: data.po_content || data.poContent || "",
                 po_view: data.po_view || data.poView || 0,
                 po_up: data.po_up || data.poUp || 0,
@@ -43,7 +55,7 @@ const EventBoardDetail = () => {
             };
 
             setPost(normalizedData);
-            setIsLiked(data.isLikedByMe || false);
+            setIsLiked(data.isLikedByMe || data.liked || false);
         } catch (err) {
             console.error("데이터 로딩 실패:", err);
             if (err.response?.status === 404) {
@@ -65,7 +77,7 @@ const EventBoardDetail = () => {
         if (!window.confirm("정말 게시글을 삭제하시겠습니까?")) return;
         try {
             // 이벤트 전용 삭제 API 호출
-            await axios.delete(`http://localhost:8080/api/event/posts/${poNum}`);
+            await axios.delete(`${SERVER_URL}/api/event/posts/${poNum}`);
             alert("게시글이 삭제되었습니다.");
             
             // 삭제 후 부모 리스트의 상태를 동기화
@@ -81,8 +93,8 @@ const EventBoardDetail = () => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
             // 이벤트 전용 추천 API 호출
-            const res = await axios.post(`http://localhost:8080/api/event/posts/${poNum}/like`, { mbNum: currentUserNum });
-            if (res.data.status === "liked") {
+            const res = await axios.post(`${SERVER_URL}/api/event/posts/${poNum}/like`, { mbNum: currentUserNum });
+            if (res.data.status === "liked" || res.data === "liked") {
                 setIsLiked(true);
                 setPost(prev => ({ ...prev, po_up: (prev.po_up || 0) + 1 }));
             } else {
@@ -94,8 +106,8 @@ const EventBoardDetail = () => {
         }
     };
 
-    if (loading) return <div className="loading-box">데이터 로딩 중...</div>;
-    if (!post) return <div className="loading-box">게시글을 찾을 수 없습니다.</div>;
+    if (loading) return <div className="loading-box" style={{textAlign: 'center', padding: '100px'}}>데이터 로딩 중...</div>;
+    if (!post) return <div className="loading-box" style={{textAlign: 'center', padding: '100px'}}>게시글을 찾을 수 없습니다.</div>;
 
     return (
         <div className="event-detail-wrapper">
@@ -114,7 +126,8 @@ const EventBoardDetail = () => {
                 </div>
                 
                 <div className="detail-body-text">
-                    <div dangerouslySetInnerHTML={{ __html: post.po_content }} />
+                    {/* 🚩 가공된 content를 적용하여 이미지 경로 유실 방지 */}
+                    <div dangerouslySetInnerHTML={{ __html: formatContent(post.po_content) }} />
                 </div>
 
                 <div className="detail-bottom-actions">
@@ -126,7 +139,6 @@ const EventBoardDetail = () => {
                         )}
                         {isAdmin && (
                             <>
-                                {/* 🚩 [수정] /community/write 대신 정확한 이벤트 전용 경로인 /news/event/write로 이동 */}
                                 <button 
                                     className="btn-edit-action" 
                                     onClick={() => navigate(`/news/event/write`, { 
