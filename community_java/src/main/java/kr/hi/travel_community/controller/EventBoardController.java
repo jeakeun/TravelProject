@@ -2,11 +2,12 @@ package kr.hi.travel_community.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import kr.hi.travel_community.entity.ReviewPost;
+import kr.hi.travel_community.entity.Event; 
 import kr.hi.travel_community.model.util.CustomUser;
 import kr.hi.travel_community.model.vo.MemberVO;
-import kr.hi.travel_community.service.ReviewPostService;
+import kr.hi.travel_community.service.EventBoardService; // 서비스 클래스명 변경에 따른 임포트 수정
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -15,111 +16,154 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.*;
 
 @RestController
-@RequestMapping("/api/reviewboard")
+@RequestMapping("/api/event")
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 @RequiredArgsConstructor
-public class ReviewBoardController {
+public class EventBoardController {
 
-    private final ReviewPostService reviewPostService;
+    // 주입받는 서비스 인터페이스/클래스명을 EventBoardService로 변경
+    private final EventBoardService eventBoardService;
 
     /**
-     * 🚩 검색 기능 통합
-     * 파라미터가 없으면 전체 목록을, type과 keyword가 있으면 검색 목록을 반환합니다.
+     * 🚩 이벤트 목록 조회 및 검색 (모든 사용자 가능)
      */
     @GetMapping("/posts")
     public List<Map<String, Object>> getList(
             @RequestParam(value = "type", required = false) String type,
             @RequestParam(value = "keyword", required = false) String keyword) {
         
-        // 검색 조건이 넘어온 경우 검색 서비스 호출
         if (type != null && keyword != null && !keyword.trim().isEmpty()) {
-            return reviewPostService.searchPosts(type, keyword);
+            return eventBoardService.searchPosts(type, keyword);
         }
         
-        // 기본 상태: 전체 목록 반환
-        return reviewPostService.getRealAllPosts();
+        return eventBoardService.getRealAllPosts();
     }
 
+    /**
+     * 🚩 이벤트 상세 조회 (모든 사용자 가능)
+     */
     @GetMapping("/posts/{id}")
     public ResponseEntity<?> getDetail(@PathVariable("id") Integer id,
                                        @RequestParam(value = "mbNum", required = false) Integer mbNum,
                                        HttpServletRequest request,
                                        HttpServletResponse response) {
-        reviewPostService.increaseViewCount(id, request, response);
+        eventBoardService.increaseViewCount(id, request, response);
         
         Integer currentUserNum = (mbNum != null) ? mbNum : 1;
-        Map<String, Object> postData = reviewPostService.getPostDetailWithImage(id, currentUserNum);
+        Map<String, Object> postData = eventBoardService.getPostDetailWithImage(id, currentUserNum);
         
         return postData != null 
                 ? ResponseEntity.ok(postData) 
-                : ResponseEntity.status(404).body(Map.of("error", "게시글 없음"));
+                : ResponseEntity.status(404).body(Map.of("error", "이벤트 게시글을 찾을 수 없습니다."));
     }
 
+    /**
+     * 🚩 이벤트 등록 (관리자 ADMIN만 가능)
+     */
     @PostMapping("/posts")
     public ResponseEntity<?> create(Authentication authentication,
                                     @RequestParam(value = "title", required = false) String title,
                                     @RequestParam(value = "poTitle", required = false) String poTitle,
                                     @RequestParam(value = "content", required = false) String content,
                                     @RequestParam(value = "poContent", required = false) String poContent,
-                                    @RequestParam(value = "mbNum", required = false) Integer requestMbNum,
-                                    @RequestParam(value = "poMbNum", required = false) Integer requestPoMbNum,
                                     @RequestParam(value = "image", required = false) MultipartFile image) {
+        
+        // 1. 관리자 권한 체크
+        if (!isAdmin(authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "관리자만 등록할 수 있습니다."));
+        }
+
         try {
             String finalTitle = (title != null && !title.isEmpty()) ? title : poTitle;
             String finalContent = (content != null && !content.isEmpty()) ? content : poContent;
+            
             if (finalTitle == null || finalContent == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "제목과 내용을 입력하세요."));
             }
-            int mbNum = resolveMbNum(authentication, requestMbNum != null ? requestMbNum : requestPoMbNum);
-            ReviewPost post = new ReviewPost();
+            
+            int mbNum = resolveMbNum(authentication);
+            
+            Event post = new Event(); 
             post.setPoTitle(finalTitle);
             post.setPoContent(finalContent);
             post.setPoMbNum(mbNum);
+            
             List<MultipartFile> images = (image != null) ? List.of(image) : Collections.emptyList();
-            reviewPostService.savePost(post, images);
-            return ResponseEntity.ok("Success");
+            eventBoardService.savePost(post, images);
+            
+            return ResponseEntity.ok(Map.of("message", "Success"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "등록 실패: " + e.getMessage()));
         }
     }
 
-    private int resolveMbNum(Authentication authentication, Integer requestMbNum) {
-        if (authentication != null && authentication.getPrincipal() instanceof CustomUser) {
-            MemberVO member = ((CustomUser) authentication.getPrincipal()).getMember();
-            if (member != null) return member.getMb_num();
-        }
-        return requestMbNum != null ? requestMbNum : 1;
-    }
-
+    /**
+     * 🚩 이벤트 수정 (관리자 ADMIN만 가능)
+     */
     @PutMapping("/posts/{id}")
     public ResponseEntity<?> update(@PathVariable("id") Integer id,
+                                    Authentication authentication,
                                     @RequestParam("title") String title,
                                     @RequestParam("content") String content,
                                     @RequestParam(value = "image", required = false) MultipartFile image) {
+        
+        if (!isAdmin(authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "관리자만 수정할 수 있습니다."));
+        }
+
         try {
             List<MultipartFile> images = (image != null) ? List.of(image) : null;
-            reviewPostService.updatePost(id, title, content, images);
-            return ResponseEntity.ok("Updated Success");
+            eventBoardService.updatePost(id, title, content, images);
+            return ResponseEntity.ok(Map.of("message", "Updated Success"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "수정 실패"));
         }
     }
 
+    /**
+     * 🚩 이벤트 삭제 (관리자 ADMIN만 가능)
+     */
     @DeleteMapping("/posts/{id}")
-    public ResponseEntity<?> delete(@PathVariable("id") Integer id) {
+    public ResponseEntity<?> delete(@PathVariable("id") Integer id, Authentication authentication) {
+        
+        if (!isAdmin(authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "관리자만 삭제할 수 있습니다."));
+        }
+
         try {
-            reviewPostService.deletePost(id);
-            return ResponseEntity.ok("Deleted Success");
+            eventBoardService.deletePost(id);
+            return ResponseEntity.ok(Map.of("message", "Deleted Success"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "삭제 실패"));
         }
     }
 
+    /**
+     * 🚩 추천 토글 (일반 사용자 가능)
+     */
     @PostMapping("/posts/{id}/like")
     public ResponseEntity<?> toggleLike(@PathVariable("id") Integer id, @RequestBody Map<String, Object> data) {
         Object mbNumObj = data.get("mbNum");
         int mbNum = (mbNumObj != null) ? Integer.parseInt(mbNumObj.toString()) : 1;
-        String status = reviewPostService.toggleLikeStatus(id, mbNum);
+        String status = eventBoardService.toggleLikeStatus(id, mbNum);
         return ResponseEntity.ok(Map.of("status", status));
+    }
+
+    // --- 유틸리티 메서드 ---
+
+    private boolean isAdmin(Authentication authentication) {
+        if (authentication != null && authentication.getPrincipal() instanceof CustomUser) {
+            MemberVO member = ((CustomUser) authentication.getPrincipal()).getMember();
+            return member != null && "ADMIN".equals(member.getMb_rol());
+        }
+        return false;
+    }
+
+    private int resolveMbNum(Authentication authentication) {
+        if (authentication != null && authentication.getPrincipal() instanceof CustomUser) {
+            MemberVO member = ((CustomUser) authentication.getPrincipal()).getMember();
+            if (member != null) return member.getMb_num();
+        }
+        return 1;
     }
 }

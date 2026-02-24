@@ -16,12 +16,11 @@ import kr.hi.travel_community.model.util.CustomUser;
 import kr.hi.travel_community.model.vo.MemberVO;
 import kr.hi.travel_community.service.FreePostService;
 import kr.hi.travel_community.service.RecommendPostService;
-import kr.hi.travel_community.service.ReviewPostService;
 import lombok.RequiredArgsConstructor;
 
 /**
  * 마이페이지 - 내가 쓴 글 DB 연동
- * JWT 인증 후 회원 번호(mb_num)로 추천/후기/자유 게시판 글 조회
+ * JWT 인증 후 회원 번호(mb_num)로 추천/자유 게시판 글 조회
  */
 @RestController
 @RequestMapping("/api/mypage")
@@ -30,7 +29,6 @@ import lombok.RequiredArgsConstructor;
 public class MypageController {
 
     private final RecommendPostService recommendPostService;
-    private final ReviewPostService reviewPostService;
     private final FreePostService freePostService;
 
     @GetMapping("/posts")
@@ -51,6 +49,7 @@ public class MypageController {
 
         List<Map<String, Object>> combined = new ArrayList<>();
 
+        // 1. 여행 추천 게시판 글 조회
         try {
             List<Map<String, Object>> rec = recommendPostService.searchPosts("author", mbNumStr);
             for (Map<String, Object> p : rec) {
@@ -62,17 +61,7 @@ public class MypageController {
             // ignore
         }
 
-        try {
-            List<Map<String, Object>> review = reviewPostService.searchPosts("author", mbNumStr);
-            for (Map<String, Object> p : review) {
-                p.put("boardType", "reviewboard");
-                p.put("boardName", "여행 후기");
-                combined.add(p);
-            }
-        } catch (Exception e) {
-            // ignore
-        }
-
+        // 2. 자유 게시판 글 조회
         try {
             List<Map<String, Object>> freeAll = freePostService.getRealAllPosts();
             List<Map<String, Object>> free = freeAll.stream()
@@ -87,6 +76,7 @@ public class MypageController {
             // ignore
         }
 
+        // 최신순 정렬 (poDate 기준)
         combined.sort((a, b) -> {
             Object da = a.get("poDate");
             Object db = b.get("poDate");

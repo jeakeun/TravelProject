@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Routes, Route, useNavigate, useLocation, Navigate, Outlet, useOutletContext } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Navigate, Outlet } from 'react-router-dom';
+// 🚩 [수정] 사용하지 않는 useOutletContext를 제거하여 ESLint 에러 해결
 import axios from 'axios';
 
 // 스타일 및 컴포넌트 임포트
@@ -17,8 +18,14 @@ import FreeBoardDetail from './components/freeboard/FreeBoardDetail';
 import RecommendMain from './components/recommend/RecommendMain';
 import RecommendPostDetail from './components/recommend/RecommendPostDetail'; 
 
-import ReviewBoardList from './components/reviewboard/ReviewBoardList';
-import ReviewBoardDetail from './components/reviewboard/ReviewBoardDetail';
+// 🚩 reviewboard 관련 임포트 삭제됨
+
+import EventBoardList from './components/eventboard/EventBoardList.jsx'; 
+import EventBoardDetail from './components/eventboard/EventBoardDetail.jsx'; 
+
+// 뉴스레터 컴포넌트 임포트
+import NewsLetterList from './components/newsletter/NewsLetterList.jsx';
+import NewsLetterDetail from './components/newsletter/NewsLetterDetail.jsx';
 
 import NewsNotice from './pages/NewsNotice';
 import MyPage from './pages/MyPage';
@@ -32,7 +39,6 @@ import FindPassword from './auth/FindPassword';
 import ResetPassword from './auth/ResetPassword';
 import ChangePassword from './auth/ChangePassword';
 
-// 모든 요청에 쿠키를 포함하여 조회수 중복 방지 로직이 정상 작동하게 합니다.
 axios.defaults.withCredentials = true;
 
 function OpenLoginModal({ openLogin }) {
@@ -96,7 +102,6 @@ function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, open
       )}
       
       <main className="main-content">
-        {/* 🚩 [수정] context에 posts 데이터를 추가하여 Main 페이지에서도 사용 가능하게 합니다. */}
         <Outlet context={{ user, setUser, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang, posts, openChangePassword }} />
       </main>
     </div>
@@ -104,16 +109,16 @@ function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, open
 }
 
 function CommunityContainer({ posts, loadPosts, loading }) {
-  const { user } = useOutletContext() || {};
   const [activeMenu, setActiveMenu] = useState('자유 게시판');
   const navigate = useNavigate();
   const location = useLocation();
 
-  const menuItems = ['여행 추천 게시판', '여행 후기 게시판', '자유 게시판', '여행지도'];
+  // 🚩 메뉴 아이템에서 '여행 후기 게시판' 삭제
+  const menuItems = ['여행 추천 게시판', '자유 게시판', '여행지도'];
 
+  // 🚩 menuPaths에서 reviewboard 삭제
   const menuPaths = useMemo(() => ({
     '여행 추천 게시판': '/community/recommend',
-    '여행 후기 게시판': '/community/reviewboard',
     '자유 게시판': '/community/freeboard',
     '여행지도': '/community/map'
   }), []);
@@ -144,24 +149,16 @@ function CommunityContainer({ posts, loadPosts, loading }) {
       </aside>
       <main className="main-content">
         <Routes>
-          {/* 🚩 [핵심 수정] 상세(:id) 경로보다 글쓰기(write) 경로를 항상 위에 배치하여 충돌 방지 */}
-          
-          {/* 1. 여행 추천 게시판 */}
           <Route path="recommend/write" element={<PostWrite activeMenu="여행 추천 게시판" refreshPosts={loadPosts} />} />
           <Route path="recommend/:id" element={<RecommendPostDetail />} />
           <Route path="recommend" element={<RecommendMain posts={posts} />} />
 
-          {/* 2. 여행 후기 게시판 */}
-          <Route path="reviewboard/write" element={<PostWrite activeMenu="여행 후기 게시판" refreshPosts={loadPosts} />} />
-          <Route path="reviewboard/:id" element={<ReviewBoardDetail />} /> 
-          <Route path="reviewboard" element={<ReviewBoardList posts={posts} />} />
+          {/* 🚩 reviewboard 라우트 삭제됨 */}
           
-          {/* 3. 자유 게시판 */}
           <Route path="freeboard/write" element={<PostWrite activeMenu="자유 게시판" refreshPosts={loadPosts} />} />
           <Route path="freeboard/:id" element={<FreeBoardDetail />} />
           <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />
 
-          {/* 기타 경로 */}
           <Route path="map" element={<MainList photos={[]} activeMenu="여행지도" goToDetail={(id) => navigate(`/community/map/${id}`)} />} /> 
           <Route path="write" element={<PostWrite activeMenu={activeMenu} refreshPosts={loadPosts} />} />
           <Route path="/" element={<Navigate to="freeboard" replace />} />
@@ -199,7 +196,9 @@ function App() {
       setLoading(true);
       let endpoint = 'recommend'; 
       if (location.pathname.includes('freeboard')) endpoint = 'freeboard';
-      else if (location.pathname.includes('reviewboard')) endpoint = 'reviewboard';
+      // 🚩 endpoint 판별 로직에서 reviewboard 삭제
+      else if (location.pathname.includes('event')) endpoint = 'event';
+      else if (location.pathname.includes('newsletter')) endpoint = 'newsletter';
 
       const apiUrl = endpoint === 'recommend' 
         ? `http://localhost:8080/api/recommend/posts/all`
@@ -208,7 +207,7 @@ function App() {
       const response = await axios.get(apiUrl);
       const cleanData = response.data.map(post => ({
         ...post,
-        id: post.poNum || post.postId
+        id: post.poNum || post.po_num || post.postId
       }));
       setPosts(cleanData);
     } catch (err) {
@@ -222,10 +221,9 @@ function App() {
     loadPosts();
   }, [loadPosts]);
 
-  // 자동로그인: localStorage에 user가 없을 때 refresh 쿠키로 세션 복원
   useEffect(() => {
     const saved = localStorage.getItem('user');
-    if (saved) return; // 이미 로컬에 user 있으면 스킵
+    if (saved) return; 
     fetch("http://localhost:8080/auth/refresh", { method: "POST", credentials: "include" })
       .then((res) => {
         if (!res.ok) return;
@@ -244,7 +242,6 @@ function App() {
   }, []);
 
   const handleLogin = useCallback((userData) => {
-    // 로그인 응답이 { member, accessToken } 형태이면 member만 저장해 헤더에 아이디(mb_Uid) 표시
     const member = userData?.member ?? userData;
     const accessToken = userData?.accessToken;
     setUser(member);
@@ -257,7 +254,6 @@ function App() {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('accessToken');
-    // refreshToken 쿠키 삭제
     fetch("http://localhost:8080/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
   }, []);
 
@@ -308,6 +304,10 @@ function App() {
         />
       }>
         <Route path="/" element={<Main />} />
+        <Route path="/news/event" element={<EventBoardList posts={posts} />} />
+        <Route path="/news/event/:poNum" element={<EventBoardDetail />} />
+        <Route path="/news/newsletter" element={<NewsLetterList posts={posts} />} />
+        <Route path="/news/newsletter/:poNum" element={<NewsLetterDetail />} />
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/login" element={<OpenLoginModal openLogin={openLogin} />} />
