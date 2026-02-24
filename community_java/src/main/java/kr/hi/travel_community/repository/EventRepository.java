@@ -1,6 +1,6 @@
 package kr.hi.travel_community.repository;
 
-import kr.hi.travel_community.entity.Event; // EventPost 대신 Event 임포트
+import kr.hi.travel_community.entity.Event; 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -11,26 +11,62 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface EventRepository extends JpaRepository<Event, Integer> { // 엔티티 타입 변경
+public interface EventRepository extends JpaRepository<Event, Integer> {
 
-    // 1. 삭제되지 않은 게시글 전체 조회 (최신순)
+    /**
+     * 🚩 1. 삭제되지 않은 게시글 전체 조회 (최신순)
+     * 서비스의 getRealAllPosts()에서 사용
+     */
     List<Event> findByPoDelOrderByPoNumDesc(String poDel);
 
-    // 2. 특정 게시글 상세 조회 (삭제되지 않은 상태 확인)
+    /**
+     * 🚩 1-1. 게시판 타입별 조회 (이벤트/뉴스레터 분리용)
+     * 예: findByPoTypeAndPoDelOrderByPoNumDesc("EVENT", "N")
+     */
+    List<Event> findByPoTypeAndPoDelOrderByPoNumDesc(String poType, String poDel);
+
+    /**
+     * 🚩 2. 특정 게시글 상세 조회 (삭제되지 않은 상태 확인)
+     */
     Optional<Event> findByPoNumAndPoDel(Integer poNum, String poDel);
 
-    // 3. 조회수 증가 (Native Query 활용 - 테이블명은 DB와 일치하는 event_post 유지)
+    /**
+     * 🚩 3. 조회수 증가 (Native Query)
+     * 주의: 테이블명이 DB 환경에 따라 'event_post' 또는 'event'일 수 있으니 확인 바랍니다.
+     */
     @Modifying
     @Query(value = "UPDATE event_post SET po_view = po_view + 1 WHERE po_num = :poNum", nativeQuery = true)
     int updateViewCount(@Param("poNum") Integer poNum);
 
-    // 4. 검색 기능: 제목에 키워드 포함 + 삭제 안 된 글
+    /**
+     * 🚩 4. 검색 기능: 제목에 키워드 포함 + 삭제 안 된 글
+     */
     List<Event> findByPoTitleContainingAndPoDelOrderByPoNumDesc(String keyword, String poDel);
 
-    // 5. 검색 기능: 내용에 키워드 포함 + 삭제 안 된 글
+    /**
+     * 🚩 4-1. 타입별 검색: 제목
+     */
+    List<Event> findByPoTypeAndPoTitleContainingAndPoDelOrderByPoNumDesc(String poType, String keyword, String poDel);
+
+    /**
+     * 🚩 5. 검색 기능: 내용에 키워드 포함 + 삭제 안 된 글
+     */
     List<Event> findByPoContentContainingAndPoDelOrderByPoNumDesc(String keyword, String poDel);
 
-    // 6. 검색 기능: 제목 또는 내용에 키워드 포함 (JPQL 활용 - 엔티티명 Event로 수정)
+    /**
+     * 🚩 5-1. 타입별 검색: 내용
+     */
+    List<Event> findByPoTypeAndPoContentContainingAndPoDelOrderByPoNumDesc(String poType, String keyword, String poDel);
+
+    /**
+     * 🚩 6. 검색 기능: 제목 또는 내용에 키워드 포함 (JPQL)
+     */
     @Query("SELECT e FROM Event e WHERE (e.poTitle LIKE %:keyword% OR e.poContent LIKE %:keyword%) AND e.poDel = :poDel ORDER BY e.poNum DESC")
     List<Event> findByTitleOrContent(@Param("keyword") String keyword, @Param("poDel") String poDel);
+
+    /**
+     * 🚩 6-1. 타입별 검색: 제목 또는 내용 (JPQL)
+     */
+    @Query("SELECT e FROM Event e WHERE e.poType = :poType AND (e.poTitle LIKE %:keyword% OR e.poContent LIKE %:keyword%) AND e.poDel = :poDel ORDER BY e.poNum DESC")
+    List<Event> findByPoTypeAndTitleOrContent(@Param("poType") String poType, @Param("keyword") String keyword, @Param("poDel") String poDel);
 }

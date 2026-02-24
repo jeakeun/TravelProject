@@ -12,32 +12,27 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 1. 사용자님이 지정하신 절대 경로를 기준으로 설정합니다.
-        // 역슬래시(\)를 슬래시(/)로 통일하여 경로 인식을 최적화합니다.
-        String uploadPath = "C:/Users/mintpark/Documents/work/travel/TravelProject/community_java/uploads/pic/";
+        // 🚩 프로젝트 루트 경로를 자동으로 가져와서 절대 경로 생성
+        String rootPath = System.getProperty("user.dir");
+        
+        // OS 환경에 상관없이 경로가 올바르게 인식되도록 설정 (마지막에 반드시 슬래시 포함)
+        String uploadPath = rootPath + File.separator + "uploads" + File.separator + "pic" + File.separator;
         
         File directory = new File(uploadPath);
         
         // 디렉토리가 없을 경우 자동으로 생성
         if (!directory.exists()) {
-            boolean created = directory.mkdirs();
-            System.out.println("디렉토리 생성 여부: " + created);
+            directory.mkdirs();
         }
 
-        // 2. 리소스 로케이션 형식에 맞게 "file:///" 접두사를 붙여 절대 경로를 완성합니다.
-        // Windows의 경우 file:///C:/... 형식이 가장 안정적입니다.
-        String resourceLocation = "file:///" + uploadPath;
+        // 🚩 Spring 리소스 핸들러에서 인식할 수 있는 파일 경로 형식으로 변환
+        // 윈도우의 경우 file:///C:/... 형식이 되어야 하므로 절대 경로 앞에 프로토콜 추가
+        String resourceLocation = "file:///" + uploadPath.replace("\\", "/");
 
-        // 🚩 /pic/** 요청을 물리적 폴더로 연결
+        // /pic/** 로 들어오는 모든 요청을 실제 물리적 폴더(uploads/pic)와 매핑
         registry.addResourceHandler("/pic/**")
                 .addResourceLocations(resourceLocation)
-                .setCachePeriod(0); // 개발 중 이미지 즉시 반영을 위해 캐시 해제
-                
-        // 이클립스 콘솔에서 실제 경로 확인용 로그
-        System.out.println("--- 이미지 서버 경로 설정 완료 ---");
-        System.out.println("브라우저 요청 경로: http://localhost:8080/pic/파일명.jpg");
-        System.out.println("물리적 매핑 경로: " + resourceLocation);
-        System.out.println("--------------------------------");
+                .setCachePeriod(0); // 개발 환경에서 이미지 수정 시 즉시 반영을 위해 캐시 해제
     }
 
     @Override
