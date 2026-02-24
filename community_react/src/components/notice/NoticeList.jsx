@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './NoticeDetail'; 
+import './NoticeDetail.css'; 
 
 const NoticeList = ({ posts = [], goToDetail }) => {
     const navigate = useNavigate();
@@ -18,7 +18,6 @@ const NoticeList = ({ posts = [], goToDetail }) => {
     const filteredItems = useMemo(() => {
         if (!appliedSearch) return posts;
         const term = appliedSearch.toLowerCase();
-        
         return posts.filter(p => {
             const title = (p.nnTitle || "").toLowerCase();
             const content = (p.nnContent || "").toLowerCase();
@@ -51,46 +50,39 @@ const NoticeList = ({ posts = [], goToDetail }) => {
     return (
         <div className="freeboard-list-wrapper">
             <h2 className="board-title">| 공지사항</h2>
+            
             <table className="freeboard-table">
                 <thead>
                     <tr>
-                        <th className="th-num">번호</th>
-                        <th className="th-title">제목</th>
-                        <th className="th-author">작성자</th>
-                        <th className="th-view">조회수</th>
-                        <th className="th-date">작성일</th>
+                        <th>번호</th>
+                        <th>제목</th>
+                        <th>작성자</th>
+                        <th>조회수</th>
+                        <th>작성일</th>
                     </tr>
                 </thead>
                 <tbody>
                     {currentItems.length > 0 ? (
                         currentItems.map((post) => (
                             <tr key={post.nnNum} onClick={() => goToDetail(post.nnNum)}>
-                                <td className="td-num">{post.nnNum}</td>
+                                <td>{post.nnNum}</td>
                                 <td className="td-title">
                                     {post.nnTitle}
-                                    {post.commentCount > 0 && <span className="freeboard-comment-count"> [{post.commentCount}]</span>}
                                 </td>
-                                <td className="td-author">User {post.nnMbNum}</td>
-                                <td className="td-view">{post.nnView || 0}</td>
-                                <td className="td-date">{formatDateTime(post.nnDate)}</td>
+                                <td>User {post.nnMbNum}</td>
+                                <td>{post.nnView || 0}</td>
+                                <td>{formatDateTime(post.nnDate)}</td>
                             </tr>
                         ))
                     ) : (
-                        <tr><td colSpan="5" className="no-data">등록된 게시글이 없습니다.</td></tr>
+                        <tr><td colSpan="5">등록된 게시글이 없습니다.</td></tr>
                     )}
                 </tbody>
             </table>
 
-            {/* 🚩 하단 레이아웃 영역 */}
             <div className="list-pagination-area">
-                {/* 페이지네이션 버튼 (< > 기호 적용) */}
                 <div className="page-buttons">
-                    <button 
-                        onClick={() => paginate(currentPage - 1)}
-                        disabled={currentPage === 1}
-                    >
-                        &lt;
-                    </button>
+                    <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1}>&lt;</button>
                     {[...Array(totalPages)].map((_, i) => (
                         <button 
                             key={i + 1} 
@@ -100,23 +92,12 @@ const NoticeList = ({ posts = [], goToDetail }) => {
                             {i + 1}
                         </button>
                     ))}
-                    <button 
-                        onClick={() => paginate(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                    >
-                        &gt;
-                    </button>
+                    <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages}>&gt;</button>
                 </div>
 
-                {/* 검색창 및 글쓰기 버튼 레이아웃 */}
                 <div className="footer-action-row">
                     <div className="search-footer">
-                        {/* 카테고리 선택창 */}
-                        <select 
-                            className="search-select-box"
-                            value={searchType}
-                            onChange={(e) => setSearchType(e.target.value)}
-                        >
+                        <select className="search-select-box" value={searchType} onChange={(e) => setSearchType(e.target.value)}>
                             <option value="title">제목</option>
                             <option value="content">내용</option>
                             <option value="titleContent">제목+내용</option>
@@ -135,11 +116,7 @@ const NoticeList = ({ posts = [], goToDetail }) => {
                         </div>
                     </div>
 
-                    {/* 우측 끝 배치 글쓰기 버튼 */}
-                    <button 
-                        className="btn-write-footer" 
-                        onClick={() => navigate('/news/notice/write')}
-                    >
+                    <button className="btn-write-footer" onClick={() => navigate('/news/notice/write')}>
                         글쓰기
                     </button>
                 </div>
