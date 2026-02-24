@@ -22,25 +22,27 @@ public class FreePost {
     @Column(name = "po_date", nullable = false, updatable = false)
     private LocalDateTime poDate;
 
-    @Column(name = "po_view")
+    @Column(name = "po_view", nullable = false)
     private Integer poView = 0;
 
-    @Column(name = "po_up")
+    @Column(name = "po_up", nullable = false)
     private Integer poUp = 0;
 
-    @Column(name = "po_down")
+    @Column(name = "po_down", nullable = false)
     private Integer poDown = 0;
 
-    @Column(name = "po_report")
+    @Column(name = "po_report", nullable = false)
     private Integer poReport = 0;
 
-    @Column(name = "po_del")
+    @Column(name = "po_del", nullable = false, length = 1)
     private String poDel = "N";
 
     @Column(name = "po_mb_num", nullable = false)
     private Integer poMbNum;
 
-    @Column(name = "file_url")
+    // 🚩 [수정] DB 스키마의 다른 테이블들과 이름을 맞추기 위해 
+    // 실제 DB 컬럼명을 po_img로 매핑합니다. (또는 아래 SQL 명령어로 DB 컬럼을 추가하세요)
+    @Column(name = "po_img", length = 1000)
     private String fileUrl;
 
     @PrePersist

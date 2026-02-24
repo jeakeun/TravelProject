@@ -6,19 +6,14 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
   const navigate = useNavigate();
   const location = useLocation();
   
-  // URL에서 ?board=event 같은 쿼리 파라미터를 읽어옵니다.
   const queryParams = new URLSearchParams(location.search);
   const boardParam = queryParams.get('board');
 
-  // 상위 Outlet context에서 정보 수신
   const { user: contextUser, loadPosts } = useOutletContext() || {};
-  
-  // Props로 받은 user가 있으면 그것을 쓰고, 없으면 context의 user를 사용합니다.
   const currentUser = user || contextUser;
 
   const isEdit = location.state?.mode === 'edit';
   const existingPost = location.state?.postData;
-  // 수정 모드일 때 전달된 boardType 확인
   const stateBoardType = location.state?.boardType;
 
   const [title, setTitle] = useState('');
@@ -51,7 +46,9 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
   const handleImageChange = (e) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
+      // 🚩 기존 파일 리스트에 추가 (누적 선택 가능)
       setImageFiles((prev) => [...prev, ...files]);
+      
       files.forEach((file) => {
         const reader = new FileReader();
         reader.onloadend = () => {
@@ -73,20 +70,20 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
       return;
     }
 
+    // 🚩 FormData 구성 최적화
     const formData = new FormData();
     const authorNum = currentUser?.mbNum || currentUser?.mb_num || 1;
 
+    // 스프링 부트 컨트롤러의 DTO/파라미터 명칭과 일치시킵니다.
     formData.append('poTitle', title);
-    formData.append('title', title);
-    
     formData.append('poContent', htmlContent);
-    formData.append('content', htmlContent);
-    
     formData.append('poMbNum', String(authorNum));
-    formData.append('mbNum', String(authorNum));
 
+    // 🚩 [핵심 수정] 단일 파일('image')이 아닌 리스트('images')로 모든 파일 전송
     if (imageFiles.length > 0) {
-      formData.append('image', imageFiles[0]);
+      imageFiles.forEach((file) => {
+        formData.append('images', file); 
+      });
     }
 
     // API 경로 결정 로직
@@ -95,7 +92,6 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
       '여행 후기 게시판': 'reviewboard',
       '자유 게시판': 'freeboard',
       '이벤트': 'event',
-      '이벤트 게시판': 'event',
       '뉴스레터': 'newsletter'
     };
     
@@ -117,7 +113,6 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
       ? `http://localhost:8080/api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.po_num || existingPost?.id}`
       : `http://localhost:8080/api/${categoryPath}/posts`;
 
-    // 🚩 [추가] 브라우저 스토리지에서 토큰 가져오기 (JWT 인증용)
     const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
 
     try {
@@ -127,13 +122,13 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
         data: formData,
         headers: { 
           'Content-Type': 'multipart/form-data',
-          // 🚩 [추가] 인증 헤더 포함
           ...(token && { 'Authorization': `Bearer ${token}` })
         },
         withCredentials: true
       });
 
-      if (response.status === 200 || response.status === 201 || String(response.data.message).includes("Success") || response.data === "Success") {
+      // 🚩 서버 응답 조건 유연화
+      if (response.status === 200 || response.status === 201 || String(response.data).includes("Success")) {
         alert(isEdit ? "글이 수정되었습니다!" : "글이 등록되었습니다!");
         if (refreshPosts) await refreshPosts();
         else if (loadPosts) await loadPosts();
@@ -143,6 +138,7 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
       console.error("저장 실패 상세:", error.response);
       let errorMsg = "서버와 통신 중 오류가 발생했습니다.";
       if (error.response?.data) {
+        // 서버에서 보낸 에러 메시지 추출
         errorMsg = typeof error.response.data === 'string' 
           ? error.response.data 
           : (error.response.data.message || error.response.data.error || JSON.stringify(error.response.data));

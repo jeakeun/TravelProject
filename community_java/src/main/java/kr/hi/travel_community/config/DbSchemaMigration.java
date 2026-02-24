@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * 앱 기동 시 inquiry_box, report_box에 필요한 컬럼이 없으면 추가.
- * 컬럼이 이미 있으면 Duplicate column 에러를 무시하고 진행.
+ * 컬럼 존재 여부를 먼저 확인하여 불필요한 WARN 로그 방지.
  */
 @Component
 @Order(2)
@@ -35,19 +35,27 @@ public class DbSchemaMigration implements ApplicationRunner {
 
     private void ensureColumn(String table, String column, String definition) {
         try {
-            jdbcTemplate.execute(String.format(
-                "ALTER TABLE %s ADD COLUMN %s %s", table, column, definition
-            ));
-            log.info("DB 마이그레이션: {}.{} 컬럼 추가됨", table, column);
-        } catch (Exception e) {
-            String msg = e.getMessage() != null ? e.getMessage() : "";
-            if (msg.contains("Duplicate column name") || msg.contains("1060")) {
-                log.debug("컬럼 {}.{} 은(는) 이미 존재함", table, column);
-            } else if (msg.contains("doesn't exist") || msg.contains("1146")) {
-                log.warn("테이블 {} 이(가) 없습니다. 프로젝트 DDL.sql을 먼저 실행하세요.", table);
+            // 1. 해당 테이블에 해당 컬럼이 이미 존재하는지 쿼리 (INFORMATION_SCHEMA 활용)
+            String checkSql = "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS " +
+                              "WHERE TABLE_SCHEMA = DATABASE() " +
+                              "AND TABLE_NAME = ? " +
+                              "AND COLUMN_NAME = ?";
+            
+            Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, table, column);
+
+            // 2. 컬럼이 없을 때만(0일 때만) ALTER 실행
+            if (count != null && count == 0) {
+                jdbcTemplate.execute(String.format(
+                    "ALTER TABLE %s ADD COLUMN %s %s", table, column, definition
+                ));
+                log.info("DB 마이그레이션: {}.{} 컬럼이 생성되었습니다.", table, column);
             } else {
-                log.warn("컬럼 추가 실패 {}.{}: {}", table, column, msg);
+                // 이미 존재하면 그냥 넘어감 (로그를 남기고 싶다면 info나 debug 사용)
+                log.debug("DB 마이그레이션: {}.{} 컬럼이 이미 존재합니다.", table, column);
             }
+
+        } catch (Exception e) {
+            log.error("컬럼 체크 또는 추가 중 알 수 없는 오류 발생 ({}.{}): {}", table, column, e.getMessage());
         }
     }
 }
