@@ -119,8 +119,8 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
 
   return (
     <div className="main-content-inner" style={{ width: '100%' }}>
-      {/* 🚩 [수정] '국내여행' 메뉴일 때 지도 레이아웃 노출 */}
-      {activeMenu.trim() === '국내여행' ? (
+      {/* 🚩 [수정] '국내여행' 또는 '여행지도' 메뉴일 때 지도 레이아웃 노출 */}
+      {['국내여행', '여행지도'].includes(activeMenu.trim()) ? (
         <div className="map-section" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '20px' }}>
           
           {/* 1. 지도 상단 카테고리 필터 버튼 */}
