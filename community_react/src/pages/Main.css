@@ -94,7 +94,7 @@ body {
     left: 0;
     width: 100%;
     height: 0; /* 평소에는 숨김 */
-    background: rgba(20, 90, 34, 0.92);
+    background: rgba(24, 43, 28, 0.4);
     backdrop-filter: blur(12px);
     overflow: hidden;
     transition: height 0.4s ease, visibility 0.4s;
@@ -114,7 +114,7 @@ body {
     margin: 0 auto;
     display: flex;
     justify-content: space-between;
-    padding: 50px 80px;
+    padding: 50px 70px;
     opacity: 0;
     transition: opacity 0.2s;
 }
@@ -129,20 +129,12 @@ body {
 
 .menu-column:nth-child(2) {
     /* 기존 margin-left 대신 transform 사용 */
-    transform: translateX(-80px); 
+    transform: translateX(-100px); 
 }
 
 .menu-column:nth-child(3) {
     /* 2번에 영향 주지 않고 3번만 왼쪽/오른쪽으로 이동 가능 */
-    transform: translateX(-138px); 
-}
-/* ================================================== */
-
-.App .nav-area .menu-column h3 {
-    color: #000000;
-    font-size: 17px;
-    margin-bottom: 20px;
-    font-weight: 700;
+    transform: translateX(-155px); 
 }
 
 .App .nav-area .menu-column ul {
@@ -156,12 +148,12 @@ body {
 .App .nav-area .menu-column a {
     color: #ffffff;
     text-decoration: none;
-    font-size: 15px;
+    font-size: 18px;
     transition: 0.2s;
 }
 
 .App .nav-area .menu-column a:hover {
-    color: #047504;
+    color: #182b18;
     padding-left: 5px;
     font-weight: bold;
 }
