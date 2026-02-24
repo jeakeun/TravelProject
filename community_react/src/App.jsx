@@ -106,49 +106,52 @@ function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, open
 }
 
 function CommunityContainer({ posts, loadPosts, loading }) {
-  const [activeMenu, setActiveMenu] = useState('자유 게시판');
+  const [activeMenu, setActiveMenu] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
 
-  const queryParams = new URLSearchParams(location.search);
-  const boardParam = queryParams.get('board');
-
-  // 🚩 [뉴스레터 리다이렉트 포함] 뉴스레터 파라미터 감지 시 독립 경로로 강제 이동
-  useEffect(() => {
-    if (boardParam === 'event') {
-      navigate('/news/event/write', { replace: true });
-    } else if (boardParam === 'newsletter') {
-      navigate('/news/newsletter/write', { replace: true });
-    }
-  }, [boardParam, navigate]);
-
-  const menuItems = ['여행 추천 게시판', '자유 게시판', '여행지도'];
-
-  const menuPaths = useMemo(() => ({
-    '여행 추천 게시판': '/community/recommend',
-    '자유 게시판': '/community/freeboard',
-    '여행지도': '/community/map'
+  const destinationMenu = useMemo(() => ({
+    '국내여행': '/domestic',
+    '해외여행': '/foreigncountry'
   }), []);
 
-  const isDetailPage = useMemo(() => {
-    const pathParts = location.pathname.split('/');
-    const lastPart = pathParts[pathParts.length - 1];
-    return (lastPart && !isNaN(lastPart)) || lastPart === 'write' || lastPart === 'edit';
-  }, [location.pathname]);
+  const communityMenu = useMemo(() => ({
+    '여행 추천 게시판': '/community/recommend',
+    '자유 게시판': '/community/freeboard'
+  }), []);
+
+  // 그룹 판별 변수
+  const isDestinationGroup = location.pathname.startsWith('/domestic') || location.pathname.startsWith('/foreigncountry');
+  const isCommunityGroup = location.pathname.startsWith('/community');
+
+  const currentGroup = useMemo(() => {
+    if (isDestinationGroup) return destinationMenu;
+    if (isCommunityGroup) return communityMenu;
+    return null;
+  }, [isDestinationGroup, isCommunityGroup, destinationMenu, communityMenu]);
 
   useEffect(() => {
-    const foundMenu = Object.keys(menuPaths).find(key => location.pathname.startsWith(menuPaths[key]));
-    if (foundMenu) setActiveMenu(foundMenu);
-  }, [location.pathname, menuPaths]);
+    if (currentGroup) {
+      const foundMenu = Object.keys(currentGroup).find(key => {
+        return location.pathname === currentGroup[key] || location.pathname.startsWith(currentGroup[key] + '/');
+      });
+      if (foundMenu) setActiveMenu(foundMenu);
+    }
+  }, [location.pathname, currentGroup]);
 
-  if (loading && !isDetailPage) return <div style={{ textAlign: 'center', marginTop: '100px' }}>로딩 중...</div>;
+  if (!currentGroup) return <Outlet />; 
+  if (loading) return <div style={{ textAlign: 'center', marginTop: '100px' }}>로딩 중...</div>;
 
   return (
     <div className="container">
       <aside className="sidebar">
         <ul>
-          {menuItems.map(item => (
-            <li key={item} className={activeMenu === item ? 'active' : ''} onClick={() => navigate(menuPaths[item])}>
+          {Object.keys(currentGroup).map(item => (
+            <li 
+              key={item} 
+              className={activeMenu === item ? 'active' : ''} 
+              onClick={() => navigate(currentGroup[item])}
+            >
               {item}
             </li>
           ))}
@@ -156,18 +159,34 @@ function CommunityContainer({ posts, loadPosts, loading }) {
       </aside>
       <main className="main-content">
         <Routes>
-          <Route path="recommend/write" element={<PostWrite activeMenu="여행 추천 게시판" boardType="recommend" refreshPosts={loadPosts} />} />
-          <Route path="recommend/:id" element={<RecommendPostDetail />} />
-          <Route path="recommend" element={<RecommendMain posts={posts} />} />
+          {/* 🚩 여행지 그룹일 때: 리다이렉트 없이 해당 페이지 직접 노출 */}
+          {isDestinationGroup && (
+            <>
+              <Route path="/" element={
+                location.pathname.startsWith('/domestic') 
+                ? <MainList photos={[]} activeMenu="국내여행" goToDetail={(id) => navigate(`/community/domestic/${id}`)} />
+                : <Main /> 
+              } />
+            </>
+          )}
 
-          <Route path="freeboard/write" element={<PostWrite activeMenu="자유 게시판" boardType="freeboard" refreshPosts={loadPosts} />} />
-          <Route path="freeboard/:id" element={<FreeBoardDetail />} />
-          <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />
+          {/* 🚩 커뮤니티 그룹일 때: 하위 경로 라우팅 유지 */}
+          {isCommunityGroup && (
+            <>
+              <Route path="recommend/write" element={<PostWrite activeMenu="여행 추천 게시판" boardType="recommend" refreshPosts={loadPosts} />} />
+              <Route path="recommend/:id" element={<RecommendPostDetail />} />
+              <Route path="recommend" element={<RecommendMain posts={posts} />} />
 
-          <Route path="map" element={<MainList photos={[]} activeMenu="여행지도" goToDetail={(id) => navigate(`/community/map/${id}`)} />} /> 
-          
-          <Route path="write" element={<PostWrite activeMenu={activeMenu} boardType={activeMenu === '여행 추천 게시판' ? 'recommend' : 'freeboard'} refreshPosts={loadPosts} />} />
-          <Route path="/" element={<Navigate to="freeboard" replace />} />
+              <Route path="freeboard/write" element={<PostWrite activeMenu="자유 게시판" boardType="freeboard" refreshPosts={loadPosts} />} />
+              <Route path="freeboard/:id" element={<FreeBoardDetail />} />
+              <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />
+              
+              <Route path="write" element={<PostWrite activeMenu={activeMenu} boardType={activeMenu === '여행 추천 게시판' ? 'recommend' : 'freeboard'} refreshPosts={loadPosts} />} />
+              
+              {/* 커뮤니티 기본 주소로 왔을 때만 freeboard로 리다이렉트 */}
+              <Route path="/" element={<Navigate to="freeboard" replace />} />
+            </>
+          )}
         </Routes>
       </main>
     </div>
@@ -204,8 +223,8 @@ function App() {
     const isActionPage = ['write', 'edit', 'login', 'signup'].includes(lastPart) || (lastPart && !isNaN(lastPart));
     
     if (isActionPage || path === '/') {
-       setLoading(false);
-       return;
+        setLoading(false);
+        return;
     }
 
     try {
@@ -320,11 +339,18 @@ function App() {
       }>
         <Route path="/" element={<Main />} />
         
+        {/* 여행지 그룹 */}
+        <Route path="/domestic" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
+        <Route path="/foreigncountry" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
+        <Route path="/Domestic" element={<Navigate to="/domestic" replace />} />
+
+        {/* 게시판 그룹 */}
+        <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
+
         <Route path="/news/event" element={<EventBoardList posts={posts} />} />
         <Route path="/news/event/write" element={<PostWrite activeMenu="이벤트 게시판" boardType="event" refreshPosts={loadPosts} />} />
         <Route path="/news/event/:poNum" element={<EventBoardDetail />} />
 
-        {/* 🚩 뉴스레터 독립 경로 및 boardType 설정 완료 */}
         <Route path="/news/newsletter" element={<NewsLetterList posts={posts} />} />
         <Route path="/news/newsletter/write" element={<PostWrite activeMenu="뉴스레터" boardType="newsletter" refreshPosts={loadPosts} />} />
         <Route path="/news/newsletter/:poNum" element={<NewsLetterDetail />} />
@@ -334,7 +360,6 @@ function App() {
         <Route path="/login" element={<OpenLoginModal openLogin={openLogin} />} />
         <Route path="/signup" element={<OpenSignupModal openSignup={openSignup} />} />
         
-        <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
         <Route path="/news/notice" element={<NoticeList posts={posts} />} />
         <Route path="/news/notice/:poNum" element={<NoticeDetail />} />
         <Route path="/inquiry" element={<InquiryPage />} />
