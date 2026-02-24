@@ -7,7 +7,8 @@ import './ReviewBoardDetail.css';
 const ReviewBoardDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { user } = useOutletContext() || {}; 
+    // 🚩 App.js에서 주입하는 공통 상태 사용
+    const { user, refreshPosts } = useOutletContext() || {}; 
     
     const [post, setPost] = useState(null);
     const [comments, setComments] = useState([]);
@@ -24,34 +25,37 @@ const ReviewBoardDetail = () => {
     const replyInputRef = useRef(null);
 
     const isLoggedIn = !!user; 
-    const currentUserNum = getMemberNum(user); 
-    const isAdmin = user ? (Number(user.mbLevel ?? user.mb_score ?? 0) >= 10 || user.mb_rol === 'ADMIN') : false; 
+    // 🚩 서버 DTO 필드명에 맞춰 mb_Num 또는 mbNum 대응
+    const currentUserNum = user ? (user.mb_Num || user.mbNum) : null; 
+    const isAdmin = user ? user.mbLevel >= 10 : false; 
 
     const isNumericId = id && !isNaN(Number(id));
 
-    const incrementViewCount = useCallback(async () => {
-        if (!isNumericId) return;
-        const viewedReviewPosts = JSON.parse(sessionStorage.getItem('viewedReviewPosts') || '[]');
-        if (!viewedReviewPosts.includes(id)) {
-            try {
-                await axios.post(`http://localhost:8080/api/reviewboard/posts/${id}/view`);
-                viewedReviewPosts.push(id);
-                sessionStorage.setItem('viewedReviewPosts', JSON.stringify(viewedReviewPosts));
-            } catch (err) {
-                console.error("조회수 증가 실패", err);
-            }
-        }
-    }, [id, isNumericId]);
+    // 🚩 [확장성] 현재 게시판 타입을 감지하여 API 경로를 유연하게 설정
+    const getBoardType = useCallback(() => {
+        const path = window.location.pathname;
+        if (path.includes('recommend')) return 'recommend';
+        if (path.includes('reviewboard')) return 'reviewboard';
+        return 'freeboard';
+    }, []);
+
+    const boardPath = getBoardType();
+
+    // 🚩 [수정] 404 에러 원인인 incrementViewCount 함수 제거
+    // 백엔드 getDetail 메서드 내부에서 이미 조회수 증가 로직을 수행하므로 프론트엔드 호출이 불필요합니다.
 
     const fetchAllData = useCallback(async (isAction = false, isCommentAction = false) => {
         if (!isNumericId) return;
         try {
             if (!isAction) setLoading(true);
-            const postRes = await axios.get(`http://localhost:8080/api/reviewboard/posts/${id}?mbNum=${currentUserNum || ''}`);
+            // 이 요청이 발생할 때 서버 서비스 로직에서 조회수를 자동으로 1 올립니다.
+            const postRes = await axios.get(`http://localhost:8080/api/${boardPath}/posts/${id}?mbNum=${currentUserNum || ''}`);
             setPost(postRes.data);
             setIsLiked(postRes.data.isLikedByMe || false);
 
-            const commentRes = await axios.get(`http://localhost:8080/api/comment/list/${id}?type=REVIEW`);
+            // 댓글 타입 매핑 (서버의 Enum이나 문자열 규격에 맞춤)
+            const typeParam = boardPath.toUpperCase().replace('BOARD', '');
+            const commentRes = await axios.get(`http://localhost:8080/api/comment/list/${id}?type=${typeParam}`);
             setComments(commentRes.data || []);
             
             if (!isAction) setLoading(false);
@@ -61,30 +65,30 @@ const ReviewBoardDetail = () => {
         } catch (err) {
             if (err.response?.status === 404) {
                 alert("게시글을 찾을 수 없습니다.");
-                navigate('/community/reviewboard');
+                navigate(`/community/${boardPath}`);
             }
             setLoading(false);
         }
-    }, [id, navigate, isNumericId, currentUserNum]);
+    }, [id, navigate, isNumericId, currentUserNum, boardPath]);
 
     useEffect(() => { 
         if(isNumericId) {
-            incrementViewCount(); 
+            // incrementViewCount(); // 🚩 제거됨
             fetchAllData();       
         }
-    }, [isNumericId, fetchAllData, incrementViewCount]);
+    }, [isNumericId, fetchAllData]); // 🚩 의존성에서 incrementViewCount 제거
 
     useEffect(() => {
         if (replyTo && replyInputRef.current) replyInputRef.current.focus();
     }, [replyTo]);
 
-    // 🚩 [추가] 게시글 삭제 함수 구현
     const handleDeletePost = async () => {
         if (!window.confirm("정말 게시글을 삭제하시겠습니까?")) return;
         try {
-            await axios.delete(`http://localhost:8080/api/reviewboard/posts/${id}`);
+            await axios.delete(`http://localhost:8080/api/${boardPath}/posts/${id}`);
             alert("게시글이 삭제되었습니다.");
-            navigate('/community/reviewboard');
+            if (refreshPosts) refreshPosts();
+            navigate(`/community/${boardPath}`);
         } catch (err) {
             alert("게시글 삭제 중 오류가 발생했습니다.");
         }
@@ -93,7 +97,7 @@ const ReviewBoardDetail = () => {
     const handleLikeToggle = async () => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
-            const res = await axios.post(`http://localhost:8080/api/reviewboard/posts/${id}/like`, { mbNum: currentUserNum });
+            const res = await axios.post(`http://localhost:8080/api/${boardPath}/posts/${id}/like`, { mbNum: currentUserNum });
             if (res.data.status === "liked") {
                 setIsLiked(true);
                 setPost(prev => ({ ...prev, poUp: prev.poUp + 1 }));
@@ -109,11 +113,12 @@ const ReviewBoardDetail = () => {
         const content = parentId ? replyInput : commentInput;
         if (!content?.trim()) return alert("내용을 입력하세요.");
         try {
+            const typeParam = boardPath.toUpperCase().replace('BOARD', '');
             await axios.post(`http://localhost:8080/api/comment/add/${id}`, { 
                 content: content.trim(), 
                 parentId: parentId,
                 mbNum: currentUserNum,
-                type: 'REVIEW' 
+                type: typeParam 
             });
             setCommentInput(""); setReplyInput(""); setReplyTo(null);
             fetchAllData(true, true); 
@@ -148,7 +153,7 @@ const ReviewBoardDetail = () => {
         else filtered.sort((a, b) => a.coNum - b.coNum);
 
         return filtered.map(comment => {
-            const isCommentOwner = isLoggedIn && comment.member && getMemberNum(comment.member) === currentUserNum;
+            const isCommentOwner = isLoggedIn && comment.member && Number(comment.member.mbNum || comment.member.mb_Num) === Number(currentUserNum);
             const isReply = depth > 0;
             const isActiveEdit = editId === comment.coNum;
             const isActiveReply = replyTo === comment.coNum;
@@ -161,7 +166,7 @@ const ReviewBoardDetail = () => {
                     }}>
                         <div className="comment-header">
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <strong>User {getMemberNum(comment.member) ?? 'Unknown'}</strong>
+                                <strong>User {comment.member?.mbNum || comment.member?.mb_Num}</strong>
                                 <span className="comment-date">{new Date(comment.coDate).toLocaleString()}</span>
                             </div>
                             {!isActiveEdit && !isActiveReply && (
@@ -229,15 +234,14 @@ const ReviewBoardDetail = () => {
                                 {isLiked ? '❤️ 추천취소' : '🤍 추천'} {post.poUp}
                             </button>
                         )}
-                        {/* 🚩 타입 안정성을 위해 Number()로 감싸서 비교 */}
                         {(isLoggedIn && (Number(post.poMbNum) === Number(currentUserNum) || isAdmin)) && (
                             <>
-                                <button className="btn-edit-action" onClick={() => navigate(`/community/reviewboard/write`, { state: { mode: 'edit', postData: post } })}>✏️ 수정</button>
+                                <button className="btn-edit-action" onClick={() => navigate(`/community/write`, { state: { mode: 'edit', postData: post } })}>✏️ 수정</button>
                                 <button className="btn-delete-action" onClick={handleDeletePost}>🗑️ 삭제</button>
                             </>
                         )}
                     </div>
-                    <button className="btn-list-return" onClick={() => navigate('/community/reviewboard')}>목록으로</button>
+                    <button className="btn-list-return" onClick={() => navigate(`/community/${boardPath}`)}>목록으로</button>
                 </div>
                 <hr className="section-divider" />
                 <div className="comment-area" ref={commentAreaRef}>

@@ -142,19 +142,26 @@ function CommunityContainer({ posts, loadPosts, loading }) {
       </aside>
       <main className="main-content">
         <Routes>
-          <Route path="recommend/write" element={<PostWrite user={user} activeMenu="여행 추천 게시판" refreshPosts={loadPosts} />} />
+          {/* 🚩 [핵심 수정] 상세(:id) 경로보다 글쓰기(write) 경로를 항상 위에 배치하여 충돌 방지 */}
+          
+          {/* 1. 여행 추천 게시판 */}
+          <Route path="recommend/write" element={<PostWrite activeMenu="여행 추천 게시판" refreshPosts={loadPosts} />} />
           <Route path="recommend/:id" element={<RecommendPostDetail />} />
           <Route path="recommend" element={<RecommendMain posts={posts} />} />
 
-          <Route path="write" element={<PostWrite user={user} activeMenu={activeMenu} refreshPosts={loadPosts} />} />
-          <Route path="map" element={<MainList photos={[]} activeMenu="여행지도" goToDetail={(id) => navigate(`/community/map/${id}`)} />} /> 
-          
-          <Route path="reviewboard" element={<ReviewBoardList posts={posts} />} />
+          {/* 2. 여행 후기 게시판 */}
+          <Route path="reviewboard/write" element={<PostWrite activeMenu="여행 후기 게시판" refreshPosts={loadPosts} />} />
           <Route path="reviewboard/:id" element={<ReviewBoardDetail />} /> 
+          <Route path="reviewboard" element={<ReviewBoardList posts={posts} />} />
           
-          <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />
+          {/* 3. 자유 게시판 */}
+          <Route path="freeboard/write" element={<PostWrite activeMenu="자유 게시판" refreshPosts={loadPosts} />} />
           <Route path="freeboard/:id" element={<FreeBoardDetail />} />
+          <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />
 
+          {/* 기타 경로 */}
+          <Route path="map" element={<MainList photos={[]} activeMenu="여행지도" goToDetail={(id) => navigate(`/community/map/${id}`)} />} /> 
+          <Route path="write" element={<PostWrite activeMenu={activeMenu} refreshPosts={loadPosts} />} />
           <Route path="/" element={<Navigate to="freeboard" replace />} />
         </Routes>
       </main>
@@ -170,8 +177,8 @@ function App() {
   const [showChangePw, setShowChangePw] = useState(false);
   const [resetUserId, setResetUserId] = useState('');
   const [currentLang, setCurrentLang] = useState("KR");
-  const [posts, setPosts] = useState([]); // 🚩 [수정] 데이터를 App 수준으로 이동
-  const [loading, setLoading] = useState(true); // 🚩 [수정] 로딩 상태를 App 수준으로 이동
+  const [posts, setPosts] = useState([]); 
+  const [loading, setLoading] = useState(true); 
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('user');
     if (!saved) return null;
@@ -185,13 +192,9 @@ function App() {
 
   const location = useLocation();
 
-  // 🚩 [수정] loadPosts 로직을 App 수준으로 이동하여 모든 페이지에서 게시글 정보를 공유합니다.
   const loadPosts = useCallback(async () => {
     try {
       setLoading(true);
-      // 메인 카러셀을 위해 추천 게시판 데이터를 기본적으로 가져오거나, 
-      // 현재 경로에 맞는 데이터를 가져옵니다. 
-      // 메인(/)에서는 추천 게시판 데이터(1,2,3위용)를 가져오도록 설정합니다.
       let endpoint = 'recommend'; 
       if (location.pathname.includes('freeboard')) endpoint = 'freeboard';
       else if (location.pathname.includes('reviewboard')) endpoint = 'reviewboard';
@@ -313,6 +316,4 @@ function App() {
   );
 }
 
-// 🚩 export default App 위에서 Router로 감싸지 않았으므로 index.js나 여기서 처리 확인
-// Router가 App 내부가 아닌 외부(index.js 등)에 있는 경우를 위해 유지
 export default App;

@@ -1,9 +1,8 @@
-/* 1. 그리드 레이아웃: 6개 게시물이 한 화면에 쏙 들어오도록 높이 최적화 */
+/* [1. 그리드 레이아웃 및 카드 - 기존 스타일 유지] */
 .gallery-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(2, 360px);
-    /* 4:1 비율을 위해 높이 확보 */
     gap: 25px;
     margin-top: 20px;
 }
@@ -26,7 +25,6 @@
     box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15);
 }
 
-/* 🚩 사진 영역 (4:1 비율 중 '4' 차지) */
 .img-placeholder {
     flex: 4;
     overflow: hidden;
@@ -44,7 +42,6 @@
     transform: scale(1.1);
 }
 
-/* 🚩 텍스트 정보 영역 (4:1 비율 중 '1' 차지) */
 .photo-info {
     flex: 1;
     padding: 15px;
@@ -70,56 +67,79 @@
     color: #95a5a6;
 }
 
-/* 🚩 2. 하단 컨트롤 영역 (Recommend 게시판 디자인 적용) */
+/* 🚩 [2. 하단 컨트롤 영역 - Recommend 게시판 스타일 적용] */
 .list-pagination-area {
-    margin-top: 40px;
+    margin-top: 50px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 25px;
+    gap: 30px;
     width: 100%;
 }
 
 .page-buttons {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: 10px;
 }
 
+/* 🚩 숫자 및 이전/다음 버튼: 완벽한 원형 스타일 */
 .page-buttons button {
-    width: 38px;
-    height: 38px;
+    width: 40px;
+    /* Recommend 게시판 규격 */
+    height: 40px;
     border: 1px solid #ddd;
     background: #fff;
-    border-radius: 50%;
+    border-radius: 50% !important;
+    /* 무조건 동그랗게 유지 */
     cursor: pointer;
     font-weight: 600;
+    font-size: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: 0.2s;
+    transition: all 0.2s ease;
+    color: #333;
+    padding: 0;
 }
 
+/* 활성화된 페이지 (다크 네이비) */
 .page-buttons button.active {
-    background: #2c3e50;
-    color: #fff;
-    border-color: #2c3e50;
+    background: #2c3e50 !important;
+    color: #fff !important;
+    border-color: #2c3e50 !important;
 }
 
-/* 🚩 3. 검색창 중앙 & 글쓰기 우측 배치 (Recommend 방식) */
+/* 호버 효과 */
+.page-buttons button:hover:not(:disabled) {
+    background-color: #f8f9fa;
+    border-color: #2c3e50;
+    color: #2c3e50;
+}
+
+/* 이전/다음 버튼이 비활성화(disabled) 되어도 공간은 유지됨 */
+.page-buttons button:disabled {
+    cursor: default;
+    opacity: 0.4;
+    background-color: #fdfdfd;
+}
+
+/* 🚩 [3. 검색창 및 푸터 액션 - Recommend 스타일] */
 .footer-action-row {
     width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    position: relative;
-    /* 글쓰기 버튼 absolute 기준 */
     margin-top: 10px;
+    position: relative;
 }
 
 .search-footer {
     display: flex;
     align-items: center;
     gap: 12px;
+    margin-right: 140px;
+    /* 글쓰기 버튼과의 간격 확보 */
 }
 
 .search-select-box {
@@ -127,9 +147,12 @@
     padding: 0 15px;
     border: 1px solid #ddd;
     border-radius: 30px;
+    /* 알약 모양 */
     background-color: #fff;
     font-size: 0.9rem;
+    color: #333;
     outline: none;
+    cursor: pointer;
 }
 
 .search-input-wrapper {
@@ -138,52 +161,58 @@
     height: 46px;
     border: 1px solid #ddd;
     border-radius: 30px;
+    /* 알약 모양 */
     padding: 3px 5px 3px 15px;
     background: #fff;
 }
 
 .search-input-wrapper input {
+    padding: 8px;
     border: none;
     outline: none;
     width: 250px;
     font-size: 0.9rem;
 }
 
-/* 버튼 글자 깨짐 방지 및 공통 스타일 */
-.btn-search,
-.btn-write-footer {
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+.btn-search {
+    padding: 8px 22px;
     background: #2c3e50;
     color: #fff;
     border: none;
+    border-radius: 20px;
     font-weight: bold;
     cursor: pointer;
-    transition: 0.3s;
+    transition: background 0.3s;
+    white-space: nowrap;
 }
 
-.btn-search {
-    padding: 8px 22px;
-    border-radius: 20px;
+.btn-search:hover {
+    background-color: #1a252f;
 }
 
+/* 🚩 [4. 후기 작성 버튼 - Recommend 스타일] */
 .btn-write-footer {
     position: absolute;
     right: 0;
     padding: 12px 28px;
+    background: #2c3e50;
+    color: #fff;
+    border: none;
     border-radius: 30px;
-    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    white-space: nowrap;
 }
 
-.btn-search:hover,
 .btn-write-footer:hover {
     background-color: #1a252f;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
 }
 
-/* 🚩 4. 상세 페이지 스타일 */
+/* [5. 상세 페이지 스타일 - 기존 스타일 유지] */
 .detail-card {
     background: white;
     padding: 40px;

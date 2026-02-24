@@ -1,13 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import './ReviewBoardDetail.css'; 
 
-const ReviewBoardList = () => {
+const ReviewBoardList = ({ posts = [] }) => {
     const navigate = useNavigate();
-    const [posts, setPosts] = useState([]);
-    const [loading, setLoading] = useState(true);
-
+    
     const [searchType, setSearchType] = useState("title");
     const [searchKeyword, setSearchKeyword] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -16,10 +13,6 @@ const ReviewBoardList = () => {
     const SERVER_URL = "http://localhost:8080";
     const fallbackImage = "https://placehold.co/300x200?text=No+Image";
 
-    /**
-     * 🚩 [이미지 추출 로직] RecommendMain과 동일하게 적용
-     * 본문(poContent)에서 이미지를 추출하여 썸네일로 사용
-     */
     const getImageUrl = (post) => {
         if (!post) return fallbackImage;
         const { poImg, fileUrl, fileName, poContent } = post;
@@ -40,52 +33,33 @@ const ReviewBoardList = () => {
         return fallbackImage;
     };
 
-    const fetchPosts = useCallback(async (type = "", keyword = "") => {
-        setLoading(true);
-        try {
-            // 🚩 [중요] API 주소가 정확한지 확인하세요. 
-            // 보통 게시판 공통 API라면 /api/posts 등일 수 있습니다.
-            let url = `${SERVER_URL}/api/reviewboard/posts`;
-            
-            if (keyword) {
-                url += `?type=${type}&keyword=${encodeURIComponent(keyword)}`;
-            }
-            const response = await axios.get(url);
-            
-            // 데이터가 배열인지 확인 후 정렬
-            const data = Array.isArray(response.data) ? response.data : [];
-            const sortedData = [...data].sort((a, b) => (b.poNum || 0) - (a.poNum || 0));
-            
-            setPosts(sortedData);
-            setCurrentPage(1); 
-        } catch (error) {
-            console.error("리뷰 로딩 실패:", error);
-            // 에러 시 빈 배열로 설정하여 무한 로딩 방지
-            setPosts([]);
-        } finally {
-            setLoading(false);
-        }
-    }, [SERVER_URL]);
+    const filteredPosts = useMemo(() => {
+        if (!searchKeyword) return [...posts].sort((a, b) => (b.poNum || 0) - (a.poNum || 0));
 
-    useEffect(() => {
-        fetchPosts();
-    }, [fetchPosts]);
-
-    const handleSearch = () => {
-        fetchPosts(searchType, searchKeyword);
-    };
+        return posts
+            .filter(post => {
+                const keyword = searchKeyword.toLowerCase();
+                if (searchType === "title") return post.poTitle?.toLowerCase().includes(keyword);
+                if (searchType === "content") return post.poContent?.toLowerCase().includes(keyword);
+                if (searchType === "title_content") {
+                    return post.poTitle?.toLowerCase().includes(keyword) || post.poContent?.toLowerCase().includes(keyword);
+                }
+                if (searchType === "author") return String(post.poMbNum).includes(keyword);
+                return true;
+            })
+            .sort((a, b) => (b.poNum || 0) - (a.poNum || 0));
+    }, [posts, searchKeyword, searchType]);
 
     const indexOfLastPost = currentPage * postsPerPage;
     const indexOfFirstPost = indexOfLastPost - postsPerPage;
-    const currentPosts = posts.slice(indexOfFirstPost, indexOfLastPost);
-    const totalPages = Math.ceil(posts.length / postsPerPage) || 1;
+    const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
+    const totalPages = Math.ceil(filteredPosts.length / postsPerPage) || 1;
 
     const paginate = (pageNumber) => {
+        if (pageNumber < 1 || pageNumber > totalPages) return;
         setCurrentPage(pageNumber);
         window.scrollTo(0, 0);
     };
-
-    if (loading) return <div className="loading-text">리뷰를 불러오는 중...</div>;
 
     return (
         <div className="main-content">
@@ -101,7 +75,6 @@ const ReviewBoardList = () => {
                         >
                             <div className="img-placeholder">
                                 <img 
-                                    // 🚩 수정된 이미지 로직 적용
                                     src={getImageUrl(post)} 
                                     alt={post.poTitle} 
                                     onError={(e) => { 
@@ -129,26 +102,37 @@ const ReviewBoardList = () => {
                 )}
             </div>
 
+            {/* 🚩 수정된 페이지네이션 영역 */}
             <div className="list-pagination-area">
                 <div className="page-buttons">
+                    {/* 이전 버튼: 항상 노출 */}
+                    <button 
+                        className="prev" 
+                        onClick={() => paginate(currentPage - 1)}
+                        disabled={currentPage === 1}
+                    >
+                        &lt;
+                    </button>
+
+                    {/* 숫자 버튼: 인라인 스타일 제거 및 둥근 버튼 적용 */}
                     {[...Array(totalPages)].map((_, i) => (
                         <button 
                             key={i + 1} 
                             className={currentPage === i + 1 ? 'active' : ''}
                             onClick={() => paginate(i + 1)}
-                            style={{
-                                cursor: 'pointer',
-                                backgroundColor: currentPage === i + 1 ? '#2c3e50' : '#fff',
-                                color: currentPage === i + 1 ? '#fff' : '#2c3e50',
-                                border: '1px solid #2c3e50',
-                                margin: '0 4px',
-                                padding: '5px 10px',
-                                borderRadius: '4px'
-                            }}
                         >
                             {i + 1}
                         </button>
                     ))}
+
+                    {/* 다음 버튼: 항상 노출 */}
+                    <button 
+                        className="next" 
+                        onClick={() => paginate(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                    >
+                        &gt;
+                    </button>
                 </div>
 
                 <div className="footer-action-row">
@@ -169,13 +153,12 @@ const ReviewBoardList = () => {
                                 placeholder="후기 검색" 
                                 value={searchKeyword}
                                 onChange={(e) => setSearchKeyword(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                             />
-                            <button className="btn-search" onClick={handleSearch}>검색</button>
+                            <button className="btn-search">검색</button>
                         </div>
                     </div>
 
-                    <button className="btn-write-footer" onClick={() => navigate('/community/reviewboard/write')}>
+                    <button className="btn-write-footer" onClick={() => navigate('/community/write')}>
                         후기 작성
                     </button>
                 </div>

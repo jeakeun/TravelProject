@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 import { getMemberNum } from '../utils/user';
 
 function PostWrite({ user, refreshPosts, activeMenu }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useOutletContext() || {};
   
   const isEdit = location.state?.mode === 'edit';
   const existingPost = location.state?.postData;
@@ -18,7 +19,6 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
 
   useEffect(() => {
     if (isEdit && existingPost) {
-      // 서버에서 poTitle 또는 title 어느 쪽으로 내려오든 대응
       setTitle(existingPost.poTitle || existingPost.title || '');
       if (editorRef.current) {
         editorRef.current.innerHTML = existingPost.poContent || existingPost.content || '';
@@ -27,6 +27,7 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
   }, [isEdit, existingPost]);
 
   const insertImageAtCursor = (base64Data) => {
+    if (!editorRef.current) return;
     editorRef.current.focus();
     const imgHtml = `
       <div style="text-align:center; margin: 20px 0;" contenteditable="false">
@@ -53,7 +54,7 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
   };
 
   const handleSubmit = async () => {
-    const htmlContent = editorRef.current.innerHTML; 
+    const htmlContent = editorRef.current?.innerHTML || ""; 
     const textContent = htmlContent.replace(/<[^>]*>?/gm, '').trim();
     const hasImage = htmlContent.includes('<img');
 
@@ -63,14 +64,20 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
     }
 
     const formData = new FormData();
-    const mbNum = getMemberNum(user);
-    const authorNum = mbNum != null ? mbNum : 1;
+    const authorNum = user?.mbNum || user?.mb_Num || 1;
 
+    // 🚩 [핵심 수정] 서버 컨트롤러가 게시판마다 다를 수 있으므로 가능한 모든 명칭을 전송
+    // 'poTitle'을 찾는 컨트롤러와 'title'을 찾는 컨트롤러 모두 대응합니다.
     formData.append('poTitle', title);
+    formData.append('title', title);
+    
     formData.append('poContent', htmlContent);
-    formData.append('poMbNum', authorNum);
-    formData.append('mbNum', authorNum); // 자유/후기 게시판 파라미터와 동일하게
+    formData.append('content', htmlContent);
+    
+    formData.append('poMbNum', String(authorNum));
+    formData.append('mbNum', String(authorNum));
 
+    // 이미지 파일 처리
     if (imageFiles.length > 0) {
       formData.append('image', imageFiles[0]);
     }
@@ -91,20 +98,28 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
         method: isEdit ? 'put' : 'post',
         url: apiUrl,
         data: formData,
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: { 
+          'Content-Type': 'multipart/form-data' 
+        },
         withCredentials: true
       });
 
-      if (response.status === 200 || response.status === 201) {
+      if (response.status === 200 || response.status === 201 || String(response.data).includes("Success")) {
         alert(isEdit ? "글이 수정되었습니다!" : `${activeMenu}에 글이 등록되었습니다!`);
         if (refreshPosts) await refreshPosts(); 
         navigate(-1); 
       }
     } catch (error) {
-      console.error("저장 실패:", error);
-      // 서버에서 보내주는 에러 메시지를 alert에 띄워 상세 이유를 파악하도록 수정
-      const errorMsg = error.response?.data?.message || error.response?.data || "데이터 형식이 맞지 않습니다.";
-      alert(`저장 실패 (400): ${errorMsg}`);
+      console.error("저장 실패 상세:", error.response);
+      
+      let errorMsg = "서버와 통신 중 오류가 발생했습니다.";
+      if (error.response?.data) {
+        errorMsg = typeof error.response.data === 'string' 
+          ? error.response.data 
+          : (error.response.data.message || error.response.data.error || JSON.stringify(error.response.data));
+      }
+      
+      alert(`저장 실패 (400): ${errorMsg}\n\n*게시판별 서버 파라미터 이름을 확인 중입니다.`);
     }
   };
 

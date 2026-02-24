@@ -257,12 +257,10 @@
     padding-left: 20px !important;
 }
 
-/* 🚩 수정: 오른쪽 정렬을 제거하고 중앙 정렬로 변경하여 아이콘 깨짐 방지 */
 .stats-td {
-    text-align: center !important; 
+    text-align: center !important;
 }
 
-/* 🚩 수정: 아이콘과 숫자가 가로로 배치되도록 flex 설정 보강 */
 .stats-container {
     display: flex;
     gap: 15px;
@@ -270,7 +268,6 @@
     align-items: center;
 }
 
-/* 🚩 수정: 아이콘(❤️, 💬)이 나타나지 않던 문제 해결 (before 가상 요소 활용) */
 .stat-item {
     display: flex;
     align-items: center;
@@ -290,45 +287,67 @@
 }
 
 .stat-item.comment {
-    color: #1890ff; /* 파란색으로 변경하여 시각적 구분 */
+    color: #1890ff;
 }
 
 .stat-item.likes {
-    color: #e74c3c; /* 빨간색 유지 */
+    color: #e74c3c;
 }
 
-/* [4. 하단 페이지네이션 및 검색 영역] */
+/* 🚩 [4. 하단 페이지네이션 및 검색 영역 - ReviewBoard와 완벽 동기화] */
 .list-pagination-area {
-    margin-top: 40px;
+    margin-top: 50px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 25px;
+    gap: 30px;
     width: 100%;
 }
 
 .page-buttons {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: 10px;
 }
 
+/* 숫자 및 화살표 버튼 공통: 완벽한 원형 */
 .page-buttons button {
-    width: 38px;
-    height: 38px;
+    width: 40px;
+    height: 40px;
     border: 1px solid #ddd;
     background: #fff;
-    border-radius: 50%;
+    border-radius: 50% !important;
+    /* 둥근 모양 강제 */
     cursor: pointer;
     font-weight: 600;
+    font-size: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.2s ease;
+    color: #333;
+    padding: 0;
 }
 
+/* 활성화된 버튼 (다크 네이비) */
 .page-buttons button.active {
-    background: #2c3e50;
-    color: #fff;
+    background: #2c3e50 !important;
+    color: #fff !important;
+    border-color: #2c3e50 !important;
+}
+
+/* 호버 효과 */
+.page-buttons button:hover:not(:disabled) {
+    background-color: #f8f9fa;
     border-color: #2c3e50;
+    color: #2c3e50;
+}
+
+/* 비활성화 상태 */
+.page-buttons button:disabled {
+    cursor: default;
+    opacity: 0.4;
+    background-color: #fdfdfd;
 }
 
 .footer-action-row {
@@ -344,7 +363,7 @@
     display: flex;
     align-items: center;
     gap: 15px;
-    margin-right: 120px;
+    margin-right: 140px;
 }
 
 .search-select-box {

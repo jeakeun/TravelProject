@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-// 🚩 수정: 실제 파일명인 FreeBoardDetail.css로 경로 수정
 import './FreeBoardDetail.css'; 
 
-const FreeBoard = ({ posts = [], goToDetail }) => {
+const FreeBoardList = ({ posts = [], goToDetail }) => {
     const navigate = useNavigate();
     const [inputValue, setInputValue] = useState(''); 
     const [appliedSearch, setAppliedSearch] = useState(''); 
+    const [searchType, setSearchType] = useState('title'); 
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10; 
 
@@ -15,10 +15,24 @@ const FreeBoard = ({ posts = [], goToDetail }) => {
         setCurrentPage(1);
     };
 
-    const filteredItems = useMemo(() => 
-        posts.filter(p => (p.poTitle || "").toLowerCase().includes(appliedSearch.toLowerCase())), 
-        [posts, appliedSearch]
-    );
+    const filteredItems = useMemo(() => {
+        if (!appliedSearch) return posts;
+        const term = appliedSearch.toLowerCase();
+        
+        return posts.filter(p => {
+            const title = (p.poTitle || "").toLowerCase();
+            const content = (p.poContent || "").toLowerCase();
+            const author = `user ${p.poMbNum}`.toLowerCase();
+
+            switch (searchType) {
+                case 'title': return title.includes(term);
+                case 'content': return content.includes(term);
+                case 'titleContent': return title.includes(term) || content.includes(term);
+                case 'author': return author.includes(term);
+                default: return title.includes(term);
+            }
+        });
+    }, [posts, appliedSearch, searchType]);
     
     const totalPages = Math.ceil(filteredItems.length / itemsPerPage) || 1;
     const currentItems = filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -27,6 +41,11 @@ const FreeBoard = ({ posts = [], goToDetail }) => {
         if (!dateString) return "-";
         const date = new Date(dateString);
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    };
+
+    const paginate = (pageNumber) => {
+        if (pageNumber < 1 || pageNumber > totalPages) return;
+        setCurrentPage(pageNumber);
     };
 
     return (
@@ -62,31 +81,71 @@ const FreeBoard = ({ posts = [], goToDetail }) => {
                 </tbody>
             </table>
 
-            <div className="board-footer-wrapper">
-                <div className="pagination">
-                    <button className="nav-btn" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}>이전</button>
+            {/* 🚩 하단 레이아웃 영역 */}
+            <div className="list-pagination-area">
+                {/* 페이지네이션 버튼 (< > 기호 적용) */}
+                <div className="page-buttons">
+                    <button 
+                        onClick={() => paginate(currentPage - 1)}
+                        disabled={currentPage === 1}
+                    >
+                        &lt;
+                    </button>
                     {[...Array(totalPages)].map((_, i) => (
-                        <button key={i+1} className={`page-num ${currentPage === i+1 ? 'active' : ''}`} onClick={() => setCurrentPage(i+1)}>{i+1}</button>
+                        <button 
+                            key={i + 1} 
+                            className={currentPage === i + 1 ? 'active' : ''}
+                            onClick={() => paginate(i + 1)}
+                        >
+                            {i + 1}
+                        </button>
                     ))}
-                    <button className="nav-btn" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>다음</button>
+                    <button 
+                        onClick={() => paginate(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                    >
+                        &gt;
+                    </button>
                 </div>
-                <button className="write-btn" onClick={() => navigate('/community/freeboard/write')}>글쓰기</button>
-            </div>
 
-            <div className="search-container">
-                <div className="search-box">
-                    <input 
-                        type="text" 
-                        placeholder="자유 게시판 내 검색" 
-                        value={inputValue} 
-                        onChange={(e) => setInputValue(e.target.value)} 
-                        onKeyPress={(e) => e.key === 'Enter' && handleSearch()} 
-                    />
-                    <button className="search-btn" onClick={handleSearch}>검색</button>
+                {/* 검색창 및 글쓰기 버튼 레이아웃 */}
+                <div className="footer-action-row">
+                    <div className="search-footer">
+                        {/* 카테고리 선택창 */}
+                        <select 
+                            className="search-select-box"
+                            value={searchType}
+                            onChange={(e) => setSearchType(e.target.value)}
+                        >
+                            <option value="title">제목</option>
+                            <option value="content">내용</option>
+                            <option value="titleContent">제목+내용</option>
+                            <option value="author">작성자</option>
+                        </select>
+                        
+                        <div className="search-input-wrapper">
+                            <input 
+                                type="text" 
+                                placeholder="검색어를 입력하세요" 
+                                value={inputValue} 
+                                onChange={(e) => setInputValue(e.target.value)} 
+                                onKeyPress={(e) => e.key === 'Enter' && handleSearch()} 
+                            />
+                            <button className="btn-search" onClick={handleSearch}>검색</button>
+                        </div>
+                    </div>
+
+                    {/* 우측 끝 배치 글쓰기 버튼 */}
+                    <button 
+                        className="btn-write-footer" 
+                        onClick={() => navigate('/community/freeboard/write')}
+                    >
+                        글쓰기
+                    </button>
                 </div>
             </div>
         </div>
     );
 };
 
-export default FreeBoard;
+export default FreeBoardList;
