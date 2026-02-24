@@ -141,8 +141,10 @@ public class RecommendController {
     }
 
     @PostMapping("/posts/{id}/report")
-    public ResponseEntity<?> reportPost(@PathVariable(value = "id") Integer id) {
-        recommendPostService.reportPost(id);
+    public ResponseEntity<?> reportPost(@PathVariable(value = "id") Integer id, @RequestBody(required = false) Map<String, Object> body) {
+        String reason = body != null && body.get("reason") != null ? body.get("reason").toString() : "";
+        Integer mbNum = body != null && body.get("mbNum") != null ? Integer.parseInt(body.get("mbNum").toString()) : null;
+        recommendPostService.reportPost(id, reason, mbNum);
         return ResponseEntity.ok("Reported");
     }
 }

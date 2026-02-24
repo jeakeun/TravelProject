@@ -4,12 +4,12 @@
     width: 95%;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px 0;
+    padding: 12px 0;
 }
 
 .board-title {
     font-size: 1.4rem;
-    margin: 0 0 25px 5px;
+    margin: 0 0 16px 5px;
     font-weight: 800;
     color: #2c3e50;
 }
@@ -19,7 +19,7 @@
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     background-color: #fff;
 }
 
@@ -50,11 +50,11 @@
 
 /* 🚩 하단 컨트롤 영역 (페이지네이션 + 검색 + 글쓰기) */
 .list-pagination-area {
-    margin-top: 50px;
+    margin-top: 28px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 30px;
+    gap: 20px;
     width: 100%;
 }
 

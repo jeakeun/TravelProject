@@ -163,6 +163,17 @@ CREATE TABLE `history` (
     FOREIGN KEY (`ht_me_num`) REFERENCES `member` (`mb_num`)
 );
 
+DROP TABLE IF EXISTS `inquiry_box`;
+CREATE TABLE `inquiry_box` (
+    `ib_num`    int PRIMARY KEY AUTO_INCREMENT,
+    `ib_title`  varchar(200) NOT NULL,
+    `ib_content` text NOT NULL,
+    `ib_date`   datetime DEFAULT current_timestamp NOT NULL,
+    `ib_status` char(1) NOT NULL DEFAULT 'N',
+    `ib_mb_num` int NOT NULL,
+    FOREIGN KEY (`ib_mb_num`) REFERENCES `member` (`mb_num`)
+);
+
 DROP TABLE IF EXISTS `report_box`;
 CREATE TABLE `report_box` (
     `rb_num`    int PRIMARY KEY AUTO_INCREMENT,

@@ -25,6 +25,7 @@ body {
 .App .nav-area header {
     width: 100%;
     height: 70px;
+    --header-height: 70px;
     background: linear-gradient(135deg, #1a6b2a, #228B22);
     display: flex;
     align-items: center;
@@ -37,6 +38,7 @@ body {
 .App .nav-area header.scrolled {
     background: linear-gradient(135deg, #145a22, #1a7a28);
     height: 60px;
+    --header-height: 60px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.2);
 }
 
@@ -47,19 +49,44 @@ body {
     text-decoration: none;
 }
 
-.App .nav-area nav {
+/* 헤더 메뉴 + 메가메뉴 내용 너비 고정 (항상 동일) */
+.App .nav-area {
+    --nav-mega-content-width: 800px;
+}
+
+.App .nav-area .nav-and-mega {
     flex: 1;
+    position: relative;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.App .nav-area .nav-mega-inner {
+    position: relative;
+    width: 100%;
+    max-width: var(--nav-mega-content-width);
+    margin: 0 auto;
+}
+
+.App .nav-area nav {
+    width: 100%;
 }
 
 .App .nav-area .nav-list {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
     list-style: none;
-    gap: 180px;
+    gap: 0;
+    width: 100%;
 }
 
-.App .nav-area .nav-item a {
+.App .nav-area .nav-item {
+    position: relative;
+}
+
+.App .nav-area .nav-item a,
+.App .nav-area .nav-item .nav-item-trigger {
     color: #fff;
     text-decoration: none;
     font-size: 17px;
@@ -67,9 +94,17 @@ body {
     padding: 20px 0;
     position: relative;
     display: block;
+    cursor: pointer;
+    text-align: center;
 }
 
-.App .nav-area .nav-item a::after {
+.App .nav-area .nav-item .nav-item-trigger {
+    background: none;
+    border: none;
+}
+
+.App .nav-area .nav-item a::after,
+.App .nav-area .nav-item .nav-item-trigger::after {
     content: '';
     position: absolute;
     bottom: 10px;
@@ -80,96 +115,113 @@ body {
     transition: width 0.3s;
 }
 
-.App .nav-area .nav-item:hover a::after {
+.App .nav-area .nav-item:hover a::after,
+.App .nav-area .nav-item:hover .nav-item-trigger::after {
     width: 100%;
 }
 
-.App .nav-area .nav-item:hover a {
+.App .nav-area .nav-item:hover a,
+.App .nav-area .nav-item:hover .nav-item-trigger {
     color: #ffd700;
 }
 
+/* 헤더 호버 시 메가 메뉴 - 배경만 전체 너비, 내용은 헤더와 열 맞춤 */
 .App .nav-area .mega-menu-wrapper {
-    position: absolute;
-    top: 100%; /* 헤더 높이(70px/60px)에 상관없이 헤더 바로 아래에 붙음 */
+    position: fixed;
+    top: var(--header-height, 70px);
     left: 0;
+    right: 0;
     width: 100%;
-    height: 0; /* 평소에는 숨김 */
-    background: rgba(20, 90, 34, 0.92);
+    height: 0;
+    background: rgba(24, 43, 28, 0.4);
     backdrop-filter: blur(12px);
     overflow: hidden;
     transition: height 0.4s ease, visibility 0.4s;
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
     visibility: hidden;
     border-top: 1px solid rgba(0,0,0,0.05);
-    z-index: 0;
+    z-index: 9998;
+    pointer-events: none;
 }
 
 .App .nav-area:hover .mega-menu-wrapper {
-    height: 350px;
+    height: 240px;
     visibility: visible;
 }
 
 .App .nav-area .mega-menu-content {
-    max-width: 1080px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    padding: 50px 80px;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 0;
+    width: 100%;
+    padding: 40px 0 50px;
     opacity: 0;
-    transition: opacity 0.2s;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+    box-sizing: border-box;
+    z-index: 9999;
 }
 
 .App .nav-area:hover .mega-menu-content {
     opacity: 1;
+    visibility: visible;
 }
 
+/* 각 열: 위 헤더(새소식/여행지/여행게시판/고객센터) 기준으로 중앙 정렬 */
 .App .nav-area .menu-column {
-    flex: 1;
-}
-
-.menu-column:nth-child(2) {
-    /* 기존 margin-left 대신 transform 사용 */
-    transform: translateX(-80px); 
-}
-
-.menu-column:nth-child(3) {
-    /* 2번에 영향 주지 않고 3번만 왼쪽/오른쪽으로 이동 가능 */
-    transform: translateX(-138px); 
-}
-/* ================================================== */
-
-.App .nav-area .menu-column h3 {
-    color: #000000;
-    font-size: 17px;
-    margin-bottom: 20px;
-    font-weight: 700;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
 }
 
 .App .nav-area .menu-column ul {
     list-style: none;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    width: 100%;
 }
 
 .App .nav-area .menu-column li {
     margin-bottom: 12px;
+    text-align: center;
 }
 
-.App .nav-area .menu-column a {
+.App .nav-area .menu-column a,
+.App .nav-area .menu-column .nav-sub-item {
+    display: block;
     color: #ffffff;
     text-decoration: none;
-    font-size: 15px;
+    font-size: 16px;
+    font-weight: 500;
+    text-align: center;
+    margin: 0 auto;
     transition: 0.2s;
 }
 
 .App .nav-area .menu-column a:hover {
-    color: #047504;
-    padding-left: 5px;
+    color: #ffd700;
     font-weight: bold;
+}
+
+.App .nav-area .menu-column .nav-sub-item {
+    cursor: default;
+}
+
+.App .nav-area .menu-column .nav-sub-item:hover {
+    color: rgba(255,255,255,0.9);
 }
 
 .App .nav-area .user-menu {
     display: flex;
     align-items: center;
-    gap: 50px;
+    gap: 28px;
 }
 
 .App .nav-area .lang-selector {
@@ -177,21 +229,36 @@ body {
     cursor: pointer;
     color: #fff;
     padding: 5px 12px;
-    border: 1px solid rgba(255,255,255,0.4);
-    border-radius: 20px;
-    font-size: 13px;
-    color: #ffffff !important; /* 글자색 강제 지정 */
-    /* 추가: 버튼이 찌그러지지 않도록 최소 너비와 정렬 보장 */
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff !important;
     min-width: 50px; 
     display: flex;
     align-items: center;
     justify-content: center;
-    white-space: nowrap; /* 글자가 줄바꿈되어 사라지는 것 방지 */
+    white-space: nowrap;
+}
+
+/* 호버 시 트리거↔드롭다운 사이 갭 제거 - 레이아웃 영향 없이 마우스 이동 시 드롭다운 유지 */
+.App .nav-area .lang-arrow {
+    font-size: 10px;
+    color: rgba(255,255,255,0.9);
+    line-height: 1;
+}
+
+.App .nav-area .lang-selector.is-open::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: -30px;
+    right: -30px;
+    height: 200px;
 }
 
 .App .nav-area .lang-dropdown {
     position: absolute;
-    top: 40px;
+    top: 100%;
+    margin-top: 6px;
     left: 50%;
     transform: translateX(-50%);
     background: #fff;
@@ -199,10 +266,11 @@ body {
     list-style: none;
     width: 130px;
     border-radius: 8px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    padding: 10px 0;
-    z-index: 3000;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    padding: 8px 0;
+    z-index: 10001;
     animation: fadeInDown 0.3s ease;
+    text-align: center;
 }
 
 @keyframes fadeInDown {
@@ -217,14 +285,21 @@ body {
 }
 
 .App .nav-area .lang-dropdown li {
-    padding: 10px 15px;
-    font-size: 13px;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 400;
     text-align: center;
+    display: block;
 }
 
 .App .nav-area .lang-dropdown li:hover {
     background: #f0f0f0;
     color: #047504;
+    font-weight: 600;
+}
+
+.App .nav-area .lang-dropdown li.active {
+    font-weight: 600;
 }
 
 .App .nav-area .menu-link {
@@ -232,6 +307,93 @@ body {
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
+}
+
+/* 닉네임 + 화살표(드롭다운 트리거) - 화살표가 닉네임 오른쪽에 배치 */
+.App .nav-area .user-name-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.App .nav-area .user-name-text {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.App .nav-area .user-name-arrow {
+    font-size: 10px;
+    color: rgba(255,255,255,0.9);
+    line-height: 1;
+    padding: 0 2px;
+    user-select: none;
+}
+
+.App .nav-area .user-name-arrow:hover {
+    color: #fff;
+}
+
+/* 닉네임 드롭다운 호버 시 갭 제거 - 마우스 이동 시 드롭다운 유지 */
+.App .nav-area .user-name-wrap.is-open::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: -30px;
+    right: -30px;
+    height: 150px;
+}
+
+.App .nav-area .user-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 6px;
+    background: #fff;
+    color: #333;
+    list-style: none;
+    min-width: 120px;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    padding: 8px 0;
+    z-index: 10001;
+    animation: fadeInDown 0.2s ease;
+    text-align: center;
+}
+
+.App .nav-area .user-dropdown li {
+    padding: 0;
+}
+
+.App .nav-area .user-dropdown a,
+.App .nav-area .user-dropdown .user-dropdown-item {
+    display: block;
+    padding: 10px 16px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 400;
+    color: #333;
+    text-decoration: none;
+}
+
+.App .nav-area .user-dropdown a:hover,
+.App .nav-area .user-dropdown .user-dropdown-item:hover {
+    background: #f0f0f0;
+    color: #047504;
+    font-weight: 600;
+}
+
+.App .nav-area .user-dropdown a.active,
+.App .nav-area .user-dropdown .user-dropdown-item.active {
+    font-weight: 600;
+}
+
+.App .nav-area .user-dropdown .user-dropdown-item {
+    cursor: default;
 }
 
 /* 전체 사이트: 헤더 아래 본문이 겹치지 않도록 상단 여백 */
