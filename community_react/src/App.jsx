@@ -24,7 +24,8 @@ import EventBoardDetail from './components/eventboard/EventBoardDetail';
 import NewsLetterList from './components/newsletter/NewsLetterList';
 import NewsLetterDetail from './components/newsletter/NewsLetterDetail';
 
-import NewsNotice from './pages/NewsNotice';
+import NoticeList from './components/notice/NoticeList';
+import NoticeDetail from './components/notice/NoticeDetail';
 import MyPage from './pages/MyPage';
 import AdminPage from './pages/AdminPage';
 import InquiryPage from './pages/InquiryPage';
@@ -295,7 +296,8 @@ function App() {
         <Route path="/login" element={<OpenLoginModal openLogin={openLogin} />} />
         <Route path="/signup" element={<OpenSignupModal openSignup={openSignup} />} />
         <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
-        <Route path="/news/notice" element={<NewsNotice />} />
+        <Route path="/news/notice" element={<NoticeList posts={posts} />} />
+        <Route path="/news/notice/:poNum" element={<NoticeDetail />} />
         <Route path="/inquiry" element={<InquiryPage />} />
       </Route>
     </Routes>

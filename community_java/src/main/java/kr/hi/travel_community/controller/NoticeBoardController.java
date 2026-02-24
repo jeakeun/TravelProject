@@ -15,7 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.*;
 
 @RestController
-@RequestMapping("/api/freeboard")
+@RequestMapping("/api/news")
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
 @RequiredArgsConstructor
 public class NoticeBoardController {
@@ -23,13 +23,13 @@ public class NoticeBoardController {
     private final FreePostService freePostService;
 
     // 🚩 게시글 리스트 조회
-    @GetMapping("/posts")
+    @GetMapping("/notice")
     public List<Map<String, Object>> getList() {
         return freePostService.getRealAllPosts();
     }
 
     // 🚩 게시글 상세 조회
-    @GetMapping("/posts/{id}")
+    @GetMapping("/notice/{id}")
     public ResponseEntity<?> getDetail(@PathVariable("id") Integer id,
                                        @RequestParam(value = "mbNum", required = false) Integer mbNum,
                                        HttpServletRequest request,
@@ -48,18 +48,18 @@ public class NoticeBoardController {
     }
 
     // 🚩 게시글 등록 - po_mb_num을 로그인 회원 mb_num과 동일하게 설정
-    @PostMapping("/posts")
+    @PostMapping("/notice")
     public ResponseEntity<?> create(Authentication authentication,
                                     @RequestParam(value = "title", required = false) String title,
-                                    @RequestParam(value = "poTitle", required = false) String poTitle,
+                                    @RequestParam(value = "nnTitle", required = false) String nnTitle,
                                     @RequestParam(value = "content", required = false) String content,
-                                    @RequestParam(value = "poContent", required = false) String poContent,
+                                    @RequestParam(value = "nnContent", required = false) String nnContent,
                                     @RequestParam(value = "mbNum", required = false) Integer requestMbNum,
-                                    @RequestParam(value = "poMbNum", required = false) Integer requestPoMbNum,
+                                    @RequestParam(value = "nnMbNum", required = false) Integer requestPoMbNum,
                                     @RequestParam(value = "image", required = false) MultipartFile image) {
         try {
-            String finalTitle = (title != null && !title.isEmpty()) ? title : poTitle;
-            String finalContent = (content != null && !content.isEmpty()) ? content : poContent;
+            String finalTitle = (title != null && !title.isEmpty()) ? title : nnTitle;
+            String finalContent = (content != null && !content.isEmpty()) ? content : nnContent;
             if (finalTitle == null || finalContent == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "제목과 내용을 입력하세요."));
             }
@@ -85,7 +85,7 @@ public class NoticeBoardController {
     }
 
     // 🚩 게시글 수정
-    @PutMapping("/posts/{id}")
+    @PutMapping("/notice/{id}")
     public ResponseEntity<?> update(@PathVariable("id") Integer id,
                                     @RequestParam("title") String title,
                                     @RequestParam("content") String content,
@@ -100,7 +100,7 @@ public class NoticeBoardController {
     }
 
     // 🚩 게시글 삭제
-    @DeleteMapping("/posts/{id}")
+    @DeleteMapping("/notice/{id}")
     public ResponseEntity<?> delete(@PathVariable("id") Integer id) {
         try {
             freePostService.deletePost(id);
@@ -111,7 +111,7 @@ public class NoticeBoardController {
     }
 
     // 🚩 추천(좋아요) 기능
-    @PostMapping("/posts/{id}/like")
+    @PostMapping("/notice/{id}/like")
     public ResponseEntity<?> toggleLike(@PathVariable("id") Integer id, @RequestBody Map<String, Object> data) {
         Object mbNumObj = data.get("mbNum");
         int mbNum = (mbNumObj != null) ? Integer.parseInt(mbNumObj.toString()) : 1;
