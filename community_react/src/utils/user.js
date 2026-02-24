@@ -31,3 +31,4 @@ export function isAdmin(userOrMember) {
   const score = Number(userOrMember.mb_score ?? userOrMember.mbScore ?? 0);
   return String(rol).toUpperCase() === 'ADMIN' || score >= 10;
 }
+

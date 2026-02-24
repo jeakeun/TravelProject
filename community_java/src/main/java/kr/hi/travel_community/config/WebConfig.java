@@ -12,9 +12,8 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 1. 사용자님이 지정하신 절대 경로를 기준으로 설정합니다.
-        // 역슬래시(\)를 슬래시(/)로 통일하여 경로 인식을 최적화합니다.
-        String uploadPath = "C:/Users/mintpark/Documents/work/travel/TravelProject/community_java/uploads/pic/";
+        // uploads/pic 폴더를 /pic/** 으로 서빙 (user.dir 기준, 이식성 확보)
+        String uploadPath = System.getProperty("user.dir") + File.separator + "uploads" + File.separator + "pic" + File.separator;
         
         File directory = new File(uploadPath);
         
@@ -24,9 +23,7 @@ public class WebConfig implements WebMvcConfigurer {
             System.out.println("디렉토리 생성 여부: " + created);
         }
 
-        // 2. 리소스 로케이션 형식에 맞게 "file:///" 접두사를 붙여 절대 경로를 완성합니다.
-        // Windows의 경우 file:///C:/... 형식이 가장 안정적입니다.
-        String resourceLocation = "file:///" + uploadPath;
+        String resourceLocation = "file:///" + uploadPath.replace("\\", "/");
 
         // 🚩 /pic/** 요청을 물리적 폴더로 연결
         registry.addResourceHandler("/pic/**")

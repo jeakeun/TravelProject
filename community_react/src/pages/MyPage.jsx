@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { getUserId, getNickname } from "../utils/user";
+import ProfileImage from "../components/ProfileImage";
 import { getRecentViews } from "../utils/recentViews";
 import api from "../api/axios";
 import "./MyPage.css";
-
-const PROFILE_IMAGE = process.env.PUBLIC_URL + "/profile-default.png";
 
 const BOARD_OPTIONS = [
   { value: "", label: "전체" },
@@ -32,6 +31,9 @@ function MyPage() {
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
   const [bookmarks, setBookmarks] = useState([]);
   const [bottomTab, setBottomTab] = useState("posts");
+  const [photoSaving, setPhotoSaving] = useState(false);
+  const [photoVersion, setPhotoVersion] = useState(0);
+  const photoInputRef = useRef(null);
   const [myReports, setMyReports] = useState([]);
   const [myInquiries, setMyInquiries] = useState([]);
   const [detailModal, setDetailModal] = useState(null);
@@ -190,6 +192,44 @@ function MyPage() {
     setEditNicknameValue("");
   };
 
+
+  const handlePhotoChangeClick = () => {
+    photoInputRef.current?.click();
+  };
+
+  const handlePhotoFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user) return;
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      alert("이미지 파일만 업로드 가능합니다. (jpg, png, gif, webp)");
+      return;
+    }
+    setPhotoSaving(true);
+    try {
+      const formData = new FormData();
+      formData.append("photo", file);
+      const res = await api.post("/auth/update-photo", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const mbPhotoVer = res.data?.mb_photo_ver ?? res.data?.mbPhotoVer;
+      if (mbPhotoVer != null) {
+        const updated = { ...user, mb_photo_ver: mbPhotoVer, mbPhotoVer: mbPhotoVer };
+        setUser?.(updated);
+        try {
+          localStorage.setItem("user", JSON.stringify(updated));
+        } catch (_) {}
+        alert("프로필 사진이 변경되었습니다.");
+      }
+    } catch (err) {
+      const msg = err?.response?.data ?? "프로필 사진 변경에 실패했습니다.";
+      alert(typeof msg === "string" ? msg : "프로필 사진 변경에 실패했습니다.");
+    } finally {
+      setPhotoSaving(false);
+    }
+  };
+
   const saveNickname = async () => {
     const trimmed = (editNicknameValue || "").trim();
     if (!trimmed) {
@@ -275,16 +315,25 @@ function MyPage() {
         {/* 프로필 카드: 사진 + 아이디/이메일/비밀번호 */}
         <section className="mypage-profile-card">
         <div className="mypage-profile-photo-wrap">
-          <img
-            src={PROFILE_IMAGE}
-            alt="프로필"
-            className="mypage-profile-photo"
-            onError={(e) => {
-              e.target.style.display = "none";
-              e.target.nextElementSibling?.classList.add("show");
-            }}
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+            className="mypage-profile-photo-input"
+            onChange={handlePhotoFileChange}
+            aria-hidden
           />
-          <div className="mypage-profile-photo-fallback">👤</div>
+          <div className="mypage-profile-photo-box">
+            <ProfileImage user={user} className="mypage-profile-photo" alt="프로필" />
+          </div>
+          <button
+            type="button"
+            className="mypage-profile-photo-btn"
+            onClick={handlePhotoChangeClick}
+            disabled={photoSaving}
+          >
+            {photoSaving ? "업로드 중..." : "프로필 사진 변경"}
+          </button>
         </div>
         <div className="mypage-profile-info">
           <div className="mypage-info-list">

@@ -14,7 +14,9 @@ CREATE TABLE `member` (
     `mb_email`  varchar(50)    NULL,
     `mb_rol`    varchar(10)    default "USER" NOT NULL,
     `mb_score`  int    NOT NULL DEFAULT 0,
-    `mb_photo`  varchar(100) NULL,
+    `mb_photo_data` LONGBLOB NULL,
+    `mb_photo_type` varchar(30) NULL,
+    `mb_photo_ver` int NULL,
     `mb_agree`  char(1)    NOT NULL DEFAULT "N"
 );
 
