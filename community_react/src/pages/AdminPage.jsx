@@ -64,19 +64,6 @@ function AdminPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
   };
 
-  const handleInquiryStatus = async (ibNum, status) => {
-    try {
-      await api.put(`/api/admin/inquiries/${ibNum}/status`, { status });
-      setInquiries((prev) =>
-        prev.map((r) => (r.ibNum === ibNum ? { ...r, ibStatus: status } : r))
-      );
-    } catch (err) {
-      const data = err?.response?.data;
-      const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "처리 실패");
-      alert(msg);
-    }
-  };
-
   const openInquiry = (q) => {
     setExpandedInquiry(q?.ibNum === expandedInquiry ? null : q?.ibNum);
     setInquiryReply(q?.ibReply ?? "");
@@ -126,9 +113,7 @@ function AdminPage() {
       });
       setReports((prev) =>
         prev.map((r) =>
-          r.rbNum === expandedReport
-            ? { ...r, rbReply: reportReply, rbManage: "Y" }
-            : r
+          r.rbNum === expandedReport ? { ...r, rbReply: reportReply } : r
         )
       );
       alert("답변이 저장되었습니다.");
@@ -258,15 +243,6 @@ function AdminPage() {
                                 취소
                               </button>
                             )}
-                            {q.ibStatus !== "Y" && (
-                              <button
-                                type="button"
-                                className="admin-btn-process"
-                                onClick={() => handleInquiryStatus(q.ibNum, "Y")}
-                              >
-                                처리완료
-                              </button>
-                            )}
                           </div>
                         </div>
                       )}
@@ -354,24 +330,20 @@ function AdminPage() {
                             )}
                             {r.rbManage !== "D" && (
                               <>
-                                {r.rbManage !== "Y" && r.rbManage !== "D" && (
-                                  <>
-                                    <button
-                                      type="button"
-                                      className="admin-btn-delete"
-                                      onClick={() => handleReportProcess(r.rbNum, "D")}
-                                    >
-                                      삭제
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="admin-btn-hold"
-                                      onClick={() => handleReportProcess(r.rbNum, "H")}
-                                    >
-                                      보류
-                                    </button>
-                                  </>
-                                )}
+                                <button
+                                  type="button"
+                                  className="admin-btn-delete"
+                                  onClick={() => handleReportProcess(r.rbNum, "D")}
+                                >
+                                  삭제
+                                </button>
+                                <button
+                                  type="button"
+                                  className="admin-btn-hold"
+                                  onClick={() => handleReportProcess(r.rbNum, "H")}
+                                >
+                                  보류
+                                </button>
                                 <button
                                   type="button"
                                   className="admin-btn-process"

@@ -1,25 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
+import { getMemberNum } from '../utils/user';
 
-function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }) {
+function PostWrite({ user, refreshPosts, activeMenu }) {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // URL에서 ?board=event 같은 쿼리 파라미터를 읽어옵니다.
-  const queryParams = new URLSearchParams(location.search);
-  const boardParam = queryParams.get('board');
-
-  // 상위 Outlet context에서 정보 수신
-  const { user: contextUser, loadPosts } = useOutletContext() || {};
+  // 변수명 중복 해결: user 대신 contextUser라는 이름을 사용합니다.
+  const { user: contextUser } = useOutletContext() || {};
   
   // Props로 받은 user가 있으면 그것을 쓰고, 없으면 context의 user를 사용합니다.
   const currentUser = user || contextUser;
 
   const isEdit = location.state?.mode === 'edit';
   const existingPost = location.state?.postData;
-  // 수정 모드일 때 전달된 boardType 확인
-  const stateBoardType = location.state?.boardType;
 
   const [title, setTitle] = useState('');
   const [imageFiles, setImageFiles] = useState([]);      
@@ -29,9 +24,9 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
 
   useEffect(() => {
     if (isEdit && existingPost) {
-      setTitle(existingPost.poTitle || existingPost.po_title || existingPost.title || '');
+      setTitle(existingPost.poTitle || existingPost.title || '');
       if (editorRef.current) {
-        editorRef.current.innerHTML = existingPost.poContent || existingPost.po_content || existingPost.content || '';
+        editorRef.current.innerHTML = existingPost.poContent || existingPost.content || '';
       }
     }
   }, [isEdit, existingPost]);
@@ -74,7 +69,8 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
     }
 
     const formData = new FormData();
-    const authorNum = currentUser?.mbNum || currentUser?.mb_num || 1;
+    // currentUser를 참조하도록 수정
+    const authorNum = currentUser?.mbNum || currentUser?.mb_Num || 1;
 
     formData.append('poTitle', title);
     formData.append('title', title);
@@ -89,36 +85,16 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
       formData.append('image', imageFiles[0]);
     }
 
-    // API 경로 결정 로직
     const apiMap = {
       '여행 추천 게시판': 'recommend',
       '여행 후기 게시판': 'reviewboard',
-      '자유 게시판': 'freeboard',
-      '이벤트': 'event',
-      '이벤트 게시판': 'event',
-      '뉴스레터': 'newsletter'
+      '자유 게시판': 'freeboard'
     };
     
-    const path = location.pathname;
-    let urlDerivedBoard = '';
-    if (path.includes('/newsletter')) urlDerivedBoard = 'newsletter';
-    else if (path.includes('/event')) urlDerivedBoard = 'event';
-    else if (path.includes('/recommend')) urlDerivedBoard = 'recommend';
-    else if (path.includes('/freeboard')) urlDerivedBoard = 'freeboard';
-
-    let categoryPath = propsBoardType || stateBoardType || urlDerivedBoard || boardParam || apiMap[activeMenu] || 'freeboard';
-
-    if (categoryPath === '이벤트' || categoryPath === '이벤트 게시판') categoryPath = 'event';
-    if (categoryPath === '뉴스레터') categoryPath = 'newsletter';
-    if (categoryPath === '여행 추천 게시판') categoryPath = 'recommend';
-    if (categoryPath === '자유 게시판') categoryPath = 'freeboard';
-
+    const categoryPath = apiMap[activeMenu] || 'freeboard';
     const apiUrl = isEdit 
-      ? `http://localhost:8080/api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.po_num || existingPost?.id}`
+      ? `http://localhost:8080/api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.postId}`
       : `http://localhost:8080/api/${categoryPath}/posts`;
-
-    // 🚩 [추가] 브라우저 스토리지에서 토큰 가져오기 (JWT 인증용)
-    const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
 
     try {
       const response = await axios({
@@ -126,28 +102,27 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
         url: apiUrl,
         data: formData,
         headers: { 
-          'Content-Type': 'multipart/form-data',
-          // 🚩 [추가] 인증 헤더 포함
-          ...(token && { 'Authorization': `Bearer ${token}` })
+          'Content-Type': 'multipart/form-data' 
         },
         withCredentials: true
       });
 
-      if (response.status === 200 || response.status === 201 || String(response.data.message).includes("Success") || response.data === "Success") {
-        alert(isEdit ? "글이 수정되었습니다!" : "글이 등록되었습니다!");
-        if (refreshPosts) await refreshPosts();
-        else if (loadPosts) await loadPosts();
+      if (response.status === 200 || response.status === 201 || String(response.data).includes("Success")) {
+        alert(isEdit ? "글이 수정되었습니다!" : `${activeMenu}에 글이 등록되었습니다!`);
+        if (refreshPosts) await refreshPosts(); 
         navigate(-1); 
       }
     } catch (error) {
       console.error("저장 실패 상세:", error.response);
+      
       let errorMsg = "서버와 통신 중 오류가 발생했습니다.";
       if (error.response?.data) {
         errorMsg = typeof error.response.data === 'string' 
           ? error.response.data 
           : (error.response.data.message || error.response.data.error || JSON.stringify(error.response.data));
       }
-      alert(`저장 실패: ${errorMsg}`);
+      
+      alert(`저장 실패 (400): ${errorMsg}\n\n*게시판별 서버 파라미터 이름을 확인 중입니다.`);
     }
   };
 
@@ -166,7 +141,7 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
   return (
     <div className="post-write-wrapper" style={{ padding: '0 20px' }}>
       <h2 style={{ marginBottom: '20px', color: '#2c3e50', fontSize: '1.2rem', fontWeight: '800' }}>
-        {activeMenu || (location.pathname.includes('newsletter') ? '뉴스레터' : location.pathname.includes('event') ? '이벤트 게시판' : boardParam)} {isEdit ? '수정하기' : '글쓰기'}
+        {activeMenu} {isEdit ? '수정하기' : '글쓰기'}
       </h2>
 
       <div style={{ background: '#fff', padding: '40px', borderRadius: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>

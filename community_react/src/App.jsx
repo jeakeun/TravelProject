@@ -18,13 +18,13 @@ import FreeBoardDetail from './components/freeboard/FreeBoardDetail';
 import RecommendMain from './components/recommend/RecommendMain';
 import RecommendPostDetail from './components/recommend/RecommendPostDetail'; 
 
+// 🚩 [수정] 확장자(.jsx)를 제거하여 경로 인식 에러 해결 시도
 import EventBoardList from './components/eventboard/EventBoardList'; 
 import EventBoardDetail from './components/eventboard/EventBoardDetail'; 
 import NewsLetterList from './components/newsletter/NewsLetterList';
 import NewsLetterDetail from './components/newsletter/NewsLetterDetail';
 
-import NoticeList from './components/notice/NoticeList';
-import NoticeDetail from './components/notice/NoticeDetail';
+import NewsNotice from './pages/NewsNotice';
 import MyPage from './pages/MyPage';
 import AdminPage from './pages/AdminPage';
 import InquiryPage from './pages/InquiryPage';
@@ -56,7 +56,7 @@ function OpenSignupModal({ openSignup }) {
   return <Main />;
 }
 
-function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, openLogin, openSignup, showFindPw, setShowFindPw, showResetPw, setShowResetPw, resetUserId, setResetUserId, showChangePw, setShowChangePw, user, setUser, onLogin, onLogout, currentLang, setCurrentLang, posts, loadPosts, openChangePassword }) {
+function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, openLogin, openSignup, showFindPw, setShowFindPw, showResetPw, setShowResetPw, resetUserId, setResetUserId, showChangePw, setShowChangePw, user, setUser, onLogin, onLogout, currentLang, setCurrentLang, posts, openChangePassword }) {
   return (
     <div className="App">
       <Header 
@@ -99,56 +99,44 @@ function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, open
       )}
       
       <main className="main-content">
-        <Outlet context={{ user, setUser, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang, posts, loadPosts, openChangePassword }} />
+        <Outlet context={{ user, setUser, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang, posts, openChangePassword }} />
       </main>
     </div>
   );
 }
 
 function CommunityContainer({ posts, loadPosts, loading }) {
-  const [activeMenu, setActiveMenu] = useState('자유 게시판');
+  const [activeMenu, setActiveMenu] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
 
-  const queryParams = new URLSearchParams(location.search);
-  const boardParam = queryParams.get('board');
-
-  // 🚩 [뉴스레터 리다이렉트 포함] 뉴스레터 파라미터 감지 시 독립 경로로 강제 이동
-  useEffect(() => {
-    if (boardParam === 'event') {
-      navigate('/news/event/write', { replace: true });
-    } else if (boardParam === 'newsletter') {
-      navigate('/news/newsletter/write', { replace: true });
-    }
-  }, [boardParam, navigate]);
-
   const menuItems = ['여행 추천 게시판', '자유 게시판', '여행지도'];
-
   const menuPaths = useMemo(() => ({
     '여행 추천 게시판': '/community/recommend',
     '자유 게시판': '/community/freeboard',
     '여행지도': '/community/map'
   }), []);
 
-  const isDetailPage = useMemo(() => {
-    const pathParts = location.pathname.split('/');
-    const lastPart = pathParts[pathParts.length - 1];
-    return (lastPart && !isNaN(lastPart)) || lastPart === 'write' || lastPart === 'edit';
-  }, [location.pathname]);
-
   useEffect(() => {
-    const foundMenu = Object.keys(menuPaths).find(key => location.pathname.startsWith(menuPaths[key]));
+    const foundMenu = Object.keys(menuPaths).find(key => {
+      const path = menuPaths[key];
+      return location.pathname === path || location.pathname.startsWith(path + '/');
+    });
     if (foundMenu) setActiveMenu(foundMenu);
   }, [location.pathname, menuPaths]);
 
-  if (loading && !isDetailPage) return <div style={{ textAlign: 'center', marginTop: '100px' }}>로딩 중...</div>;
+  if (loading) return <div style={{ textAlign: 'center', marginTop: '100px' }}>로딩 중...</div>;
 
   return (
     <div className="container">
       <aside className="sidebar">
         <ul>
           {menuItems.map(item => (
-            <li key={item} className={activeMenu === item ? 'active' : ''} onClick={() => navigate(menuPaths[item])}>
+            <li
+              key={item}
+              className={activeMenu === item ? 'active' : ''}
+              onClick={() => navigate(menuPaths[item])}
+            >
               {item}
             </li>
           ))}
@@ -156,17 +144,16 @@ function CommunityContainer({ posts, loadPosts, loading }) {
       </aside>
       <main className="main-content">
         <Routes>
-          <Route path="recommend/write" element={<PostWrite activeMenu="여행 추천 게시판" boardType="recommend" refreshPosts={loadPosts} />} />
+          <Route path="recommend/write" element={<PostWrite activeMenu="여행 추천 게시판" refreshPosts={loadPosts} />} />
           <Route path="recommend/:id" element={<RecommendPostDetail />} />
           <Route path="recommend" element={<RecommendMain posts={posts} />} />
 
-          <Route path="freeboard/write" element={<PostWrite activeMenu="자유 게시판" boardType="freeboard" refreshPosts={loadPosts} />} />
+          <Route path="freeboard/write" element={<PostWrite activeMenu="자유 게시판" refreshPosts={loadPosts} />} />
           <Route path="freeboard/:id" element={<FreeBoardDetail />} />
           <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />
 
-          <Route path="map" element={<MainList photos={[]} activeMenu="여행지도" goToDetail={(id) => navigate(`/community/map/${id}`)} />} /> 
-          
-          <Route path="write" element={<PostWrite activeMenu={activeMenu} boardType={activeMenu === '여행 추천 게시판' ? 'recommend' : 'freeboard'} refreshPosts={loadPosts} />} />
+          <Route path="map" element={<MainList photos={[]} activeMenu="여행지도" goToDetail={(id) => navigate(`/community/map/${id}`)} />} />
+          <Route path="write" element={<PostWrite activeMenu={activeMenu} refreshPosts={loadPosts} />} />
           <Route path="/" element={<Navigate to="freeboard" replace />} />
         </Routes>
       </main>
@@ -198,46 +185,25 @@ function App() {
   const location = useLocation();
 
   const loadPosts = useCallback(async () => {
-    const path = location.pathname;
-    const pathParts = path.split('/');
-    const lastPart = pathParts[pathParts.length - 1];
-    const isActionPage = ['write', 'edit', 'login', 'signup'].includes(lastPart) || (lastPart && !isNaN(lastPart));
-    
-    if (isActionPage || path === '/') {
-       setLoading(false);
-       return;
-    }
-
     try {
       setLoading(true);
-      let endpoint = ''; 
-      if (path.includes('freeboard')) endpoint = 'freeboard';
-      else if (path.includes('event')) endpoint = 'event';
-      else if (path.includes('newsletter')) endpoint = 'newsletter';
-      else if (path.includes('recommend')) endpoint = 'recommend';
-
-      if (!endpoint) {
-        setLoading(false);
-        return;
-      }
+      let endpoint = 'recommend'; 
+      if (location.pathname.includes('freeboard')) endpoint = 'freeboard';
+      else if (location.pathname.includes('event')) endpoint = 'event';
+      else if (location.pathname.includes('newsletter')) endpoint = 'newsletter';
 
       const apiUrl = endpoint === 'recommend' 
         ? `http://localhost:8080/api/recommend/posts/all`
         : `http://localhost:8080/api/${endpoint}/posts`;
 
       const response = await axios.get(apiUrl);
-      if (response.data && Array.isArray(response.data)) {
-        const cleanData = response.data.map(post => ({
-          ...post,
-          id: post.poNum || post.po_num || post.postId 
-        }));
-        setPosts(cleanData);
-      } else {
-        setPosts([]);
-      }
+      const cleanData = response.data.map(post => ({
+        ...post,
+        id: post.poNum || post.po_num || post.postId
+      }));
+      setPosts(cleanData);
     } catch (err) {
-      console.error(`${path} 데이터 로딩 실패:`, err);
-      setPosts([]); 
+      console.error("데이터 로딩 실패:", err);
     } finally {
       setLoading(false);
     }
@@ -315,28 +281,20 @@ function App() {
           user={user} setUser={setUser}
           onLogin={handleLogin} onLogout={handleLogout}
           currentLang={currentLang} setCurrentLang={setCurrentLang}
-          posts={posts} loadPosts={loadPosts} openChangePassword={openChangePassword}
+          posts={posts} openChangePassword={openChangePassword}
         />
       }>
         <Route path="/" element={<Main />} />
-        
+        <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
         <Route path="/news/event" element={<EventBoardList posts={posts} />} />
-        <Route path="/news/event/write" element={<PostWrite activeMenu="이벤트 게시판" boardType="event" refreshPosts={loadPosts} />} />
         <Route path="/news/event/:poNum" element={<EventBoardDetail />} />
-
-        {/* 🚩 뉴스레터 독립 경로 및 boardType 설정 완료 */}
         <Route path="/news/newsletter" element={<NewsLetterList posts={posts} />} />
-        <Route path="/news/newsletter/write" element={<PostWrite activeMenu="뉴스레터" boardType="newsletter" refreshPosts={loadPosts} />} />
         <Route path="/news/newsletter/:poNum" element={<NewsLetterDetail />} />
-
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/login" element={<OpenLoginModal openLogin={openLogin} />} />
         <Route path="/signup" element={<OpenSignupModal openSignup={openSignup} />} />
-        
-        <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
-        <Route path="/news/notice" element={<NoticeList posts={posts} />} />
-        <Route path="/news/notice/:poNum" element={<NoticeDetail />} />
+        <Route path="/news/notice" element={<NewsNotice />} />
         <Route path="/inquiry" element={<InquiryPage />} />
       </Route>
     </Routes>

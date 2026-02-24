@@ -15,7 +15,7 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
   const [mapKeyword, setMapKeyword] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('식당');
 
-  // 🚩 카테고리별 아이콘 정의 (세련된 이모지 활용)
+  // 🚩 카테고리별 아이콘 정의
   const categoryIcons = {
     '식당': '🍴',
     '카페': '☕',
@@ -23,7 +23,7 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
     '숙박': '🏨'
   };
 
-  // 🚩 기본 이미지 경로 (8080 서버 법 준수)
+  // 🚩 기본 이미지 경로
   const FALLBACK_IMAGE = "https://placehold.co/300x200?text=No+Image";
 
   useEffect(() => {
@@ -68,7 +68,7 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
     }
   };
 
-  // 🚩 [필드명 수정] 서버의 poTitle 필드로 검색하도록 수정
+  // 서버의 poTitle 필드로 검색
   const filteredItems = useMemo(() => 
     photos.filter(p => (p.poTitle || p.title || "").toLowerCase().includes(appliedSearch.toLowerCase())), 
     [photos, appliedSearch]
@@ -77,7 +77,7 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage) || 1;
   const currentItems = filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  // 🚩 요청하신 검색창 디자인 스타일 객체
+  // 검색창 디자인 스타일
   const searchBoxStyle = {
     display: 'flex',
     alignItems: 'center',
@@ -110,21 +110,20 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
     fontSize: '14px'
   };
 
-  // 🚩 [추가] 메뉴별 글쓰기 경로 분기 로직
   const getWritePath = () => {
     const menu = activeMenu.trim();
     if (menu === '이벤트' || menu === '이벤트 게시판') return '/news/event/write';
     if (menu === '뉴스레터') return '/news/newsletter/write';
-    return '/community/write'; // 기본값 (자유/추천 게시판)
+    return '/community/write';
   };
 
   return (
     <div className="main-content-inner" style={{ width: '100%' }}>
-      {/* 🚩 여행지도 메뉴일 때의 레이아웃 */}
-      {activeMenu.trim() === '여행지도' || activeMenu.trim() === '여행 추천 지도' ? (
+      {/* 🚩 [수정] '국내여행' 메뉴일 때 지도 레이아웃 노출 */}
+      {activeMenu.trim() === '국내여행' ? (
         <div className="map-section" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '20px' }}>
           
-          {/* 1. 지도 상단 카테고리 필터 버튼 (아이콘 포함 세련된 디자인으로 변경) */}
+          {/* 1. 지도 상단 카테고리 필터 버튼 */}
           <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
             {['식당', '카페', '관광지', '숙박'].map(cat => (
               <button 
@@ -152,7 +151,7 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
             ))}
           </div>
           
-          {/* 2. 지도 영역 (사이즈 500x450 고정 및 왼쪽 정렬) */}
+          {/* 2. 지도 영역 */}
           <div style={{ 
             width: '500px', 
             height: '450px', 
@@ -165,11 +164,11 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
             <Mapha category={selectedCategory} keyword={mapKeyword} />
           </div>
 
-          {/* 3. 지도 하단 장소 검색창 (요청하신 디자인 및 문구 적용) */}
+          {/* 3. 지도 하단 장소 검색창 */}
           <div style={{ ...searchBoxStyle, marginTop: '10px' }}>
             <input 
               type="text" 
-              placeholder="장소를 검색하세요." 
+              placeholder="국내 여행지를 검색하세요." 
               style={searchInputStyle}
               value={mapInput} 
               onChange={(e) => setMapInput(e.target.value)} 
@@ -180,7 +179,7 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
         </div>
       ) : (
         <>
-          {/* 🚩 게시판 목록 (기존 코드 디자인 및 기능 100% 유지) */}
+          {/* 게시판 목록 레이아웃 */}
           <div className="gallery-grid">
             {currentItems.length > 0 ? (
               currentItems.map((photo, idx) => {
@@ -227,19 +226,17 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
             <button className="pagination-btn nav-btn" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>다음</button>
           </div>
 
-          {/* 🚩 글쓰기 버튼 경로 최적화 적용 */}
           {['여행 추천 게시판', '여행 후기 게시판', '자유 게시판', '이벤트', '뉴스레터'].includes(activeMenu.trim()) && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-45px', paddingRight: '20px' }}>
               <button className="write-btn" onClick={() => navigate(getWritePath())}>글쓰기</button>
             </div>
           )}
 
-          {/* 🚩 게시판 하단 검색창 디자인 통일 */}
           <div className="search-container" style={{ marginTop: '50px', display: 'flex', justifyContent: 'center' }}>
             <div style={searchBoxStyle}>
               <input 
                 type="text" 
-                placeholder="장소를 검색하세요." 
+                placeholder="검색어를 입력하세요." 
                 style={searchInputStyle}
                 value={inputValue} 
                 onChange={(e) => setInputValue(e.target.value)} 

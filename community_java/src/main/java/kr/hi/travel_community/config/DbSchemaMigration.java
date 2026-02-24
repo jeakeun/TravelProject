@@ -29,8 +29,10 @@ public class DbSchemaMigration implements ApplicationRunner {
 
     private void ensureColumns() {
         ensureColumn("inquiry_box", "ib_reply", "TEXT NULL");
+        ensureColumn("inquiry_box", "ib_seen", "CHAR(1) NULL DEFAULT 'N'");
         ensureColumn("report_box", "rb_reply", "TEXT NULL");
         ensureColumn("report_box", "rb_manage", "CHAR(1) NULL DEFAULT 'N'");
+        ensureColumn("report_box", "rb_seen", "CHAR(1) NULL DEFAULT 'N'");
     }
 
     private void ensureColumn(String table, String column, String definition) {

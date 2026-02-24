@@ -67,8 +67,20 @@ public class InquiryController {
             m.put("ibReply", ib.getIbReply() != null ? ib.getIbReply() : "");
             m.put("ibDate", ib.getIbDate());
             m.put("ibStatus", ib.getIbStatus() != null ? ib.getIbStatus() : "N");
+            m.put("ibSeen", ib.getIbSeen() != null ? ib.getIbSeen() : "N");
             list.add(m);
         }
         return ResponseEntity.ok(list);
+    }
+
+    @PutMapping("/my/{ibNum}/seen")
+    public ResponseEntity<?> markInquirySeen(@PathVariable Integer ibNum, Authentication auth) {
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof CustomUser)) {
+            return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
+        }
+        MemberVO member = ((CustomUser) auth.getPrincipal()).getMember();
+        if (member == null) return ResponseEntity.status(401).body(Map.of("error", "회원 정보를 찾을 수 없습니다."));
+        int updated = inquiryRepository.markSeen(ibNum, member.getMb_num());
+        return updated > 0 ? ResponseEntity.ok(Map.of("msg", "확인됨")) : ResponseEntity.notFound().build();
     }
 }
