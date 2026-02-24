@@ -260,8 +260,9 @@ CREATE TABLE `likes` (
 -- ==========================================
 -- 7. 초기 데이터 삽입
 -- ==========================================
-INSERT INTO `member` (mb_num, mb_uid, mb_pw, mb_email, mb_nickname, mb_rol) VALUES (1, '123', '123','123@123', 'admin', 'ADMIN');
-INSERT INTO `member` (mb_num, mb_uid, mb_pw, mb_email, mb_nickname, mb_rol) VALUES (2, '456', '456', '456@456', 'user', 'USER');
+-- 초기 회원 2명 (아이디/비번 동일, 앱 기동 시 InitialDataLoader가 BCrypt로 갱신)
+INSERT INTO `member` (mb_num, mb_uid, mb_pw, mb_email, mb_nickname, mb_rol) VALUES (1, '123', '123', 'admin@test.com', 'admin', 'ADMIN');
+INSERT INTO `member` (mb_num, mb_uid, mb_pw, mb_email, mb_nickname, mb_rol) VALUES (2, '456', '456', 'user@test.com', 'user', 'USER');
 INSERT INTO `board` (bo_name) VALUES ('전체게시판');
 INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (1, '여행 추천 게시판', 'Y', 1);
 INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (2, '여행 후기 게시판', 'Y', 1);
