@@ -2,9 +2,10 @@
 .gallery-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(2, 360px);
-    gap: 25px;
-    margin-top: 20px;
+    grid-auto-rows: minmax(280px, 360px);
+    gap: 20px;
+    margin-top: 12px;
+    margin-bottom: 8px;
 }
 
 .photo-card {
@@ -69,7 +70,7 @@
 
 /* 🚩 [2. 하단 컨트롤 영역 - Recommend 게시판 스타일 적용] */
 .list-pagination-area {
-    margin-top: 24px;
+    margin-top: 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
