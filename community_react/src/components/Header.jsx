@@ -6,10 +6,10 @@ import ProfileImage from "./ProfileImage";
 const translations = {
   KR: {
     nav_news: "새소식", nav_dest: "여행지", nav_board: "여행게시판", nav_cs: "고객센터", nav_mypage: "마이페이지", nav_admin: "관리자페이지",
-    dest_domestic: "국내", dest_overseas: "해외",
+    dest_domestic: "국내여행", dest_overseas: "해외여행",
     user_login: "로그인", user_signup: "회원가입",
     menu_news_title: "새소식", news_notice: "공지사항", news_event: "이벤트", news_letter: "뉴스레터",
-    menu_board_title: "여행게시판", board_rec: "여행 추천게시판", board_free: "자유게시판", board_qna: "여행지도",
+    menu_board_title: "여행게시판", board_rec: "여행 추천게시판", board_free: "자유게시판",
     menu_cs_title: "고객센터", cs_faq: "자주 묻는 질문", cs_inquiry: "1:1 문의", cs_guide: "이용 가이드",
   },
   EN: {
@@ -17,7 +17,7 @@ const translations = {
     dest_domestic: "Domestic", dest_overseas: "Overseas",
     user_login: "Login", user_signup: "Sign Up",
     menu_news_title: "News", news_notice: "Notice", news_event: "Event", news_letter: "Newsletter",
-    menu_board_title: "Travel Board", board_rec: "Recommendation", board_free: "Free Board", board_qna: "Travel Map",
+    menu_board_title: "Travel Board", board_rec: "Recommendation", board_free: "Free Board",
     menu_cs_title: "Customer Center", cs_faq: "FAQ", cs_inquiry: "1:1 Inquiry", cs_guide: "Guide",
   },
   JP: {
@@ -25,15 +25,15 @@ const translations = {
     dest_domestic: "国内", dest_overseas: "海外",
     user_login: "ログイン", user_signup: "会員登録",
     menu_news_title: "ニュース", news_notice: "お知らせ", news_event: "イベント", news_letter: "ニュースレター",
-    menu_board_title: "旅行掲示板", board_rec: "おすすめ掲示板", board_free: "自由掲示板", board_qna: "旅行地図",
-    menu_cs_title: "カスタマーセンター", cs_faq: "よくある質問", cs_inquiry: "1:1 お問い合わせ", cs_guide: "利用ガイド",
+    menu_board_title: "旅行掲示板", board_rec: "おすすめ掲示板", board_free: "自由掲示板",
+    menu_cs_title: "カスタ머센터", cs_faq: "よくある質問", cs_inquiry: "1:1 お問い合わせ", cs_guide: "利用ガイド",
   },
   CH: {
     nav_news: "新消息", nav_dest: "目的地", nav_board: "旅游论坛", nav_cs: "客服中心", nav_mypage: "个人主页", nav_admin: "管理员",
     dest_domestic: "国内", dest_overseas: "海外",
     user_login: "登录", user_signup: "注册",
     menu_news_title: "新消息", news_notice: "公告事项", news_event: "活动详情", news_letter: "新闻邮件",
-    menu_board_title: "旅游论坛", board_rec: "推荐论坛", board_free: "自由论坛", board_qna: "旅游地图",
+    menu_board_title: "旅游论坛", board_rec: "推荐论坛", board_free: "自由论坛",
     menu_cs_title: "客服中心", cs_faq: "常见问题", cs_inquiry: "1:1 咨询", cs_guide: "使用指南",
   }
 };
@@ -69,16 +69,23 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
               </div>
               <div className="menu-column">
                 <ul>
-                  <li><span className="nav-sub-item">{t.dest_domestic}</span></li>
-                  <li><span className="nav-sub-item">{t.dest_overseas}</span></li>
+                  <li>
+                    <Link to="/domestic">
+                      {t.dest_domestic}
+                    </Link>
+                  </li>
+                  <li>
+                    <Link to="/foreigncountry">
+                      {t.dest_overseas}
+                    </Link>
+                  </li>
                 </ul>
               </div>
               <div className="menu-column">
                 <ul>
                   <li><Link to="/community/recommend">{t.board_rec}</Link></li>
-                  {/* 🚩 여행 후기 게시판(board_review) 항목이 삭제되었습니다. */}
                   <li><Link to="/community/freeboard">{t.board_free}</Link></li>
-                  <li><Link to="/community/map">{t.board_qna}</Link></li>
+                  {/* 🚩 여행지도 링크가 삭제되었습니다. */}
                 </ul>
               </div>
               <div className="menu-column">
