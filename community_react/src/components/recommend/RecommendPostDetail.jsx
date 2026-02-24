@@ -334,7 +334,7 @@ const RecommendPostDetail = () => {
                     </div>
 
                     <button className="btn-list-return" onClick={() => navigate('/community/recommend')}>
-                        목록으로 돌아가기
+                        목록으로 
                     </button>
                 </div>
 
