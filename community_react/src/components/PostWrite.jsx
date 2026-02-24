@@ -210,5 +210,5 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
     </div>
   );
 }
-
+1
 export default PostWrite;
