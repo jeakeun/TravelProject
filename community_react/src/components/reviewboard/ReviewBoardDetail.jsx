@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
+import api from '../../api/axios';
 import { getMemberNum } from '../../utils/user';
+import { addRecentView } from '../../utils/recentViews';
 import './ReviewBoardDetail.css'; 
 
 const ReviewBoardDetail = () => {
@@ -19,7 +21,8 @@ const ReviewBoardDetail = () => {
     const [editId, setEditId] = useState(null);           
     const [editInput, setEditInput] = useState("");       
     const [replyTo, setReplyTo] = useState(null);         
-    const [replyInput, setReplyInput] = useState(""); 
+    const [replyInput, setReplyInput] = useState("");
+    const [isBookmarked, setIsBookmarked] = useState(false);
 
     const commentAreaRef = useRef(null);
     const replyInputRef = useRef(null);
@@ -52,6 +55,7 @@ const ReviewBoardDetail = () => {
             const postRes = await axios.get(`http://localhost:8080/api/${boardPath}/posts/${id}?mbNum=${currentUserNum || ''}`);
             setPost(postRes.data);
             setIsLiked(postRes.data.isLikedByMe || false);
+            addRecentView({ boardType: boardPath, poNum: Number(id), poTitle: postRes.data?.poTitle });
 
             // 댓글 타입 매핑 (서버의 Enum이나 문자열 규격에 맞춤)
             const typeParam = boardPath.toUpperCase().replace('BOARD', '');
@@ -91,6 +95,18 @@ const ReviewBoardDetail = () => {
             navigate(`/community/${boardPath}`);
         } catch (err) {
             alert("게시글 삭제 중 오류가 발생했습니다.");
+        }
+    };
+
+    const handleBookmark = async () => {
+        if (!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
+        try {
+            await api.post("/api/mypage/bookmarks", { poNum: Number(id), boardType: boardPath });
+            setIsBookmarked(true);
+            alert("즐겨찾기에 추가되었습니다.");
+        } catch (err) {
+            const msg = err?.response?.data?.msg || err?.response?.data?.error;
+            alert(msg || "즐겨찾기 추가에 실패했습니다.");
         }
     };
 
@@ -232,6 +248,11 @@ const ReviewBoardDetail = () => {
                         {isLoggedIn && (
                             <button className={`btn-like-action ${isLiked ? 'active' : ''}`} onClick={handleLikeToggle}>
                                 {isLiked ? '❤️ 추천취소' : '🤍 추천'} {post.poUp}
+                            </button>
+                        )}
+                        {isLoggedIn && (
+                            <button className="btn-bookmark-action" onClick={handleBookmark} disabled={isBookmarked} style={{ marginLeft: 8 }}>
+                                {isBookmarked ? '★ 즐겨찾기됨' : '☆ 즐겨찾기'}
                             </button>
                         )}
                         {(isLoggedIn && (Number(post.poMbNum) === Number(currentUserNum) || isAdmin)) && (

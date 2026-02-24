@@ -10,6 +10,125 @@
   background: #f8f8f8;
 }
 
+/* 프로필 칸 + 사이드바 (높이 맞춤) */
+.mypage-top-row {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 24px;
+  align-items: stretch;
+}
+
+
+/* 오른쪽 사이드바: 즐겨찾기, 최근 본 게시글 (각 5개) - 프로필 카드와 높이 맞춤 */
+.mypage-sidebar {
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mypage-sidebar-block {
+  flex: 1;
+  min-height: 120px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+}
+
+.mypage-sidebar-title {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a6b2a;
+}
+
+.mypage-sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
+}
+
+.mypage-sidebar-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-bottom: 6px;
+}
+
+.mypage-sidebar-item:hover {
+  background: #f4f7f4;
+}
+
+.mypage-sidebar-item:last-child {
+  margin-bottom: 0;
+}
+
+.mypage-sidebar-item-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mypage-sidebar-remove {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  color: #999;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mypage-sidebar-remove:hover {
+  color: #c0392b;
+  background: #fff5f5;
+}
+
+.mypage-sidebar-empty {
+  padding: 16px;
+  font-size: 13px;
+  color: #888;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .mypage-top-row {
+    flex-direction: column;
+  }
+  .mypage-sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .mypage-sidebar-block {
+    flex: 1;
+    min-width: 220px;
+    min-height: 100px;
+  }
+}
+
 .mypage-guest-msg {
   text-align: center;
   padding: 80px 20px;
@@ -26,8 +145,9 @@
   letter-spacing: -0.02em;
 }
 
-/* 프로필 카드: 사진 + 정보 (상단 고정 영역) */
+/* 프로필 카드: 사진 + 정보 (상단 고정 영역) - 사이드바와 높이 맞춤 */
 .mypage-profile-card {
+  flex: 1;
   display: flex;
   align-items: flex-start;
   gap: 40px;
@@ -35,9 +155,8 @@
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  margin-bottom: 24px;
   border: 1px solid #eee;
-  flex-shrink: 0;
+  min-width: 0;
 }
 
 .mypage-profile-photo-wrap {
@@ -314,6 +433,34 @@
   letter-spacing: -0.02em;
 }
 
+.mypage-bottom-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.mypage-bottom-tab {
+  padding: 10px 20px;
+  border: 1px solid #d1d8e0;
+  background: #fff;
+  color: #4b6584;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mypage-bottom-tab:hover {
+  border-color: #1a6b2a;
+  color: #1a6b2a;
+}
+
+.mypage-bottom-tab.active {
+  background: linear-gradient(135deg, #1a6b2a, #228B22);
+  border-color: #1a6b2a;
+  color: #fff;
+}
+
 .mypage-posts-toolbar {
   display: flex;
   align-items: center;
@@ -380,6 +527,12 @@
   min-width: 0;
 }
 
+.mypage-posts-th-date {
+  flex-shrink: 0;
+  width: 80px;
+  text-align: right;
+}
+
 .mypage-posts-loading,
 .mypage-posts-empty {
   margin: 0;
@@ -431,6 +584,80 @@
 
 .mypage-post-date {
   flex-shrink: 0;
+  width: 80px;
   font-size: 13px;
   color: #888;
+  text-align: right;
+}
+
+.mypage-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.mypage-detail-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 520px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.mypage-detail-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 20px 0;
+}
+
+.mypage-detail-body p {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #334155;
+}
+
+.mypage-detail-content {
+  white-space: pre-wrap;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin: 8px 0 16px 0 !important;
+}
+
+.mypage-detail-reply {
+  padding: 12px;
+  background: #f0fdf4;
+  border-left: 4px solid #228B22;
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+.mypage-detail-reply p {
+  margin: 8px 0 0 0;
+}
+
+.mypage-detail-close {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px;
+  background: #f1f5f9;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+}
+
+.mypage-detail-close:hover {
+  background: #e2e8f0;
 }

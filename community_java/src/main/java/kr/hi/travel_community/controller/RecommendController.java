@@ -142,9 +142,12 @@ public class RecommendController {
 
     @PostMapping("/posts/{id}/report")
     public ResponseEntity<?> reportPost(@PathVariable(value = "id") Integer id, @RequestBody(required = false) Map<String, Object> body) {
-        String reason = body != null && body.get("reason") != null ? body.get("reason").toString() : "";
+        String category = body != null && body.get("category") != null ? body.get("category").toString().trim() : "";
+        String reason = body != null && body.get("reason") != null ? body.get("reason").toString().trim() : "";
+        String combined = (category.isEmpty() ? "" : "[" + category + "] ") + reason;
+        if (combined.trim().isEmpty()) combined = "신고 사유 없음";
         Integer mbNum = body != null && body.get("mbNum") != null ? Integer.parseInt(body.get("mbNum").toString()) : null;
-        recommendPostService.reportPost(id, reason, mbNum);
+        recommendPostService.reportPost(id, combined, mbNum);
         return ResponseEntity.ok("Reported");
     }
 }

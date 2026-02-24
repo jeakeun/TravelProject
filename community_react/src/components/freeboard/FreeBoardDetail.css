@@ -211,6 +211,7 @@
 
 .btn-edit-action,
 .btn-delete-action,
+.btn-bookmark-action,
 .btn-list-return {
     padding: 10px 20px;
     border-radius: 8px;
@@ -218,6 +219,21 @@
     background: #fff;
     cursor: pointer;
     font-weight: 600;
+}
+
+.btn-bookmark-action {
+    border-color: #f1c40f;
+    color: #f39c12;
+}
+
+.btn-bookmark-action:hover:not(:disabled) {
+    background: #f1c40f;
+    color: #fff;
+}
+
+.btn-bookmark-action:disabled {
+    opacity: 0.7;
+    cursor: default;
 }
 
 .btn-list-return {

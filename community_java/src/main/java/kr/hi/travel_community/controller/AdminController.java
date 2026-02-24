@@ -44,37 +44,76 @@ public class AdminController {
 
     @PutMapping("/inquiries/{ibNum}/status")
     public ResponseEntity<?> updateInquiryStatus(@PathVariable Integer ibNum, @RequestBody Map<String, String> body, Authentication auth) {
-        if (!isAdmin(auth))
-            return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
-        String status = body.getOrDefault("status", "Y");
-        adminService.updateInquiryStatus(ibNum, status);
-        return ResponseEntity.ok(Map.of("msg", "처리 완료"));
+        try {
+            if (!isAdmin(auth))
+                return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
+            String status = body.getOrDefault("status", "Y");
+            adminService.updateInquiryStatus(ibNum, status);
+            return ResponseEntity.ok(Map.of("msg", "처리 완료"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "처리 중 오류가 발생했습니다."));
+        }
     }
 
     @PutMapping("/inquiries/{ibNum}/reply")
     public ResponseEntity<?> updateInquiryReply(@PathVariable Integer ibNum, @RequestBody Map<String, String> body, Authentication auth) {
-        if (!isAdmin(auth))
-            return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
-        String reply = body != null ? body.get("reply") : null;
-        adminService.updateInquiryReply(ibNum, reply != null ? reply : "");
-        return ResponseEntity.ok(Map.of("msg", "답변이 저장되었습니다."));
+        try {
+            if (!isAdmin(auth))
+                return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
+            String reply = body != null ? body.get("reply") : null;
+            adminService.updateInquiryReply(ibNum, reply != null ? reply : "");
+            return ResponseEntity.ok(Map.of("msg", "답변이 저장되었습니다."));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "저장 중 오류가 발생했습니다. DB에 ib_reply 컬럼이 있는지 확인하세요."));
+        }
     }
 
     @PutMapping("/reports/{rbNum}/status")
     public ResponseEntity<?> updateReportStatus(@PathVariable Integer rbNum, @RequestBody Map<String, String> body, Authentication auth) {
-        if (!isAdmin(auth))
-            return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
-        String status = body.getOrDefault("status", "Y");
-        adminService.updateReportStatus(rbNum, status);
-        return ResponseEntity.ok(Map.of("msg", "처리 완료"));
+        try {
+            if (!isAdmin(auth))
+                return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
+            String status = body.getOrDefault("status", "Y");
+            adminService.updateReportStatus(rbNum, status);
+            return ResponseEntity.ok(Map.of("msg", "처리 완료"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "처리 중 오류가 발생했습니다."));
+        }
+    }
+
+    @PutMapping("/reports/{rbNum}/process")
+    public ResponseEntity<?> processReport(@PathVariable Integer rbNum, @RequestBody Map<String, String> body, Authentication auth) {
+        try {
+            if (!isAdmin(auth))
+                return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
+            String action = body != null ? body.get("action") : null;
+            if (action == null || action.isBlank()) action = "Y";
+            if (!"Y".equals(action) && !"D".equals(action) && !"H".equals(action)) {
+                action = "Y";
+            }
+            adminService.processReport(rbNum, action);
+            String msg = "Y".equals(action) ? "처리 완료" : "D".equals(action) ? "해당 게시글이 삭제 처리되었습니다." : "보류 처리되었습니다.";
+            return ResponseEntity.ok(Map.of("msg", msg));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "처리 중 오류가 발생했습니다."));
+        }
     }
 
     @PutMapping("/reports/{rbNum}/reply")
     public ResponseEntity<?> updateReportReply(@PathVariable Integer rbNum, @RequestBody Map<String, String> body, Authentication auth) {
-        if (!isAdmin(auth))
-            return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
-        String reply = body != null ? body.get("reply") : null;
-        adminService.updateReportReply(rbNum, reply != null ? reply : "");
-        return ResponseEntity.ok(Map.of("msg", "답변이 저장되었습니다."));
+        try {
+            if (!isAdmin(auth))
+                return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
+            String reply = body != null ? body.get("reply") : null;
+            adminService.updateReportReply(rbNum, reply != null ? reply : "");
+            return ResponseEntity.ok(Map.of("msg", "답변이 저장되었습니다."));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("error", "저장 중 오류가 발생했습니다. DB에 rb_reply 컬럼이 있는지 확인하세요."));
+        }
     }
 }

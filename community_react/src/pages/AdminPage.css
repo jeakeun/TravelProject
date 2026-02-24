@@ -48,6 +48,41 @@
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
+/* 1:1 문의함 화면 확대 */
+.admin-section-inquiry {
+  padding: 32px 36px;
+  min-height: 400px;
+}
+
+.admin-section-inquiry .admin-section-title {
+  font-size: 1.25rem;
+  margin-bottom: 20px;
+}
+
+.admin-section-inquiry .admin-message-card {
+  padding: 20px 24px;
+}
+
+.admin-section-inquiry .admin-message-subject {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.admin-section-inquiry .admin-message-preview {
+  font-size: 15px;
+}
+
+.admin-section-inquiry .admin-message-full {
+  font-size: 15px;
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+
+.admin-section-inquiry .admin-reply-form textarea {
+  min-height: 140px;
+  font-size: 15px;
+}
+
 .admin-section-title {
   font-size: 1.1rem;
   font-weight: 700;
@@ -117,6 +152,38 @@
 }
 
 .admin-btn-process:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.admin-btn-delete {
+  padding: 6px 14px;
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.admin-btn-delete:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.admin-btn-hold {
+  padding: 6px 14px;
+  background: #f59e0b;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.admin-btn-hold:hover {
   opacity: 0.9;
   transform: translateY(-1px);
 }
@@ -317,6 +384,14 @@
 .admin-post-badge.done {
   background: #d1fae5;
   color: #065f46;
+}
+.admin-post-badge.deleted {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.admin-post-badge.hold {
+  background: #fef3c7;
+  color: #b45309;
 }
 
 .admin-post-title {

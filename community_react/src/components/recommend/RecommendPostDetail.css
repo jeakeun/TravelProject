@@ -87,9 +87,10 @@
     justify-content: center;
 }
 
-/* 추천 및 신고 버튼 공통 스타일 */
+/* 추천, 신고, 즐겨찾기 버튼 공통 스타일 */
 .btn-like-action,
-.btn-report-action {
+.btn-report-action,
+.btn-bookmark-action {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -126,6 +127,22 @@
 .btn-report-action:hover {
     background-color: #ff4d4f;
     color: #fff;
+}
+
+.btn-bookmark-action {
+    border-color: #f1c40f;
+    color: #f39c12;
+}
+
+.btn-bookmark-action:hover:not(:disabled) {
+    background-color: #f1c40f;
+    color: #fff;
+    border-color: #f1c40f;
+}
+
+.btn-bookmark-action:disabled {
+    opacity: 0.7;
+    cursor: default;
 }
 
 /* 목록으로 돌아가기 버튼 (리스트 페이지 테마 컬러 적용) */

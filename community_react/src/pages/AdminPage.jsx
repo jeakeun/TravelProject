@@ -69,7 +69,9 @@ function AdminPage() {
         prev.map((r) => (r.ibNum === ibNum ? { ...r, ibStatus: status } : r))
       );
     } catch (err) {
-      alert("처리 실패");
+      const data = err?.response?.data;
+      const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "처리 실패");
+      alert(msg);
     }
   };
 
@@ -95,7 +97,9 @@ function AdminPage() {
       );
       alert("답변이 저장되었습니다.");
     } catch (err) {
-      alert("저장 실패");
+      const data = err?.response?.data;
+      const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "저장 실패");
+      alert(msg);
     } finally {
       setSavingReply(false);
     }
@@ -123,20 +127,26 @@ function AdminPage() {
       );
       alert("답변이 저장되었습니다.");
     } catch (err) {
-      alert("저장 실패");
+      const data = err?.response?.data;
+      const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "저장 실패");
+      alert(msg);
     } finally {
       setSavingReply(false);
     }
   };
 
-  const handleReportStatus = async (rbNum, status) => {
+  const handleReportProcess = async (rbNum, action) => {
     try {
-      await api.put(`/api/admin/reports/${rbNum}/status`, { status });
+      const res = await api.put(`/api/admin/reports/${rbNum}/process`, { action });
       setReports((prev) =>
-        prev.map((r) => (r.rbNum === rbNum ? { ...r, rbManage: status } : r))
+        prev.map((r) => (r.rbNum === rbNum ? { ...r, rbManage: action } : r))
       );
+      alert(res?.data?.msg ?? "처리되었습니다.");
+      setExpandedReport(null);
     } catch (err) {
-      alert("처리 실패");
+      const data = err?.response?.data;
+      const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "처리 실패");
+      alert(msg);
     }
   };
 
@@ -167,9 +177,9 @@ function AdminPage() {
         </button>
       </div>
 
-      {/* 1:1 문의 - 쪽지 형태 */}
+      {/* 1:1 문의 - 쪽지 형태 (확대) */}
       {activeTab === "inquiry" && (
-        <div className="admin-section">
+        <div className="admin-section admin-section-inquiry">
           <h2 className="admin-section-title">1:1 문의함</h2>
           {inquiries.length === 0 ? (
             <p className="admin-empty">등록된 문의가 없습니다.</p>
@@ -209,7 +219,7 @@ function AdminPage() {
                           value={inquiryReply}
                           onChange={(e) => setInquiryReply(e.target.value)}
                           placeholder="답변을 입력하세요"
-                          rows={4}
+                          rows={6}
                         />
                         <div className="admin-reply-actions">
                           <button
@@ -257,8 +267,8 @@ function AdminPage() {
                   <div className="admin-post-meta">
                     <span>신고 대상: {r.rbName} #{r.rbId}</span>
                     <span>신고자 #{r.rbMbNum}</span>
-                    <span className={`admin-post-badge ${r.rbManage === "Y" ? "done" : ""}`}>
-                      {r.rbManage === "Y" ? "처리완료" : "대기"}
+                    <span className={`admin-post-badge ${r.rbManage === "Y" ? "done" : r.rbManage === "D" ? "deleted" : r.rbManage === "H" ? "hold" : ""}`}>
+                      {r.rbManage === "Y" ? "처리완료" : r.rbManage === "D" ? "삭제됨" : r.rbManage === "H" ? "보류" : "대기"}
                     </span>
                   </div>
                   <div className="admin-post-title">신고 사유</div>
@@ -282,7 +292,7 @@ function AdminPage() {
                           value={reportReply}
                           onChange={(e) => setReportReply(e.target.value)}
                           placeholder="관리자 답변을 입력하세요"
-                          rows={4}
+                          rows={6}
                         />
                         <div className="admin-reply-actions">
                           <button
@@ -293,14 +303,30 @@ function AdminPage() {
                           >
                             {savingReply ? "저장 중..." : "답변 저장"}
                           </button>
-                          {r.rbManage !== "Y" && (
-                            <button
-                              type="button"
-                              className="admin-btn-process"
-                              onClick={() => handleReportStatus(r.rbNum, "Y")}
-                            >
-                              처리완료
-                            </button>
+                          {r.rbManage !== "Y" && r.rbManage !== "D" && (
+                            <>
+                              <button
+                                type="button"
+                                className="admin-btn-delete"
+                                onClick={() => handleReportProcess(r.rbNum, "D")}
+                              >
+                                삭제
+                              </button>
+                              <button
+                                type="button"
+                                className="admin-btn-hold"
+                                onClick={() => handleReportProcess(r.rbNum, "H")}
+                              >
+                                보류
+                              </button>
+                              <button
+                                type="button"
+                                className="admin-btn-process"
+                                onClick={() => handleReportProcess(r.rbNum, "Y")}
+                              >
+                                처리완료
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>

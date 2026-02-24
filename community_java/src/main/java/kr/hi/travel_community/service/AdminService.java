@@ -1,15 +1,23 @@
 package kr.hi.travel_community.service;
 
+import kr.hi.travel_community.entity.FreePost;
 import kr.hi.travel_community.entity.InquiryBox;
+import kr.hi.travel_community.entity.RecommendPost;
 import kr.hi.travel_community.entity.ReportBox;
+import kr.hi.travel_community.entity.ReviewPost;
+import kr.hi.travel_community.repository.FreeRepository;
 import kr.hi.travel_community.repository.InquiryRepository;
+import kr.hi.travel_community.repository.RecommendRepository;
 import kr.hi.travel_community.repository.ReportRepository;
+import kr.hi.travel_community.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -18,6 +26,9 @@ public class AdminService {
 
     private final InquiryRepository inquiryRepository;
     private final ReportRepository reportRepository;
+    private final RecommendRepository recommendRepository;
+    private final ReviewRepository reviewRepository;
+    private final FreeRepository freeRepository;
 
     public List<Map<String, Object>> getAllInquiries() {
         return inquiryRepository.findAllByOrderByIbNumDesc().stream()
@@ -56,11 +67,46 @@ public class AdminService {
         }
     }
 
+    /** 신고 처리: action = Y(처리완료), D(삭제), H(보류) */
+    @Transactional
+    public void processReport(Integer rbNum, String action) {
+        ReportBox rb = reportRepository.findById(rbNum).orElse(null);
+        if (rb == null) return;
+        rb.setRbManage(action != null ? action : "Y");
+        reportRepository.save(rb);
+        if ("D".equals(action)) {
+            deleteReportedContent(rb.getRbName(), rb.getRbId());
+        }
+    }
+
+    private void deleteReportedContent(String rbName, Integer rbId) {
+        if (rbId == null) return;
+        try {
+            if ("RECOMMEND".equals(rbName)) {
+                recommendRepository.findByPoNumAndPoDel(rbId, "N").ifPresent(p -> {
+                    p.setPoDel("Y");
+                    recommendRepository.save(p);
+                });
+            } else if ("REVIEW".equals(rbName) || "REVIEWBOARD".equals(rbName)) {
+                reviewRepository.findByPoNumAndPoDel(rbId, "N").ifPresent(p -> {
+                    p.setPoDel("Y");
+                    reviewRepository.save(p);
+                });
+            } else if ("FREE".equals(rbName) || "FREEBOARD".equals(rbName)) {
+                freeRepository.findByPoNumAndPoDel(rbId, "N").ifPresent(p -> {
+                    p.setPoDel("Y");
+                    freeRepository.save(p);
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public void updateReportReply(Integer rbNum, String reply) {
         ReportBox rb = reportRepository.findById(rbNum).orElse(null);
         if (rb != null) {
             rb.setRbReply(reply);
-            rb.setRbManage("Y");
             reportRepository.save(rb);
         }
     }

@@ -12,4 +12,6 @@ public interface ReportRepository extends JpaRepository<ReportBox, Integer> {
     long countByRbIdAndRbName(Integer rbId, String rbName);
 
     List<ReportBox> findAllByOrderByRbNumDesc();
+
+    List<ReportBox> findByRbMbNumOrderByRbNumDesc(Integer rbMbNum);
 }

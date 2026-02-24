@@ -10,4 +10,6 @@ import java.util.List;
 public interface InquiryRepository extends JpaRepository<InquiryBox, Integer> {
 
     List<InquiryBox> findAllByOrderByIbNumDesc();
+
+    List<InquiryBox> findByIbMbNumOrderByIbNumDesc(Integer ibMbNum);
 }
