@@ -134,7 +134,6 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
         <div className="mega-menu-content">
 
           <div className="menu-column">
-            <h3>{t.menu_news_title}</h3>
             <ul>
               <li><Link to="/news/notice">{t.news_notice}</Link></li>
               <li><Link to="/">{t.news_event}</Link></li>
@@ -143,7 +142,6 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
           </div>
 
           <div className="menu-column">
-            <h3>{t.menu_board_title}</h3>
             <ul>
               <li><Link to="/community/recommend">{t.board_rec}</Link></li>
               <li><Link to="/community/reviewboard">{t.board_review}</Link></li>
@@ -153,7 +151,6 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
           </div>
 
           <div className="menu-column">
-            <h3>{t.menu_cs_title}</h3>
             <ul>
               <li><Link to="/">{t.cs_faq}</Link></li>
               <li><Link to="/">{t.cs_inquiry}</Link></li>
