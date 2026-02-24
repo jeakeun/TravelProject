@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { getUserId, isAdmin } from "../utils/user";
+import { getUserId } from "../utils/user";
 
 const translations = {
   KR: {
@@ -47,34 +47,6 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
             <li className="nav-item"><Link to="/">{t.nav_news}</Link></li>
             <li className="nav-item"><Link to="/community/recommend">{t.nav_board}</Link></li>
             <li className="nav-item"><Link to="/">{t.nav_cs}</Link></li>
-
-            <li className="nav-item">
-              {user ? (
-                <Link to="/mypage">{t.nav_mypage}</Link>
-              ) : (
-                <span
-                  role="button"
-                  className="nav-item mypage-guest"
-                  style={{
-                    cursor: "pointer",
-                    color: "#fff",
-                    textDecoration: "none",
-                    display: "block",
-                    padding: "20px 0"
-                  }}
-                  onClick={() => {
-                    alert("로그인이 필요한 서비스입니다.");
-                    openLogin?.();
-                  }}
-                >
-                  {t.nav_mypage}
-                </span>
-              )}
-            </li>
-
-            {user && isAdmin(user) && (
-              <li className="nav-item"><Link to="/">{t.nav_admin}</Link></li>
-            )}
           </ul>
         </nav>
 
@@ -99,7 +71,9 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
 
           {user ? (
             <>
-              <span className="menu-link">{getUserId(user)}님</span>
+              <Link to="/mypage" className="menu-link" style={{ textDecoration: "none", color: "inherit" }}>
+                {getUserId(user)}님
+              </Link>
               <span
                 className="menu-link"
                 style={{ cursor: "pointer" }}
