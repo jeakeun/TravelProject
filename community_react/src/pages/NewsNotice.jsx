@@ -111,18 +111,18 @@ const NewsNotice = ({ goToDetail }) => {
                 </table>
 
                 <div className="board-footer-wrapper">
-                    <div className="pagination">
-                        <button className="nav-btn" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}>이전</button>
+                    <div className="page-buttons">
+                        <button disabled={currentPage === 1} onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}>&lt;</button>
                         {[...Array(totalPages)].map((_, i) => (
                             <button 
                                 key={i+1} 
-                                className={`page-num ${currentPage === i+1 ? 'active' : ''}`} 
+                                className={currentPage === i+1 ? 'active' : ''} 
                                 onClick={() => setCurrentPage(i+1)}
                             >
                                 {i+1}
                             </button>
                         ))}
-                        <button className="nav-btn" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>다음</button>
+                        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>&gt;</button>
                     </div>
 
                     {isAdminUser && (

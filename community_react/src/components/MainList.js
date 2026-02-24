@@ -218,12 +218,12 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
             )}
           </div>
 
-          <div className="pagination" style={{ marginTop: '40px' }}>
-            <button className="pagination-btn nav-btn" onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}>이전</button>
+          <div className="page-buttons" style={{ marginTop: '40px' }}>
+            <button className="pagination-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}>&lt;</button>
             {[...Array(totalPages)].map((_, i) => (
               <button key={i+1} className={`pagination-btn ${currentPage === i+1 ? 'active' : ''}`} onClick={() => setCurrentPage(i+1)}>{i+1}</button>
             ))}
-            <button className="pagination-btn nav-btn" onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>다음</button>
+            <button className="pagination-btn" disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>&gt;</button>
           </div>
 
           {['여행 추천 게시판', '여행 후기 게시판', '자유 게시판', '이벤트', '뉴스레터'].includes(activeMenu.trim()) && (
