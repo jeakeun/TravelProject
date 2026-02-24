@@ -85,7 +85,6 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
                 <ul>
                   <li><Link to="/community/recommend">{t.board_rec}</Link></li>
                   <li><Link to="/community/freeboard">{t.board_free}</Link></li>
-                  <li><Link to="/community/map">{t.board_map}</Link></li>
                 </ul>
               </div>
               <div className="menu-column">
