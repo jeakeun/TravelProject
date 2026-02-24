@@ -30,6 +30,9 @@ public class InquiryBox {
     @Column(name = "ib_status", nullable = false, length = 1)
     private String ibStatus = "N";
 
+    @Column(name = "ib_seen")
+    private String ibSeen;
+
     @Column(name = "ib_mb_num", nullable = false)
     private Integer ibMbNum;
 }

@@ -22,6 +22,9 @@ public class ReportBox {
     @Column(name = "rb_manage")
     private String rbManage;
 
+    @Column(name = "rb_seen")
+    private String rbSeen;
+
     @Column(name = "rb_id")
     private Integer rbId;
 

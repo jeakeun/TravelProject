@@ -148,6 +148,34 @@ function MyPage() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   };
 
+  const isReportUnseen = (r) =>
+    r.rbReply &&
+    String(r.rbReply).trim() &&
+    !/^[Yy]$/.test(r.rbSeen ?? "");
+  const isInquiryUnseen = (q) =>
+    ((q.ibReply && String(q.ibReply).trim()) || q.ibStatus === "Y") &&
+    !/^[Yy]$/.test(q.ibSeen ?? "");
+
+  const openReportDetail = (r) => {
+    setDetailModal({ type: "report", data: r });
+    if (isReportUnseen(r)) {
+      setMyReports((prev) =>
+        prev.map((x) => (x.rbNum === r.rbNum ? { ...x, rbSeen: "Y" } : x))
+      );
+      api.put(`/api/mypage/reports/${r.rbNum}/seen`).catch(() => {});
+    }
+  };
+
+  const openInquiryDetail = (q) => {
+    setDetailModal({ type: "inquiry", data: q });
+    if (isInquiryUnseen(q)) {
+      setMyInquiries((prev) =>
+        prev.map((x) => (x.ibNum === q.ibNum ? { ...x, ibSeen: "Y" } : x))
+      );
+      api.put(`/api/inquiry/my/${q.ibNum}/seen`).catch(() => {});
+    }
+  };
+
   const startEditEmail = () => {
     setEditEmailValue(user?.mb_email ?? user?.mb_Email ?? "");
     setIsEditingEmail(true);
@@ -297,6 +325,9 @@ function MyPage() {
   }
 
   const email = user.mb_email ?? user.mb_Email ?? "-";
+
+  const reportsWithReply = myReports.filter(isReportUnseen).length;
+  const inquiriesWithReply = myInquiries.filter(isInquiryUnseen).length;
 
   // 게시판 선택 + 검색어로 필터
   const filteredPosts = myPosts.filter((post) => {
@@ -518,12 +549,22 @@ function MyPage() {
                   onClick={() => setBottomTab("reports")}
                 >
                   신고함
+                  {reportsWithReply > 0 && (
+                    <span className="mypage-tab-badge" title="답변 있음">
+                      {reportsWithReply}
+                    </span>
+                  )}
                 </button>
                 <button
                   className={`mypage-bottom-tab ${bottomTab === "inquiries" ? "active" : ""}`}
                   onClick={() => setBottomTab("inquiries")}
                 >
                   1:1 문의함
+                  {inquiriesWithReply > 0 && (
+                    <span className="mypage-tab-badge" title="답변 있음">
+                      {inquiriesWithReply}
+                    </span>
+                  )}
                 </button>
               </div>
               {bottomTab === "posts" && (
@@ -594,7 +635,7 @@ function MyPage() {
                         <li
                           key={r.rbNum}
                           className="mypage-posts-item"
-                          onClick={() => setDetailModal({ type: "report", data: r })}
+                          onClick={() => openReportDetail(r)}
                         >
                           <span className="mypage-post-board">{r.rbName} #{r.rbId}</span>
                           <span className="mypage-post-title">{(r.rbContent || "").slice(0, 40)}{(r.rbContent || "").length > 40 ? "..." : ""}</span>
@@ -621,7 +662,7 @@ function MyPage() {
                         <li
                           key={q.ibNum}
                           className="mypage-posts-item"
-                          onClick={() => setDetailModal({ type: "inquiry", data: q })}
+                          onClick={() => openInquiryDetail(q)}
                         >
                           <span className="mypage-post-board">{(q.ibTitle || "").slice(0, 15)}{(q.ibTitle || "").length > 15 ? "..." : ""}</span>
                           <span className="mypage-post-title">{(q.ibContent || "").slice(0, 40)}{(q.ibContent || "").length > 40 ? "..." : ""}</span>

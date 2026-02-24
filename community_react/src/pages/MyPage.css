@@ -503,6 +503,33 @@
   color: #fff;
 }
 
+.mypage-bottom-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mypage-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  background: #e74c3c;
+  border-radius: 9px;
+  line-height: 1;
+}
+
+.mypage-bottom-tab.active .mypage-tab-badge {
+  background: rgba(255, 255, 255, 0.9);
+  color: #1a6b2a;
+}
+
 .mypage-posts-toolbar {
   display: flex;
   align-items: center;

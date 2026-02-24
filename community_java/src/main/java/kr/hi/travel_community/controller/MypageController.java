@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -170,9 +171,22 @@ public class MypageController {
             m.put("rbContent", rb.getRbContent());
             m.put("rbReply", rb.getRbReply());
             m.put("rbManage", rb.getRbManage());
+            m.put("rbSeen", rb.getRbSeen() != null ? rb.getRbSeen() : "N");
             result.add(m);
         }
         return ResponseEntity.ok(result);
+    }
+
+    @PutMapping("/reports/{rbNum}/seen")
+    public ResponseEntity<?> markReportSeen(@PathVariable Integer rbNum, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof CustomUser)) {
+            return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
+        }
+        MemberVO member = ((CustomUser) authentication.getPrincipal()).getMember();
+        if (member == null) return ResponseEntity.status(401).body(Map.of("error", "회원 정보를 찾을 수 없습니다."));
+        int updated = reportRepository.markSeen(rbNum, member.getMb_num());
+        return updated > 0 ? ResponseEntity.ok(Map.of("msg", "확인됨")) : ResponseEntity.notFound().build();
     }
 
     private String resolvePostTitle(String poType, Integer poNum) {
