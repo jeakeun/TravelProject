@@ -1,27 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
+// 🚩 [에러 해결] 네 파일 이름인 EventBoardDetail.css로 정확히 연결했다. 이제 에러 안 날 거야.
 import './EventBoardDetail.css'; 
 
 const EventBoardDetail = () => {
-    // App.jsx 라우트 설정 <Route path="/event/:poNum" ... /> 에 맞춰 poNum 수신
+    // App.jsx 라우트 설정 <Route path="/news/event/:poNum" ... /> 에 맞춰 poNum 수신
     const { poNum } = useParams(); 
     const navigate = useNavigate();
     
-    // App.js 또는 상위 context에서 주입되는 유저 정보 및 포스트 갱신 함수
-    const { user, refreshPosts } = useOutletContext() || {}; 
+    // 상위 context에서 주입되는 데이터 및 함수
+    const { user, loadPosts } = useOutletContext() || {}; 
     
     const [post, setPost] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isLiked, setIsLiked] = useState(false);
 
     const isLoggedIn = !!user; 
-    // DB의 mb_num 또는 세션의 mbNum 대응
+    // 유저 번호 추출 (mb_num 또는 mbNum 대응)
     const currentUserNum = user ? (user.mb_num || user.mbNum) : null; 
-    // DB 스키마 mb_rol 컬럼이 'ADMIN'인 경우 관리자로 판단
-    const isAdmin = user ? (user.mb_rol === 'ADMIN' || user.mbLevel >= 10) : false; 
+    // 관리자 여부 판단 (mb_rol 또는 mbRol 대응)
+    const isAdmin = user ? (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN') : false; 
 
-    // poNum이 숫자인지 확인
     const isNumericId = poNum && !isNaN(Number(poNum));
 
     const fetchPostData = useCallback(async () => {
@@ -30,16 +30,27 @@ const EventBoardDetail = () => {
             setLoading(true);
             // 이벤트 전용 엔드포인트 호출
             const postRes = await axios.get(`http://localhost:8080/api/event/posts/${poNum}?mbNum=${currentUserNum || ''}`);
-            setPost(postRes.data);
             
-            // 백엔드 반환 필드명에 따라 추천 여부 확인
-            setIsLiked(postRes.data.isLikedByMe || false);
-            setLoading(false);
+            const data = postRes.data;
+            // 필드명 정규화 (Snake case / Camel case 모두 대응하여 데이터 유실 방지)
+            const normalizedData = {
+                ...data,
+                po_title: data.po_title || data.poTitle || "",
+                po_content: data.po_content || data.poContent || "",
+                po_view: data.po_view || data.poView || 0,
+                po_up: data.po_up || data.poUp || 0,
+                po_date: data.po_date || data.poDate
+            };
+
+            setPost(normalizedData);
+            setIsLiked(data.isLikedByMe || false);
         } catch (err) {
+            console.error("데이터 로딩 실패:", err);
             if (err.response?.status === 404) {
                 alert("게시글을 찾을 수 없습니다.");
-                navigate(`/event`);
+                navigate(`/news/event`); 
             }
+        } finally {
             setLoading(false);
         }
     }, [poNum, navigate, isNumericId, currentUserNum]);
@@ -56,8 +67,11 @@ const EventBoardDetail = () => {
             // 이벤트 전용 삭제 API 호출
             await axios.delete(`http://localhost:8080/api/event/posts/${poNum}`);
             alert("게시글이 삭제되었습니다.");
-            if (refreshPosts) refreshPosts();
-            navigate(`/event`); // 삭제 후 이벤트 목록으로 이동
+            
+            // 삭제 후 부모 리스트의 상태를 동기화
+            if (loadPosts) loadPosts(); 
+            
+            navigate(`/news/event`); 
         } catch (err) {
             alert("게시글 삭제 중 오류가 발생했습니다.");
         }
@@ -75,7 +89,9 @@ const EventBoardDetail = () => {
                 setIsLiked(false);
                 setPost(prev => ({ ...prev, po_up: Math.max(0, (prev.po_up || 1) - 1) }));
             }
-        } catch (err) { alert("추천 처리 중 오류 발생"); }
+        } catch (err) { 
+            alert("추천 처리 중 오류 발생"); 
+        }
     };
 
     if (loading) return <div className="loading-box">데이터 로딩 중...</div>;
@@ -93,12 +109,11 @@ const EventBoardDetail = () => {
                         <span className="info-divider">|</span>
                         <span>추천 {post.po_up}</span> 
                         <span className="info-divider">|</span>
-                        <span>작성일 {new Date(post.po_date).toLocaleString()}</span>
+                        <span>작성일 {post.po_date ? new Date(post.po_date).toLocaleString() : ''}</span>
                     </div>
                 </div>
                 
                 <div className="detail-body-text">
-                    {/* HTML 태그가 포함된 내용을 렌더링 */}
                     <div dangerouslySetInnerHTML={{ __html: post.po_content }} />
                 </div>
 
@@ -111,13 +126,20 @@ const EventBoardDetail = () => {
                         )}
                         {isAdmin && (
                             <>
-                                <button className="btn-edit-action" onClick={() => navigate(`/community/write`, { state: { mode: 'edit', postData: post } })}>✏️ 수정</button>
+                                {/* 🚩 [수정] /community/write 대신 정확한 이벤트 전용 경로인 /news/event/write로 이동 */}
+                                <button 
+                                    className="btn-edit-action" 
+                                    onClick={() => navigate(`/news/event/write`, { 
+                                        state: { mode: 'edit', postData: post, boardType: 'event' } 
+                                    })}
+                                >
+                                    ✏️ 수정
+                                </button>
                                 <button className="btn-delete-action" onClick={handleDeletePost}>🗑️ 삭제</button>
                             </>
                         )}
                     </div>
-                    {/* 목록으로 버튼 경로를 /event로 유지 */}
-                    <button className="btn-list-return" onClick={() => navigate(`/event`)}>목록으로</button>
+                    <button className="btn-list-return" onClick={() => navigate(`/news/event`)}>목록으로</button>
                 </div>
             </div>
         </div>

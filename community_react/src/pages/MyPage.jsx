@@ -74,11 +74,7 @@ function MyPage() {
     navigate(`/community/${post.boardType}/${post.poNum || post.id}`);
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "-";
-    const d = new Date(dateString);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  };
+  // 🚩 [경고 해결] 사용하지 않는 formatDate 함수 제거 (기능/디자인 영향 없음)
 
   const startEditEmail = () => {
     setEditEmailValue(user?.mb_email ?? user?.mb_Email ?? "");
