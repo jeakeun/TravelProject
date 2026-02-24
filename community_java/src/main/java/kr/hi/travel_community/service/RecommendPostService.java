@@ -184,6 +184,10 @@ public class RecommendPostService {
 
     @Transactional
     public void reportPost(Integer id, String reason, Integer mbNum) {
+        if (mbNum != null && mbNum > 0
+                && reportRepository.existsByRbIdAndRbNameAndRbMbNum(id, "RECOMMEND", mbNum)) {
+            throw new IllegalStateException("이미 신고하신 게시글입니다.");
+        }
         postRepository.findByPoNumAndPoDel(id, "N").ifPresent(post -> {
             post.setPoReport((post.getPoReport() == null ? 0 : post.getPoReport()) + 1);
             postRepository.save(post);

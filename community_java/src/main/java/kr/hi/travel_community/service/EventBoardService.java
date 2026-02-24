@@ -1,6 +1,6 @@
 package kr.hi.travel_community.service;
 
-import kr.hi.travel_community.entity.Event; // EventPost 대신 Event 임포트
+import kr.hi.travel_community.entity.Event; 
 import kr.hi.travel_community.mapper.LikeMapper;
 import kr.hi.travel_community.repository.EventRepository;
 import kr.hi.travel_community.repository.CommentRepository;
@@ -29,6 +29,8 @@ public class EventBoardService {
     
     // 이미지 불러올 때 사용할 서버 URL 경로
     private final String SERVER_URL = "http://localhost:8080/pic/";
+    // 이벤트 게시판 고유 타입
+    private final String BOARD_TYPE = "EVENT";
 
     /**
      * 🚩 삭제되지 않은 모든 이벤트 게시글 조회 (최신순)
@@ -45,7 +47,7 @@ public class EventBoardService {
      */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> searchPosts(String type, String keyword) {
-        List<Event> result; // EventPost -> Event 변경
+        List<Event> result;
 
         switch (type) {
             case "title":
@@ -53,9 +55,6 @@ public class EventBoardService {
                 break;
             case "content":
                 result = postRepository.findByPoContentContainingAndPoDelOrderByPoNumDesc(keyword, "N");
-                break;
-            case "title_content":
-                result = postRepository.findByTitleOrContent(keyword, "N");
                 break;
             case "author":
                 try {
@@ -100,14 +99,16 @@ public class EventBoardService {
     }
 
     /**
-     * 🚩 게시글 상세 정보 (댓글 타입: EVENT 고정)
+     * 🚩 게시글 상세 정보
      */
     @Transactional(readOnly = true)
     public Map<String, Object> getPostDetailWithImage(Integer id, Integer mbNum) {
         return postRepository.findByPoNumAndPoDel(id, "N").map(p -> {
             Map<String, Object> map = convertToMap(p);
-            map.put("comments", commentRepository.findByCoPoNumAndCoPoTypeAndCoDelOrderByCoDateAsc(id, "EVENT", "N"));
-            map.put("isLikedByMe", mbNum != null && likeMapper.checkLikeStatus(id, mbNum) > 0);
+            
+            // 댓글 조회 시 EVENT 타입으로 고정
+            map.put("comments", commentRepository.findByCoPoNumAndCoPoTypeAndCoDelOrderByCoDateAsc(id, BOARD_TYPE, "N"));
+            map.put("isLikedByMe", mbNum != null && mbNum > 0 && likeMapper.checkLikeStatus(id, mbNum) > 0);
             return map;
         }).orElse(null);
     }
@@ -116,12 +117,10 @@ public class EventBoardService {
      * 🚩 게시글 저장
      */
     @Transactional
-    public void savePost(Event post, List<MultipartFile> images) throws Exception { // Event 타입 사용
+    public void savePost(Event post, List<MultipartFile> images) throws Exception {
         post.setPoDate(LocalDateTime.now());
         post.setPoView(0);
         post.setPoUp(0);
-        post.setPoDown(0);
-        post.setPoReport(0);
         post.setPoDel("N");
         
         handleImages(post, images);
@@ -133,8 +132,8 @@ public class EventBoardService {
      */
     @Transactional
     public void updatePost(Integer id, String title, String content, List<MultipartFile> images) throws Exception {
-        Event post = postRepository.findByPoNumAndPoDel(id, "N") // Event 타입 사용
-                .orElseThrow(() -> new RuntimeException("이벤트 게시글을 찾을 수 없습니다."));
+        Event post = postRepository.findByPoNumAndPoDel(id, "N")
+                .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
         
         post.setPoTitle(title);
         post.setPoContent(content);
@@ -159,7 +158,7 @@ public class EventBoardService {
     @Transactional
     public String toggleLikeStatus(Integer poNum, Integer mbNum) {
         int count = likeMapper.checkLikeStatus(poNum, mbNum);
-        Event post = postRepository.findByPoNumAndPoDel(poNum, "N") // Event 타입 사용
+        Event post = postRepository.findByPoNumAndPoDel(poNum, "N")
                 .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
 
         if (count == 0) {
@@ -176,20 +175,30 @@ public class EventBoardService {
     }
 
     /**
-     * 🚩 이미지 파일 물리 저장 및 엔티티 세팅
+     * 🚩 이미지 파일 물리 저장 및 엔티티 세팅 (범용 경로 수정)
      */
-    private void handleImages(Event post, List<MultipartFile> images) throws Exception { // Event 타입 사용
+    private void handleImages(Event post, List<MultipartFile> images) throws Exception {
         if (images == null || images.isEmpty()) return;
         
-        String uploadDir = System.getProperty("user.dir") + File.separator + "uploads" + File.separator + "pic" + File.separator;
+        // 🚩 범용적인 경로 설정: 프로젝트의 실행 경로를 기준으로 uploads/pic 폴더를 찾음
+        String rootPath = System.getProperty("user.dir");
+        String uploadDir = rootPath + File.separator + "uploads" + File.separator + "pic" + File.separator;
+        
         File dir = new File(uploadDir);
-        if (!dir.exists()) dir.mkdirs();
+        if (!dir.exists()) {
+            // 폴더가 없으면 상위 폴더까지 모두 생성
+            dir.mkdirs(); 
+        }
         
         List<String> savedNames = new ArrayList<>();
         for (MultipartFile file : images) {
             if (!file.isEmpty()) {
+                // 파일명 중복 방지를 위한 타임스탬프 추가
                 String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-                Files.copy(file.getInputStream(), Paths.get(uploadDir + fileName), StandardCopyOption.REPLACE_EXISTING);
+                Path targetPath = Paths.get(uploadDir + fileName);
+                
+                // 파일 복사 실행
+                Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
                 savedNames.add(fileName);
             }
         }
@@ -202,22 +211,37 @@ public class EventBoardService {
     /**
      * 🚩 엔티티 데이터를 프론트엔드용 Map으로 변환
      */
-    private Map<String, Object> convertToMap(Event p) { // Event 타입 사용
+    private Map<String, Object> convertToMap(Event p) {
         Map<String, Object> map = new HashMap<>();
         map.put("poNum", p.getPoNum());
+        map.put("po_num", p.getPoNum()); 
+        
         map.put("poTitle", p.getPoTitle());
+        map.put("po_title", p.getPoTitle());
+        
         map.put("poContent", p.getPoContent());
+        map.put("po_content", p.getPoContent());
+        
         map.put("poDate", p.getPoDate() != null ? p.getPoDate().toString() : "");
+        map.put("po_date", p.getPoDate() != null ? p.getPoDate().toString() : "");
+        
         map.put("poView", p.getPoView() != null ? p.getPoView() : 0);
+        map.put("po_view", p.getPoView() != null ? p.getPoView() : 0);
+        
         map.put("poUp", p.getPoUp() != null ? p.getPoUp() : 0);
+        map.put("po_up", p.getPoUp() != null ? p.getPoUp() : 0);
+        
         map.put("poMbNum", p.getPoMbNum());
         
-        map.put("commentCount", commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getPoNum(), "EVENT", "N"));
+        map.put("commentCount", commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getPoNum(), BOARD_TYPE, "N"));
         
         if (p.getPoImg() != null && !p.getPoImg().isEmpty()) {
-            map.put("fileUrl", SERVER_URL + p.getPoImg().split(",")[0].trim());
+            String firstImg = p.getPoImg().split(",")[0].trim();
+            map.put("fileUrl", SERVER_URL + firstImg);
+            map.put("po_img", firstImg);
         } else {
             map.put("fileUrl", null);
+            map.put("po_img", null);
         }
         
         return map;

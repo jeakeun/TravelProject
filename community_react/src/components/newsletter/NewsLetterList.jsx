@@ -77,7 +77,7 @@ const NewsLetterList = ({ posts = [] }) => {
     };
 
     return (
-        <div className="main-content">
+        <div className="main-content page-content-area">
             <h2 className="board-title">| 뉴스레터</h2>
             
             <div className="gallery-grid">
@@ -86,7 +86,8 @@ const NewsLetterList = ({ posts = [] }) => {
                         <div 
                             key={post.po_num || post.poNum || post.id} 
                             className="photo-card"
-                            onClick={() => navigate(`/newsletter/${post.po_num || post.poNum || post.id}`)}
+                            // 🚩 상세 페이지 경로를 독립 경로(/news/newsletter/ID)로 수정
+                            onClick={() => navigate(`/news/newsletter/${post.po_num || post.poNum || post.id}`)}
                         >
                             <div className="img-placeholder">
                                 <img 
@@ -171,7 +172,8 @@ const NewsLetterList = ({ posts = [] }) => {
                     </div>
 
                     {isAdmin && (
-                        <button className="btn-write-footer" onClick={() => navigate('/community/write', { state: { type: 'NEWS' } })}>
+                        // 🚩 글쓰기 버튼 경로를 뉴스레터 전용 독립 경로로 수정
+                        <button className="btn-write-footer" onClick={() => navigate('/news/newsletter/write', { state: { type: 'NEWS', boardType: 'newsletter' } })}>
                             뉴스레터 작성
                         </button>
                     )}

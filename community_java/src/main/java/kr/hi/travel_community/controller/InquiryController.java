@@ -9,8 +9,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/inquiry")
@@ -44,5 +47,28 @@ public class InquiryController {
         ib.setIbDate(LocalDateTime.now());
         inquiryRepository.save(ib);
         return ResponseEntity.ok(Map.of("msg", "문의가 접수되었습니다."));
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<?> getMyInquiries(Authentication auth) {
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof CustomUser)) {
+            return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
+        }
+        MemberVO member = ((CustomUser) auth.getPrincipal()).getMember();
+        if (member == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "회원 정보를 찾을 수 없습니다."));
+        }
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (InquiryBox ib : inquiryRepository.findByIbMbNumOrderByIbNumDesc(member.getMb_num())) {
+            Map<String, Object> m = new HashMap<>();
+            m.put("ibNum", ib.getIbNum());
+            m.put("ibTitle", ib.getIbTitle());
+            m.put("ibContent", ib.getIbContent() != null ? ib.getIbContent() : "");
+            m.put("ibReply", ib.getIbReply() != null ? ib.getIbReply() : "");
+            m.put("ibDate", ib.getIbDate());
+            m.put("ibStatus", ib.getIbStatus() != null ? ib.getIbStatus() : "N");
+            list.add(m);
+        }
+        return ResponseEntity.ok(list);
     }
 }

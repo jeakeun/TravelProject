@@ -9,9 +9,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -261,6 +265,50 @@ public class MemberController {
             return ResponseEntity.ok("OK");
         }
         return ResponseEntity.badRequest().body("닉네임은 2~15자, 한글/영문/숫자/밑줄만 가능합니다.");
+    }
+
+    /**
+     * ✅ 로그인 사용자 프로필 사진 변경 (DB BLOB 저장, 프로젝트 파일 사용 안 함)
+     */
+    @PostMapping("/auth/update-photo")
+    public ResponseEntity<?> updatePhoto(Authentication authentication, @RequestParam("photo") MultipartFile photo) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUser)) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+        String id = ((CustomUser) authentication.getPrincipal()).getMember().getMb_Uid();
+        if (photo == null || photo.isEmpty()) {
+            return ResponseEntity.badRequest().body("사진을 선택하세요.");
+        }
+        String contentType = photo.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            return ResponseEntity.badRequest().body("이미지 파일만 업로드 가능합니다.");
+        }
+        Integer photoVer = memberService.updatePhoto(id, photo);
+        if (photoVer == null) {
+            return ResponseEntity.badRequest().body("업로드에 실패했습니다.");
+        }
+        Map<String, Object> body = new HashMap<>();
+        body.put("mb_photo_ver", photoVer);
+        return ResponseEntity.ok(body);
+    }
+
+    /**
+     * ✅ 프로필 사진 조회 (DB에서 BLOB 반환, JWT 인증)
+     */
+    @GetMapping("/auth/profile-photo")
+    public ResponseEntity<?> getProfilePhoto(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUser)) {
+            return ResponseEntity.status(401).build();
+        }
+        String id = ((CustomUser) authentication.getPrincipal()).getMember().getMb_Uid();
+        byte[] data = memberService.getPhotoData(id);
+        if (data == null || data.length == 0) {
+            return ResponseEntity.notFound().build();
+        }
+        String contentType = memberService.getPhotoContentType(id);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType != null ? contentType : "image/jpeg"))
+                .body(data);
     }
 
     /**

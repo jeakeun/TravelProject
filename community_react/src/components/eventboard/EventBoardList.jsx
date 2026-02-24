@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-// 🚩 [수정] 에러 원인이었던 잘못된 CSS 경로를 실제 존재하는 파일로 변경
+// 🚩 [에러 해결] 존재하지 않는 EventBoardList.css 대신 실제 프로젝트에 존재하는 EventBoardDetail.css로 연결
 import './EventBoardDetail.css'; 
 
 const EventBoardList = ({ posts = [] }) => {
     const navigate = useNavigate();
     
-    // App.js에서 주입되는 user 정보 가져오기
+    // App.jsx에서 주입되는 context 가져오기
     const { user } = useOutletContext() || {};
     
     const [searchType, setSearchType] = useState("title");
@@ -17,13 +17,13 @@ const EventBoardList = ({ posts = [] }) => {
     const SERVER_URL = "http://localhost:8080";
     const fallbackImage = "https://placehold.co/300x200?text=No+Image";
 
-    // 관리자 여부 확인 (mb_rol 필드 기준)
+    // 관리자 여부 확인
     const isAdmin = user && (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN');
 
+    // 이미지 경로 처리 유틸리티
     const getImageUrl = (post) => {
         if (!post) return fallbackImage;
-        const { po_img, poImg, fileUrl, fileName, po_content, poContent } = post;
-        const targetUrl = po_img || poImg || fileUrl || fileName;
+        const targetUrl = post.po_img || post.poImg || post.fileUrl;
 
         if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null") {
             if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
@@ -31,7 +31,7 @@ const EventBoardList = ({ posts = [] }) => {
             return `${SERVER_URL}/pic/${extractedName}`;
         }
         
-        const content = po_content || poContent;
+        const content = post.po_content || post.poContent;
         if (content) {
             const imgRegex = /<img[^>]+src=["']([^"']+)["']/;
             const match = content.match(imgRegex);
@@ -41,9 +41,11 @@ const EventBoardList = ({ posts = [] }) => {
         return fallbackImage;
     };
 
+    // 정렬 및 검색 필터링
     const filteredPosts = useMemo(() => {
-        // po_num 또는 id 기반 정렬
-        const sortedPosts = [...posts].sort((a, b) => {
+        const safePosts = Array.isArray(posts) ? posts : [];
+
+        const sortedPosts = [...safePosts].sort((a, b) => {
             const aId = a.po_num || a.poNum || a.id || 0;
             const bId = b.po_num || b.poNum || b.id || 0;
             return bId - aId;
@@ -55,16 +57,15 @@ const EventBoardList = ({ posts = [] }) => {
             const keyword = searchKeyword.toLowerCase();
             const title = (post.po_title || post.poTitle || "").toLowerCase();
             const content = (post.po_content || post.poContent || "").toLowerCase();
-            const author = String(post.po_mb_num || post.poMbNum || "");
-
+            
             if (searchType === "title") return title.includes(keyword);
             if (searchType === "content") return content.includes(keyword);
             if (searchType === "title_content") return title.includes(keyword) || content.includes(keyword);
-            if (searchType === "author") return author.includes(keyword);
             return true;
         });
     }, [posts, searchKeyword, searchType]);
 
+    // 페이지네이션 계산
     const indexOfLastPost = currentPage * postsPerPage;
     const indexOfFirstPost = indexOfLastPost - postsPerPage;
     const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
@@ -77,41 +78,43 @@ const EventBoardList = ({ posts = [] }) => {
     };
 
     return (
-        <div className="main-content">
+        <div className="main-content page-content-area">
             <h2 className="board-title">| 이벤트 게시판</h2>
             
             <div className="gallery-grid">
                 {currentPosts.length > 0 ? (
-                    currentPosts.map((post) => (
-                        <div 
-                            key={post.po_num || post.poNum || post.id} 
-                            className="photo-card"
-                            // 🚩 상세 페이지 경로를 App.jsx 라우트 설정(/event/:poNum)에 맞게 연결
-                            onClick={() => navigate(`/event/${post.po_num || post.poNum || post.id}`)}
-                        >
-                            <div className="img-placeholder">
-                                <img 
-                                    src={getImageUrl(post)} 
-                                    alt={post.po_title || post.poTitle} 
-                                    onError={(e) => { 
-                                        e.target.onerror = null; 
-                                        e.target.src = fallbackImage; 
-                                    }}
-                                />
-                            </div>
-                            <div className="photo-info">
-                                <p className="photo-title">
-                                    {post.po_title || post.poTitle} 
-                                </p>
-                                <div className="photo-meta">
-                                    <span className="post-author">관리자</span>
-                                    <span className="post-date">
-                                        {(post.po_date || post.poDate) ? (post.po_date || post.poDate).split('T')[0] : ''}
-                                    </span>
+                    currentPosts.map((post) => {
+                        const poNum = post.po_num || post.poNum || post.id;
+                        return (
+                            <div 
+                                key={poNum} 
+                                className="photo-card"
+                                onClick={() => navigate(`/news/event/${poNum}`)}
+                            >
+                                <div className="img-placeholder">
+                                    <img 
+                                        src={getImageUrl(post)} 
+                                        alt={post.po_title || post.poTitle} 
+                                        onError={(e) => { 
+                                            e.target.onerror = null; 
+                                            e.target.src = fallbackImage; 
+                                        }}
+                                    />
+                                </div>
+                                <div className="photo-info">
+                                    <p className="photo-title">
+                                        {post.po_title || post.poTitle} 
+                                    </p>
+                                    <div className="photo-meta">
+                                        <span className="post-author">관리자</span>
+                                        <span className="post-date">
+                                            {(post.po_date || post.poDate) ? (post.po_date || post.poDate).split('T')[0] : ''}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))
+                        );
+                    })
                 ) : (
                     <div className="no-data-full">등록된 이벤트가 없습니다.</div>
                 )}
@@ -156,7 +159,6 @@ const EventBoardList = ({ posts = [] }) => {
                             <option value="title">제목</option>
                             <option value="content">내용</option>
                             <option value="title_content">제목+내용</option>
-                            <option value="author">작성자</option>
                         </select>
                         <div className="search-input-wrapper">
                             <input 
@@ -170,7 +172,8 @@ const EventBoardList = ({ posts = [] }) => {
                     </div>
 
                     {isAdmin && (
-                        <button className="btn-write-footer" onClick={() => navigate('/community/write')}>
+                        /* 🚩 [수정 완료] /community/write 대신 정확한 이벤트 전용 경로인 /news/event/write로 이동 */
+                        <button className="btn-write-footer" onClick={() => navigate('/news/event/write')}>
                             이벤트 작성
                         </button>
                     )}

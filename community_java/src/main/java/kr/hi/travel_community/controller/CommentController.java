@@ -9,9 +9,11 @@ import org.springframework.web.bind.annotation.*;
 import kr.hi.travel_community.entity.Comment;
 import kr.hi.travel_community.entity.CommentLike;
 import kr.hi.travel_community.entity.Member;
+import kr.hi.travel_community.entity.ReportBox;
 import kr.hi.travel_community.repository.CommentRepository;
 import kr.hi.travel_community.repository.MemberRepository;
 import kr.hi.travel_community.repository.CommentLikeRepository;
+import kr.hi.travel_community.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -23,6 +25,7 @@ public class CommentController {
     private final CommentRepository commentRepository;
     private final MemberRepository memberRepository;
     private final CommentLikeRepository commentLikeRepository;
+    private final ReportRepository reportRepository;
 
     // 🚩 [수정] Repository 메서드명 일치 (OrderByCoDateAsc 추가)
     @GetMapping("/list/{postId}")
@@ -139,7 +142,25 @@ public class CommentController {
     @PostMapping("/report/{commentId}")
     public ResponseEntity<?> reportComment(@PathVariable("commentId") Integer commentId, 
                                            @RequestBody Map<String, Object> payload) {
-        // 신고 로직 구현부 (필요시 report_box 테이블 연동)
+        String category = payload != null && payload.get("category") != null ? payload.get("category").toString().trim() : "";
+        String reason = payload != null && payload.get("reason") != null ? payload.get("reason").toString().trim() : "";
+        String combined = (category.isEmpty() ? "" : "[" + category + "] ") + reason;
+        if (combined.trim().isEmpty()) combined = "신고 사유 없음";
+        Integer mbNum = payload != null && payload.get("mbNum") != null ? Integer.parseInt(payload.get("mbNum").toString()) : null;
+        Comment comment = commentRepository.findById(commentId).orElse(null);
+        if (comment == null) return ResponseEntity.status(404).body(Map.of("error", "댓글을 찾을 수 없습니다."));
+        if (mbNum != null && mbNum > 0) {
+            if (reportRepository.existsByRbIdAndRbNameAndRbMbNum(commentId, "RECOMMEND_COMMENT", mbNum)) {
+                return ResponseEntity.badRequest().body("이미 신고하신 댓글입니다.");
+            }
+            ReportBox rb = new ReportBox();
+            rb.setRbId(commentId);
+            rb.setRbName("RECOMMEND_COMMENT");
+            rb.setRbContent(combined);
+            rb.setRbMbNum(mbNum);
+            rb.setRbManage("N");
+            reportRepository.save(rb);
+        }
         return ResponseEntity.ok(Map.of("msg", "신고 접수 완료"));
     }
 }

@@ -11,6 +11,13 @@ function AdminPage() {
   const [inquiries, setInquiries] = useState([]);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedInquiry, setExpandedInquiry] = useState(null);
+  const [expandedReport, setExpandedReport] = useState(null);
+  const [inquiryReply, setInquiryReply] = useState("");
+  const [reportReply, setReportReply] = useState("");
+  const [savingReply, setSavingReply] = useState(false);
+  const [editingInquiry, setEditingInquiry] = useState(null);
+  const [editingReport, setEditingReport] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -64,18 +71,90 @@ function AdminPage() {
         prev.map((r) => (r.ibNum === ibNum ? { ...r, ibStatus: status } : r))
       );
     } catch (err) {
-      alert("처리 실패");
+      const data = err?.response?.data;
+      const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "처리 실패");
+      alert(msg);
     }
   };
 
-  const handleReportStatus = async (rbNum, status) => {
+  const openInquiry = (q) => {
+    setExpandedInquiry(q?.ibNum === expandedInquiry ? null : q?.ibNum);
+    setInquiryReply(q?.ibReply ?? "");
+    setEditingInquiry(null);
+    setExpandedReport(null);
+  };
+
+  const saveInquiryReply = async () => {
+    if (!expandedInquiry) return;
+    setSavingReply(true);
     try {
-      await api.put(`/api/admin/reports/${rbNum}/status`, { status });
-      setReports((prev) =>
-        prev.map((r) => (r.rbNum === rbNum ? { ...r, rbManage: status } : r))
+      await api.put(`/api/admin/inquiries/${expandedInquiry}/reply`, {
+        reply: inquiryReply,
+      });
+      setInquiries((prev) =>
+        prev.map((q) =>
+          q.ibNum === expandedInquiry
+            ? { ...q, ibReply: inquiryReply, ibStatus: "Y" }
+            : q
+        )
       );
+      alert("답변이 저장되었습니다.");
+      setExpandedInquiry(null);
+      setEditingInquiry(null);
     } catch (err) {
-      alert("처리 실패");
+      const data = err?.response?.data;
+      const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "저장 실패");
+      alert(msg);
+    } finally {
+      setSavingReply(false);
+    }
+  };
+
+  const openReport = (r) => {
+    setExpandedReport(r?.rbNum === expandedReport ? null : r?.rbNum);
+    setReportReply(r?.rbReply ?? "");
+    setEditingReport(null);
+    setExpandedInquiry(null);
+  };
+
+  const saveReportReply = async () => {
+    if (!expandedReport) return;
+    setSavingReply(true);
+    try {
+      await api.put(`/api/admin/reports/${expandedReport}/reply`, {
+        reply: reportReply,
+      });
+      setReports((prev) =>
+        prev.map((r) =>
+          r.rbNum === expandedReport
+            ? { ...r, rbReply: reportReply, rbManage: "Y" }
+            : r
+        )
+      );
+      alert("답변이 저장되었습니다.");
+      setExpandedReport(null);
+      setEditingReport(null);
+    } catch (err) {
+      const data = err?.response?.data;
+      const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "저장 실패");
+      alert(msg);
+    } finally {
+      setSavingReply(false);
+    }
+  };
+
+  const handleReportProcess = async (rbNum, action) => {
+    try {
+      const res = await api.put(`/api/admin/reports/${rbNum}/process`, { action });
+      setReports((prev) =>
+        prev.map((r) => (r.rbNum === rbNum ? { ...r, rbManage: action } : r))
+      );
+      alert(res?.data?.msg ?? "처리되었습니다.");
+      setExpandedReport(null);
+    } catch (err) {
+      const data = err?.response?.data;
+      const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "처리 실패");
+      alert(msg);
     }
   };
 
@@ -106,92 +185,210 @@ function AdminPage() {
         </button>
       </div>
 
+      {/* 1:1 문의 - 쪽지 형태 (확대) */}
       {activeTab === "inquiry" && (
-        <div className="admin-section">
-          <h2 className="admin-section-title">1:1 문의 목록</h2>
+        <div className="admin-section admin-section-inquiry">
+          <h2 className="admin-section-title">1:1 문의함</h2>
           {inquiries.length === 0 ? (
             <p className="admin-empty">등록된 문의가 없습니다.</p>
           ) : (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>번호</th>
-                  <th>제목</th>
-                  <th>내용</th>
-                  <th>작성자번호</th>
-                  <th>작성일</th>
-                  <th>상태</th>
-                  <th>처리</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inquiries.map((q) => (
-                  <tr key={q.ibNum}>
-                    <td>{q.ibNum}</td>
-                    <td className="admin-td-title">{q.ibTitle}</td>
-                    <td className="admin-td-content">{q.ibContent}</td>
-                    <td>{q.ibMbNum}</td>
-                    <td>{formatDate(q.ibDate)}</td>
-                    <td>{q.ibStatus === "Y" ? "처리완료" : "대기중"}</td>
-                    <td>
-                      {q.ibStatus !== "Y" && (
-                        <button
-                          className="admin-btn-process"
-                          onClick={() => handleInquiryStatus(q.ibNum, "Y")}
-                        >
-                          처리완료
-                        </button>
+            <div className="admin-message-list">
+              {inquiries.map((q) => (
+                <div
+                  key={q.ibNum}
+                  className={`admin-message-card ${expandedInquiry === q.ibNum ? "expanded" : ""}`}
+                  onClick={() => !expandedInquiry || expandedInquiry === q.ibNum ? openInquiry(q) : null}
+                >
+                  <div className="admin-message-header">
+                    <span className="admin-message-from">작성자 #{q.ibMbNum}</span>
+                    <span className="admin-message-date">{formatDate(q.ibDate)}</span>
+                    <span className={`admin-message-badge ${q.ibStatus === "Y" ? "done" : ""}`}>
+                      {q.ibStatus === "Y" ? "답변완료" : "대기"}
+                    </span>
+                  </div>
+                  <div className="admin-message-subject">{q.ibTitle}</div>
+                  <div className="admin-message-preview">
+                    {(q.ibContent || "").slice(0, 80)}
+                    {(q.ibContent || "").length > 80 ? "..." : ""}
+                  </div>
+
+                  {expandedInquiry === q.ibNum && (
+                    <div className="admin-message-detail" onClick={(e) => e.stopPropagation()}>
+                      <div className="admin-message-full">{q.ibContent}</div>
+                      {q.ibReply && editingInquiry !== q.ibNum ? (
+                        <div className="admin-reply-view">
+                          <div className="admin-reply-block">
+                            <strong>관리자 답변:</strong>
+                            <p>{q.ibReply}</p>
+                          </div>
+                          <div className="admin-reply-actions admin-reply-actions-right">
+                            <button
+                              type="button"
+                              className="admin-btn-reply"
+                              onClick={() => { setEditingInquiry(q.ibNum); setInquiryReply(q.ibReply ?? ""); }}
+                            >
+                              수정
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="admin-reply-form">
+                          <label>{q.ibReply ? "답변 수정" : "답변 작성"}</label>
+                          <textarea
+                            value={inquiryReply}
+                            onChange={(e) => setInquiryReply(e.target.value)}
+                            placeholder="답변을 입력하세요"
+                            rows={6}
+                          />
+                          <div className="admin-reply-actions">
+                            <button
+                              type="button"
+                              className="admin-btn-reply"
+                              onClick={saveInquiryReply}
+                              disabled={savingReply}
+                            >
+                              {savingReply ? "저장 중..." : (q.ibReply ? "수정" : "답변 저장")}
+                            </button>
+                            {q.ibReply && (
+                              <button
+                                type="button"
+                                className="admin-btn-hold"
+                                onClick={() => setEditingInquiry(null)}
+                              >
+                                취소
+                              </button>
+                            )}
+                            {q.ibStatus !== "Y" && (
+                              <button
+                                type="button"
+                                className="admin-btn-process"
+                                onClick={() => handleInquiryStatus(q.ibNum, "Y")}
+                              >
+                                처리완료
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}
 
+      {/* 신고함 - 글 형태 */}
       {activeTab === "report" && (
         <div className="admin-section">
-          <h2 className="admin-section-title">신고 목록</h2>
+          <h2 className="admin-section-title">신고함</h2>
           {reports.length === 0 ? (
             <p className="admin-empty">등록된 신고가 없습니다.</p>
           ) : (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>번호</th>
-                  <th>신고 내용</th>
-                  <th>대상ID</th>
-                  <th>대상유형</th>
-                  <th>신고자번호</th>
-                  <th>상태</th>
-                  <th>처리</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reports.map((r) => (
-                  <tr key={r.rbNum}>
-                    <td>{r.rbNum}</td>
-                    <td className="admin-td-content">{r.rbContent}</td>
-                    <td>{r.rbId}</td>
-                    <td>{r.rbName}</td>
-                    <td>{r.rbMbNum}</td>
-                    <td>{r.rbManage === "Y" ? "처리완료" : "대기중"}</td>
-                    <td>
-                      {r.rbManage !== "Y" && (
-                        <button
-                          className="admin-btn-process"
-                          onClick={() => handleReportStatus(r.rbNum, "Y")}
-                        >
-                          처리완료
-                        </button>
+            <div className="admin-post-list">
+              {reports.map((r) => (
+                <article
+                  key={r.rbNum}
+                  className={`admin-post-card ${expandedReport === r.rbNum ? "expanded" : ""}`}
+                  onClick={() => !expandedReport || expandedReport === r.rbNum ? openReport(r) : null}
+                >
+                  <div className="admin-post-meta">
+                    <span>신고 대상: {r.rbName} #{r.rbId}</span>
+                    <span>신고자 #{r.rbMbNum}</span>
+                    <span className={`admin-post-badge ${r.rbManage === "Y" ? "done" : r.rbManage === "D" ? "deleted" : r.rbManage === "H" ? "hold" : ""}`}>
+                      {r.rbManage === "Y" ? "처리완료" : r.rbManage === "D" ? "삭제됨" : r.rbManage === "H" ? "보류" : "대기"}
+                    </span>
+                  </div>
+                  <div className="admin-post-title">신고 사유</div>
+                  <div className="admin-post-content">
+                    {(r.rbContent || "").slice(0, 120)}
+                    {(r.rbContent || "").length > 120 ? "..." : ""}
+                  </div>
+
+                  {expandedReport === r.rbNum && (
+                    <div className="admin-post-detail" onClick={(e) => e.stopPropagation()}>
+                      <div className="admin-post-full">{r.rbContent}</div>
+                      {r.rbReply && editingReport !== r.rbNum ? (
+                        <div className="admin-reply-view">
+                          <div className="admin-reply-block">
+                            <strong>관리자 답변:</strong>
+                            <p>{r.rbReply}</p>
+                          </div>
+                          <div className="admin-reply-actions admin-reply-actions-right">
+                            <button
+                              type="button"
+                              className="admin-btn-reply"
+                              onClick={() => { setEditingReport(r.rbNum); setReportReply(r.rbReply ?? ""); }}
+                            >
+                              수정
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="admin-reply-form">
+                          <label>{r.rbReply ? "답변 수정 (댓글 아님)" : "답변 작성 (댓글 아님)"}</label>
+                          <textarea
+                            value={reportReply}
+                            onChange={(e) => setReportReply(e.target.value)}
+                            placeholder="관리자 답변을 입력하세요"
+                            rows={6}
+                          />
+                          <div className="admin-reply-actions">
+                            <button
+                              type="button"
+                              className="admin-btn-reply"
+                              onClick={saveReportReply}
+                              disabled={savingReply}
+                            >
+                              {savingReply ? "저장 중..." : (r.rbReply ? "수정" : "답변 저장")}
+                            </button>
+                            {r.rbReply && (
+                              <button
+                                type="button"
+                                className="admin-btn-hold"
+                                onClick={() => setEditingReport(null)}
+                              >
+                                취소
+                              </button>
+                            )}
+                            {r.rbManage !== "D" && (
+                              <>
+                                {r.rbManage !== "Y" && r.rbManage !== "D" && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      className="admin-btn-delete"
+                                      onClick={() => handleReportProcess(r.rbNum, "D")}
+                                    >
+                                      삭제
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="admin-btn-hold"
+                                      onClick={() => handleReportProcess(r.rbNum, "H")}
+                                    >
+                                      보류
+                                    </button>
+                                  </>
+                                )}
+                                <button
+                                  type="button"
+                                  className="admin-btn-process"
+                                  onClick={() => handleReportProcess(r.rbNum, "Y")}
+                                >
+                                  처리완료
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
           )}
         </div>
       )}

@@ -1,10 +1,18 @@
-/* 전체 컨테이너 */
+/* 전체 컨테이너 - 양옆 여백 통일 */
 .freeboard-list-wrapper,
 .review-detail-wrapper {
-    width: 95%;
+    width: 100%;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 12px 0;
+    padding: 12px 40px 24px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .freeboard-list-wrapper,
+    .review-detail-wrapper {
+        padding: 12px 20px 24px;
+    }
 }
 
 .board-title {
@@ -211,6 +219,7 @@
 
 .btn-edit-action,
 .btn-delete-action,
+.btn-bookmark-action,
 .btn-list-return {
     padding: 10px 20px;
     border-radius: 8px;
@@ -218,6 +227,21 @@
     background: #fff;
     cursor: pointer;
     font-weight: 600;
+}
+
+.btn-bookmark-action {
+    border-color: #f1c40f;
+    color: #f39c12;
+}
+
+.btn-bookmark-action:hover:not(:disabled) {
+    background: #f1c40f;
+    color: #fff;
+}
+
+.btn-bookmark-action:disabled {
+    opacity: 0.7;
+    cursor: default;
 }
 
 .btn-list-return {

@@ -5,12 +5,12 @@ import axios from 'axios';
 import './NewsLetterDetail.css'; 
 
 const NewsLetterDetail = () => {
-    // App.jsx 라우트 설정(<Route path="/newsletter/:poNum">)에 맞춰 poNum 수신
+    // App.js 라우트 설정(<Route path="/news/newsletter/:poNum">)에 맞춰 poNum 수신
     const { poNum } = useParams(); 
     const navigate = useNavigate();
     
     // 상위 context에서 주입되는 유저 정보 및 포스트 갱신 함수
-    const { user, refreshPosts } = useOutletContext() || {}; 
+    const { user, loadPosts } = useOutletContext() || {}; 
     
     const [post, setPost] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -31,14 +31,14 @@ const NewsLetterDetail = () => {
             const postRes = await axios.get(`http://localhost:8080/api/newsletter/posts/${poNum}?mbNum=${currentUserNum || ''}`);
             setPost(postRes.data);
             
-            // 좋아요 여부 설정 (백엔드 필드명에 따라 조정 가능)
+            // 좋아요 여부 설정
             setIsLiked(postRes.data.isLikedByMe || postRes.data.liked || false);
             setLoading(false);
         } catch (err) {
             console.error("뉴스레터 로딩 에러:", err);
             if (err.response?.status === 404) {
                 alert("뉴스레터를 찾을 수 없습니다.");
-                navigate(`/newsletter`);
+                navigate(`/news/newsletter`);
             }
             setLoading(false);
         }
@@ -56,8 +56,8 @@ const NewsLetterDetail = () => {
             // 🚩 뉴스레터 전용 삭제 API 호출
             await axios.delete(`http://localhost:8080/api/newsletter/posts/${poNum}`);
             alert("뉴스레터가 삭제되었습니다.");
-            if (refreshPosts) refreshPosts();
-            navigate(`/newsletter`); 
+            if (loadPosts) loadPosts(); // App.js의 갱신 함수 호출
+            navigate(`/news/newsletter`); 
         } catch (err) {
             alert("뉴스레터 삭제 중 오류가 발생했습니다.");
         }
@@ -72,12 +72,11 @@ const NewsLetterDetail = () => {
                 setIsLiked(true);
                 setPost(prev => ({ ...prev, po_up: (prev.po_up || 0) + 1 }));
             } else {
-                // 토글 로직이 '좋아요 취소'를 포함한다면 처리
                 if(res.data.status === "unliked") {
                     setIsLiked(false);
                     setPost(prev => ({ ...prev, po_up: Math.max(0, (prev.po_up || 1) - 1) }));
                 } else {
-                    setIsLiked(true); // 기본 상태 유지
+                    setIsLiked(true);
                 }
             }
         } catch (err) { alert("추천 처리 중 오류 발생"); }
@@ -103,7 +102,6 @@ const NewsLetterDetail = () => {
                 </div>
                 
                 <div className="detail-body-text">
-                    {/* dangerouslySetInnerHTML을 사용하여 에디터로 작성된 HTML 콘텐츠 렌더링 */}
                     <div dangerouslySetInnerHTML={{ __html: post.po_content || post.poContent }} />
                 </div>
 
@@ -116,13 +114,14 @@ const NewsLetterDetail = () => {
                         )}
                         {isAdmin && (
                             <>
-                                <button className="btn-edit-action" onClick={() => navigate(`/community/write`, { state: { mode: 'edit', postData: post, type: 'NEWS' } })}>✏️ 수정</button>
+                                {/* 🚩 수정 경로를 뉴스레터 전용 작성 페이지로 변경 */}
+                                <button className="btn-edit-action" onClick={() => navigate(`/news/newsletter/write`, { state: { mode: 'edit', postData: post, boardType: 'newsletter' } })}>✏️ 수정</button>
                                 <button className="btn-delete-action" onClick={handleDeletePost}>🗑️ 삭제</button>
                             </>
                         )}
                     </div>
-                    {/* 목록으로 이동 시 뉴스레터 메인으로 연결 */}
-                    <button className="btn-list-return" onClick={() => navigate(`/newsletter`)}>목록으로</button>
+                    {/* 🚩 목록으로 돌아가기 경로를 뉴스레터 메인(/news/newsletter)으로 변경 */}
+                    <button className="btn-list-return" onClick={() => navigate(`/news/newsletter`)}>목록으로</button>
                 </div>
             </div>
         </div>

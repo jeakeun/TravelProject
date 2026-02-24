@@ -173,10 +173,18 @@
     cursor: pointer;
 }
 
-/* [4. 상세 페이지 스타일] */
+/* [4. 상세 페이지 스타일 - 양옆 여백 통일] */
 .event-detail-wrapper {
-    padding: 40px 20px;
+    padding: 40px 40px 48px;
     background-color: #f8f9fa;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+    .event-detail-wrapper {
+        padding: 24px 20px 40px;
+    }
 }
 
 .detail-container {

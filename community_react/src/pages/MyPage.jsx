@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import { getUserId, getNickname } from "../utils/user";
+import ProfileImage from "../components/ProfileImage";
+import { getRecentViews } from "../utils/recentViews";
 import api from "../api/axios";
 import "./MyPage.css";
-
-const PROFILE_IMAGE = process.env.PUBLIC_URL + "/profile-default.png";
 
 const BOARD_OPTIONS = [
   { value: "", label: "전체" },
@@ -29,6 +29,14 @@ function MyPage() {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawPassword, setWithdrawPassword] = useState("");
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
+  const [bookmarks, setBookmarks] = useState([]);
+  const [bottomTab, setBottomTab] = useState("posts");
+  const [photoSaving, setPhotoSaving] = useState(false);
+  const [photoVersion, setPhotoVersion] = useState(0);
+  const photoInputRef = useRef(null);
+  const [myReports, setMyReports] = useState([]);
+  const [myInquiries, setMyInquiries] = useState([]);
+  const [detailModal, setDetailModal] = useState(null);
 
   const loadMyPosts = useCallback(async () => {
     if (!user) {
@@ -67,6 +75,45 @@ function MyPage() {
   }, [loadMyPosts]);
 
   useEffect(() => {
+    if (!user) return;
+    const fetchBookmarks = async () => {
+      try {
+        const res = await api.get("/api/mypage/bookmarks");
+        setBookmarks(Array.isArray(res.data) ? res.data.slice(0, 5) : []);
+      } catch (_) {
+        setBookmarks([]);
+      }
+    };
+    fetchBookmarks();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchReports = async () => {
+      try {
+        const res = await api.get("/api/mypage/reports");
+        setMyReports(Array.isArray(res.data) ? res.data : []);
+      } catch (_) {
+        setMyReports([]);
+      }
+    };
+    fetchReports();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const fetchInquiries = async () => {
+      try {
+        const res = await api.get("/api/inquiry/my");
+        setMyInquiries(Array.isArray(res.data) ? res.data : []);
+      } catch (_) {
+        setMyInquiries([]);
+      }
+    };
+    fetchInquiries();
+  }, [user]);
+
+  useEffect(() => {
     if (!user) {
       alert("로그인이 필요한 서비스입니다.");
       navigate("/", { replace: true });
@@ -75,6 +122,24 @@ function MyPage() {
 
   const goToPost = (post) => {
     navigate(`/community/${post.boardType}/${post.poNum || post.id}`);
+  };
+
+  const recentViews = getRecentViews(5);
+  const handleRemoveBookmark = async (e, bmNum) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!bmNum) return;
+    try {
+      const res = await api.delete(`/api/mypage/bookmarks/${bmNum}`);
+      if (res.status === 200) {
+        setBookmarks((prev) => prev.filter((b) => b.bmNum !== bmNum));
+        alert("즐겨찾기에서 삭제되었습니다.");
+      }
+    } catch (err) {
+      const data = err?.response?.data;
+      const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "삭제에 실패했습니다.");
+      alert(msg);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -125,6 +190,44 @@ function MyPage() {
   const cancelEditNickname = () => {
     setIsEditingNickname(false);
     setEditNicknameValue("");
+  };
+
+
+  const handlePhotoChangeClick = () => {
+    photoInputRef.current?.click();
+  };
+
+  const handlePhotoFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !user) return;
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      alert("이미지 파일만 업로드 가능합니다. (jpg, png, gif, webp)");
+      return;
+    }
+    setPhotoSaving(true);
+    try {
+      const formData = new FormData();
+      formData.append("photo", file);
+      const res = await api.post("/auth/update-photo", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      const mbPhotoVer = res.data?.mb_photo_ver ?? res.data?.mbPhotoVer;
+      if (mbPhotoVer != null) {
+        const updated = { ...user, mb_photo_ver: mbPhotoVer, mbPhotoVer: mbPhotoVer };
+        setUser?.(updated);
+        try {
+          localStorage.setItem("user", JSON.stringify(updated));
+        } catch (_) {}
+        alert("프로필 사진이 변경되었습니다.");
+      }
+    } catch (err) {
+      const msg = err?.response?.data ?? "프로필 사진 변경에 실패했습니다.";
+      alert(typeof msg === "string" ? msg : "프로필 사진 변경에 실패했습니다.");
+    } finally {
+      setPhotoSaving(false);
+    }
   };
 
   const saveNickname = async () => {
@@ -207,19 +310,30 @@ function MyPage() {
     <div className="mypage-wrapper">
       <h1 className="mypage-page-title">내 프로필</h1>
 
-      {/* 프로필 카드: 사진 + 아이디/이메일/비밀번호 */}
-      <section className="mypage-profile-card">
+      {/* 프로필 칸 + 사이드바 (높이 맞춤) */}
+      <div className="mypage-top-row">
+        {/* 프로필 카드: 사진 + 아이디/이메일/비밀번호 */}
+        <section className="mypage-profile-card">
         <div className="mypage-profile-photo-wrap">
-          <img
-            src={PROFILE_IMAGE}
-            alt="프로필"
-            className="mypage-profile-photo"
-            onError={(e) => {
-              e.target.style.display = "none";
-              e.target.nextElementSibling?.classList.add("show");
-            }}
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+            className="mypage-profile-photo-input"
+            onChange={handlePhotoFileChange}
+            aria-hidden
           />
-          <div className="mypage-profile-photo-fallback">👤</div>
+          <div className="mypage-profile-photo-box">
+            <ProfileImage user={user} className="mypage-profile-photo" alt="프로필" />
+          </div>
+          <button
+            type="button"
+            className="mypage-profile-photo-btn"
+            onClick={handlePhotoChangeClick}
+            disabled={photoSaving}
+          >
+            {photoSaving ? "업로드 중..." : "프로필 사진 변경"}
+          </button>
         </div>
         <div className="mypage-profile-info">
           <div className="mypage-info-list">
@@ -311,6 +425,59 @@ function MyPage() {
         </div>
       </section>
 
+        {/* 오른쪽 사이드바: 즐겨찾기, 최근 본 게시글 */}
+        <aside className="mypage-sidebar">
+          <div className="mypage-sidebar-block">
+            <h3 className="mypage-sidebar-title">⭐ 즐겨찾기</h3>
+            <ul className="mypage-sidebar-list">
+              {bookmarks.length === 0 ? (
+                <li className="mypage-sidebar-empty">즐겨찾기한 글이 없습니다</li>
+              ) : (
+                bookmarks.map((b) => (
+                  <li
+                    key={b.bmNum}
+                    className="mypage-sidebar-item"
+                    onClick={() => goToPost({ boardType: b.boardType, poNum: b.poNum })}
+                  >
+                    <span className="mypage-sidebar-item-title" title={b.poTitle}>
+                      {b.poTitle && b.poTitle.length > 18 ? `${b.poTitle.slice(0, 18)}...` : b.poTitle}
+                    </span>
+                    <button
+                      type="button"
+                      className="mypage-sidebar-remove"
+                      onClick={(e) => handleRemoveBookmark(e, b.bmNum)}
+                      aria-label="즐겨찾기 해제"
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+          <div className="mypage-sidebar-block">
+            <h3 className="mypage-sidebar-title">🕐 최근에 본 게시글</h3>
+            <ul className="mypage-sidebar-list">
+              {recentViews.length === 0 ? (
+                <li className="mypage-sidebar-empty">최근 본 글이 없습니다</li>
+              ) : (
+                recentViews.map((r, idx) => (
+                  <li
+                    key={`${r.boardType}-${r.poNum}-${idx}`}
+                    className="mypage-sidebar-item"
+                    onClick={() => goToPost({ boardType: r.boardType, poNum: r.poNum })}
+                  >
+                    <span className="mypage-sidebar-item-title" title={r.poTitle}>
+                      {r.poTitle && r.poTitle.length > 18 ? `${r.poTitle.slice(0, 18)}...` : r.poTitle || "(제목 없음)"}
+                    </span>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+        </aside>
+      </div>
+
       {showWithdrawModal && (
         <div className="mypage-withdraw-overlay" onClick={() => !withdrawSubmitting && setShowWithdrawModal(false)}>
           <div className="mypage-withdraw-modal" onClick={(e) => e.stopPropagation()}>
@@ -336,62 +503,175 @@ function MyPage() {
         </div>
       )}
 
-      {/* 내가 쓴 글 - 헤더 오른쪽에 검색창·게시판 선택, 목록은 게시판명 - 제목 */}
+      {/* 하단 탭: 내가 쓴 글 | 신고함 | 1:1 문의함 */}
       <section className="mypage-posts">
-        <div className="mypage-posts-header">
-          <h2 className="mypage-posts-title">내가 쓴 글</h2>
-          <div className="mypage-posts-toolbar">
-            <input
-              type="text"
-              className="mypage-posts-search"
-              placeholder="제목으로 검색"
-              value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
-              aria-label="검색창"
-            />
-            <select
-              className="mypage-posts-board-select"
-              value={selectedBoard}
-              onChange={(e) => setSelectedBoard(e.target.value)}
-              aria-label="게시판 선택"
-            >
-              {BOARD_OPTIONS.map((opt) => (
-                <option key={opt.value || "all"} value={opt.value}>
-                  {opt.label}
-                </option>
+            <div className="mypage-posts-header">
+              <div className="mypage-bottom-tabs">
+                <button
+                  className={`mypage-bottom-tab ${bottomTab === "posts" ? "active" : ""}`}
+                  onClick={() => setBottomTab("posts")}
+                >
+                  내가 쓴 글
+                </button>
+                <button
+                  className={`mypage-bottom-tab ${bottomTab === "reports" ? "active" : ""}`}
+                  onClick={() => setBottomTab("reports")}
+                >
+                  신고함
+                </button>
+                <button
+                  className={`mypage-bottom-tab ${bottomTab === "inquiries" ? "active" : ""}`}
+                  onClick={() => setBottomTab("inquiries")}
+                >
+                  1:1 문의함
+                </button>
+              </div>
+              {bottomTab === "posts" && (
+              <div className="mypage-posts-toolbar">
+                <input
+                  type="text"
+                  className="mypage-posts-search"
+                  placeholder="제목으로 검색"
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  aria-label="검색창"
+                />
+                <select
+                  className="mypage-posts-board-select"
+                  value={selectedBoard}
+                  onChange={(e) => setSelectedBoard(e.target.value)}
+                  aria-label="게시판 선택"
+                >
+                  {BOARD_OPTIONS.map((opt) => (
+                    <option key={opt.value || "all"} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              )}
+            </div>
+            <div className="mypage-posts-body">
+              {bottomTab === "posts" && (loading ? (
+                <p className="mypage-posts-loading">불러오는 중...</p>
+              ) : (
+                <>
+                  <div className="mypage-posts-table-header">
+                    <span className="mypage-posts-th-board">게시판</span>
+                    <span className="mypage-posts-th-title">제목</span>
+                  </div>
+                  {filteredPosts.length === 0 ? (
+                    <p className="mypage-posts-empty">작성한 글이 없습니다.</p>
+                  ) : (
+                    <ul className="mypage-posts-list">
+                      {filteredPosts.map((post) => (
+                        <li
+                          key={`${post.boardType}-${post.poNum || post.id}`}
+                          className="mypage-posts-item"
+                          onClick={() => goToPost(post)}
+                        >
+                          <span className="mypage-post-board">{post.boardName}</span>
+                          <span className="mypage-post-title">{post.poTitle || post.title || "-"}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
               ))}
-            </select>
+
+              {bottomTab === "reports" && (
+                <>
+                  <div className="mypage-posts-table-header">
+                    <span className="mypage-posts-th-board">대상</span>
+                    <span className="mypage-posts-th-title">신고 내용</span>
+                    <span className="mypage-posts-th-date">상태</span>
+                  </div>
+                  {myReports.length === 0 ? (
+                    <p className="mypage-posts-empty">신고 내역이 없습니다.</p>
+                  ) : (
+                    <ul className="mypage-posts-list">
+                      {myReports.map((r) => (
+                        <li
+                          key={r.rbNum}
+                          className="mypage-posts-item"
+                          onClick={() => setDetailModal({ type: "report", data: r })}
+                        >
+                          <span className="mypage-post-board">{r.rbName} #{r.rbId}</span>
+                          <span className="mypage-post-title">{(r.rbContent || "").slice(0, 40)}{(r.rbContent || "").length > 40 ? "..." : ""}</span>
+                          <span className="mypage-post-date">{r.rbManage === "Y" ? "처리완료" : r.rbManage === "D" ? "삭제됨" : r.rbManage === "H" ? "보류" : "대기"}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )}
+
+              {bottomTab === "inquiries" && (
+                <>
+                  <div className="mypage-posts-table-header">
+                    <span className="mypage-posts-th-board">제목</span>
+                    <span className="mypage-posts-th-title">내용</span>
+                    <span className="mypage-posts-th-date">상태</span>
+                  </div>
+                  {myInquiries.length === 0 ? (
+                    <p className="mypage-posts-empty">문의 내역이 없습니다.</p>
+                  ) : (
+                    <ul className="mypage-posts-list">
+                      {myInquiries.map((q) => (
+                        <li
+                          key={q.ibNum}
+                          className="mypage-posts-item"
+                          onClick={() => setDetailModal({ type: "inquiry", data: q })}
+                        >
+                          <span className="mypage-post-board">{(q.ibTitle || "").slice(0, 15)}{(q.ibTitle || "").length > 15 ? "..." : ""}</span>
+                          <span className="mypage-post-title">{(q.ibContent || "").slice(0, 40)}{(q.ibContent || "").length > 40 ? "..." : ""}</span>
+                          <span className="mypage-post-date">{q.ibStatus === "Y" ? "답변완료" : "대기"}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )}
+            </div>
+      </section>
+
+      {detailModal && (
+        <div className="mypage-detail-overlay" onClick={() => setDetailModal(null)}>
+          <div className="mypage-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="mypage-detail-title">
+              {detailModal.type === "report" ? "신고 상세" : "문의 상세"}
+            </h3>
+            {detailModal.type === "report" ? (
+              <div className="mypage-detail-body">
+                <p><strong>대상:</strong> {detailModal.data.rbName} #{detailModal.data.rbId}</p>
+                <p><strong>신고 내용:</strong></p>
+                <p className="mypage-detail-content">{detailModal.data.rbContent}</p>
+                {detailModal.data.rbReply && (
+                  <div className="mypage-detail-reply">
+                    <strong>관리자 답변:</strong>
+                    <p>{detailModal.data.rbReply}</p>
+                  </div>
+                )}
+                <p><strong>상태:</strong> {detailModal.data.rbManage === "Y" ? "처리완료" : detailModal.data.rbManage === "D" ? "삭제됨" : detailModal.data.rbManage === "H" ? "보류" : "대기"}</p>
+              </div>
+            ) : (
+              <div className="mypage-detail-body">
+                <p><strong>제목:</strong> {detailModal.data.ibTitle}</p>
+                <p><strong>내용:</strong></p>
+                <p className="mypage-detail-content">{detailModal.data.ibContent}</p>
+                {detailModal.data.ibReply && (
+                  <div className="mypage-detail-reply">
+                    <strong>관리자 답변:</strong>
+                    <p>{detailModal.data.ibReply}</p>
+                  </div>
+                )}
+                <p><strong>상태:</strong> {detailModal.data.ibStatus === "Y" ? "답변완료" : "대기"}</p>
+              </div>
+            )}
+            <button type="button" className="mypage-detail-close" onClick={() => setDetailModal(null)}>닫기</button>
           </div>
         </div>
-        <div className="mypage-posts-body">
-          {loading ? (
-            <p className="mypage-posts-loading">불러오는 중...</p>
-          ) : (
-            <>
-              <div className="mypage-posts-table-header">
-                <span className="mypage-posts-th-board">게시판</span>
-                <span className="mypage-posts-th-title">제목</span>
-              </div>
-              {filteredPosts.length === 0 ? (
-                <p className="mypage-posts-empty">작성한 글이 없습니다.</p>
-              ) : (
-                <ul className="mypage-posts-list">
-                  {filteredPosts.map((post) => (
-                    <li
-                      key={`${post.boardType}-${post.poNum || post.id}`}
-                      className="mypage-posts-item"
-                      onClick={() => goToPost(post)}
-                    >
-                      <span className="mypage-post-board">{post.boardName}</span>
-                      <span className="mypage-post-title">{post.poTitle || post.title || "-"}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </>
-          )}
-        </div>
-      </section>
+      )}
     </div>
   );
 }

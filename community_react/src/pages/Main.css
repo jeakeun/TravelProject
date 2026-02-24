@@ -315,8 +315,17 @@ body {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
     cursor: pointer;
+}
+
+/* DB 프로필 사진 (Header) */
+.App .nav-area .header-profile-photo {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(255,255,255,0.5);
 }
 
 .App .nav-area .user-name-text {

@@ -27,8 +27,14 @@ public class NewsLetterService {
     private final LikeMapper likeMapper;
     private final CommentRepository commentRepository;
     
+    // 이미지 불러올 때 사용할 서버 URL 경로
     private final String SERVER_URL = "http://localhost:8080/pic/";
+    // 댓글 및 좋아요 구분을 위한 타입 상수
+    private final String BOARD_TYPE = "NEWSLETTER";
 
+    /**
+     * 🚩 삭제되지 않은 모든 뉴스레터 게시글 조회 (최신순)
+     */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getRealAllPosts() {
         return postRepository.findByPoDelOrderByPoNumDesc("N").stream()
@@ -36,118 +42,207 @@ public class NewsLetterService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 🚩 뉴스레터 게시판 검색 기능
+     */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> searchPosts(String type, String keyword) {
         List<NewsLetter> result;
+
         switch (type) {
-            case "title": result = postRepository.findByPoTitleContainingAndPoDelOrderByPoNumDesc(keyword, "N"); break;
-            case "content": result = postRepository.findByPoContentContainingAndPoDelOrderByPoNumDesc(keyword, "N"); break;
-            case "title_content": result = postRepository.findByTitleOrContent(keyword, "N"); break;
-            default: result = postRepository.findByPoDelOrderByPoNumDesc("N");
+            case "title":
+                result = postRepository.findByPoTitleContainingAndPoDelOrderByPoNumDesc(keyword, "N");
+                break;
+            case "content":
+                result = postRepository.findByPoContentContainingAndPoDelOrderByPoNumDesc(keyword, "N");
+                break;
+            case "author":
+                try {
+                    Integer mbNum = Integer.parseInt(keyword);
+                    result = postRepository.findByPoDelOrderByPoNumDesc("N").stream()
+                            .filter(p -> p.getPoMbNum().equals(mbNum))
+                            .collect(Collectors.toList());
+                } catch (NumberFormatException e) {
+                    result = new ArrayList<>();
+                }
+                break;
+            default:
+                result = postRepository.findByPoDelOrderByPoNumDesc("N");
         }
-        return result.stream().map(this::convertToMap).collect(Collectors.toList());
+
+        return result.stream()
+                .map(this::convertToMap)
+                .collect(Collectors.toList());
     }
 
+    /**
+     * 🚩 조회수 증가 (중복 방지 쿠키 적용)
+     */
     @Transactional
     public void increaseViewCount(Integer id, HttpServletRequest request, HttpServletResponse response) {
         Cookie[] cookies = request.getCookies();
-        String cookieName = "viewed_news_" + id;
+        String cookieName = "viewed_newsletter_" + id;
+
         if (cookies != null) {
             for (Cookie cookie : cookies) {
                 if (cookie.getName().equals(cookieName)) return;
             }
         }
+
         if (postRepository.updateViewCount(id) > 0) {
             Cookie newCookie = new Cookie(cookieName, "true");
             newCookie.setPath("/");
-            newCookie.setMaxAge(60 * 60 * 24);
+            newCookie.setMaxAge(60 * 60 * 24); 
             newCookie.setHttpOnly(true);
             response.addCookie(newCookie);
         }
     }
 
+    /**
+     * 🚩 게시글 상세 정보 (댓글 타입: NEWSLETTER)
+     */
     @Transactional(readOnly = true)
     public Map<String, Object> getPostDetailWithImage(Integer id, Integer mbNum) {
         return postRepository.findByPoNumAndPoDel(id, "N").map(p -> {
             Map<String, Object> map = convertToMap(p);
-            map.put("comments", commentRepository.findByCoPoNumAndCoPoTypeAndCoDelOrderByCoDateAsc(id, "NEWS", "N"));
-            map.put("isLikedByMe", mbNum != null && likeMapper.checkLikeStatus(id, mbNum) > 0);
+            
+            // 댓글 조회 시 NEWSLETTER 타입으로 필터링
+            map.put("comments", commentRepository.findByCoPoNumAndCoPoTypeAndCoDelOrderByCoDateAsc(id, BOARD_TYPE, "N"));
+            map.put("isLikedByMe", mbNum != null && mbNum > 0 && likeMapper.checkLikeStatus(id, mbNum) > 0);
             return map;
         }).orElse(null);
     }
 
+    /**
+     * 🚩 게시글 저장
+     */
     @Transactional
     public void savePost(NewsLetter post, List<MultipartFile> images) throws Exception {
         post.setPoDate(LocalDateTime.now());
         post.setPoView(0);
         post.setPoUp(0);
-        post.setPoDown(0);
-        post.setPoReport(0);
         post.setPoDel("N");
+        
         handleImages(post, images);
         postRepository.save(post);
     }
 
+    /**
+     * 🚩 게시글 수정
+     */
     @Transactional
     public void updatePost(Integer id, String title, String content, List<MultipartFile> images) throws Exception {
         NewsLetter post = postRepository.findByPoNumAndPoDel(id, "N")
-                .orElseThrow(() -> new RuntimeException("뉴스레터를 찾을 수 없습니다."));
+                .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
+        
         post.setPoTitle(title);
         post.setPoContent(content);
-        if (images != null && !images.isEmpty()) handleImages(post, images);
+        
+        if (images != null && !images.isEmpty()) {
+            handleImages(post, images);
+        }
         postRepository.save(post);
     }
 
+    /**
+     * 🚩 게시글 논리 삭제
+     */
     @Transactional
     public void deletePost(Integer id) {
         postRepository.findByPoNumAndPoDel(id, "N").ifPresent(p -> p.setPoDel("Y"));
     }
 
+    /**
+     * 🚩 추천(좋아요) 토글 로직
+     */
     @Transactional
     public String toggleLikeStatus(Integer poNum, Integer mbNum) {
         int count = likeMapper.checkLikeStatus(poNum, mbNum);
         NewsLetter post = postRepository.findByPoNumAndPoDel(poNum, "N")
-                .orElseThrow(() -> new RuntimeException("게시글 없음"));
+                .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
+
         if (count == 0) {
             likeMapper.insertLikeLog(poNum, mbNum);
             post.setPoUp((post.getPoUp() == null ? 0 : post.getPoUp()) + 1);
+            postRepository.save(post);
+            return "liked";
         } else {
             likeMapper.deleteLikeLog(poNum, mbNum);
             post.setPoUp(Math.max(0, (post.getPoUp() == null ? 0 : post.getPoUp()) - 1));
+            postRepository.save(post);
+            return "unliked";
         }
-        postRepository.save(post);
-        return count == 0 ? "liked" : "unliked";
     }
 
+    /**
+     * 🚩 이미지 파일 물리 저장 및 엔티티 세팅 (범용 상대 경로 수정)
+     */
     private void handleImages(NewsLetter post, List<MultipartFile> images) throws Exception {
         if (images == null || images.isEmpty()) return;
-        String uploadDir = System.getProperty("user.dir") + File.separator + "uploads" + File.separator + "pic" + File.separator;
+        
+        // 🚩 특정 PC 경로 대신 실행 환경의 루트 경로(user.dir) 사용
+        String rootPath = System.getProperty("user.dir");
+        String uploadDir = rootPath + File.separator + "uploads" + File.separator + "pic" + File.separator;
+        
         File dir = new File(uploadDir);
-        if (!dir.exists()) dir.mkdirs();
+        if (!dir.exists()) {
+            dir.mkdirs(); // 하위 폴더까지 한 번에 생성
+        }
+        
         List<String> savedNames = new ArrayList<>();
         for (MultipartFile file : images) {
             if (!file.isEmpty()) {
                 String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-                Files.copy(file.getInputStream(), Paths.get(uploadDir + fileName), StandardCopyOption.REPLACE_EXISTING);
+                Path targetPath = Paths.get(uploadDir + fileName);
+                
+                // 파일 저장
+                Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
                 savedNames.add(fileName);
             }
         }
-        if (!savedNames.isEmpty()) post.setPoImg(String.join(",", savedNames));
+        
+        if (!savedNames.isEmpty()) {
+            post.setPoImg(String.join(",", savedNames));
+        }
     }
 
+    /**
+     * 🚩 엔티티 데이터를 프론트엔드용 Map으로 변환
+     */
     private Map<String, Object> convertToMap(NewsLetter p) {
         Map<String, Object> map = new HashMap<>();
         map.put("poNum", p.getPoNum());
+        map.put("po_num", p.getPoNum()); 
+        
         map.put("poTitle", p.getPoTitle());
+        map.put("po_title", p.getPoTitle());
+        
         map.put("poContent", p.getPoContent());
+        map.put("po_content", p.getPoContent());
+        
         map.put("poDate", p.getPoDate() != null ? p.getPoDate().toString() : "");
+        map.put("po_date", p.getPoDate() != null ? p.getPoDate().toString() : "");
+        
         map.put("poView", p.getPoView() != null ? p.getPoView() : 0);
+        map.put("po_view", p.getPoView() != null ? p.getPoView() : 0);
+        
         map.put("poUp", p.getPoUp() != null ? p.getPoUp() : 0);
+        map.put("po_up", p.getPoUp() != null ? p.getPoUp() : 0);
+        
         map.put("poMbNum", p.getPoMbNum());
-        map.put("commentCount", commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getPoNum(), "NEWS", "N"));
+        
+        // 뉴스레터 타입에 맞는 댓글 카운트 조회
+        map.put("commentCount", commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getPoNum(), BOARD_TYPE, "N"));
+        
         if (p.getPoImg() != null && !p.getPoImg().isEmpty()) {
-            map.put("fileUrl", SERVER_URL + p.getPoImg().split(",")[0].trim());
+            String firstImg = p.getPoImg().split(",")[0].trim();
+            map.put("fileUrl", SERVER_URL + firstImg);
+            map.put("po_img", firstImg);
+        } else {
+            map.put("fileUrl", null);
+            map.put("po_img", null);
         }
+        
         return map;
     }
 }

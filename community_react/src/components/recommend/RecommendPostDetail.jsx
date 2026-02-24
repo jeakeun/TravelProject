@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
+import api from '../../api/axios';
 import { getMemberNum } from '../../utils/user';
+import { addRecentView } from '../../utils/recentViews';
+import ReportModal from '../ReportModal';
 import './RecommendPostDetail.css';
 
 const RecommendPostDetail = () => {
@@ -21,6 +24,8 @@ const RecommendPostDetail = () => {
     const [replyInput, setReplyInput] = useState(""); 
 
     const [selectedImg, setSelectedImg] = useState(null);
+    const [isBookmarked, setIsBookmarked] = useState(false);
+    const [reportModal, setReportModal] = useState({ open: false, type: 'post', targetId: null });
 
     const commentAreaRef = useRef(null);
     const replyInputRef = useRef(null);
@@ -69,6 +74,7 @@ const RecommendPostDetail = () => {
             const postRes = await axios.get(`${SERVER_URL}/api/recommend/posts/${id}`);
             setPost(postRes.data);
             setIsLiked(postRes.data.isLikedByMe || false);
+            addRecentView({ boardType: 'recommend', poNum: Number(id), poTitle: postRes.data?.poTitle });
 
             const commentRes = await axios.get(`${SERVER_URL}/api/comment/list/${id}`);
             setComments(commentRes.data || []);
@@ -144,26 +150,54 @@ const RecommendPostDetail = () => {
         } catch (err) { alert("추천 처리 중 오류가 발생했습니다."); }
     };
 
-    const handleReportPost = async () => {
+    const handleBookmark = async () => {
+        if (!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
+        try {
+            await api.post("/api/mypage/bookmarks", { poNum: Number(id), boardType: "recommend" });
+            setIsBookmarked(true);
+            alert("즐겨찾기에 추가되었습니다.");
+        } catch (err) {
+            const msg = err?.response?.data?.msg || err?.response?.data?.error;
+            alert(msg || "즐겨찾기 추가에 실패했습니다.");
+        }
+    };
+
+    const handleReportPost = () => {
         if(!isLoggedIn) {
             alert("로그인이 필요한 서비스입니다.");
             return;
         }
+        setReportModal({ open: true, type: 'post', targetId: id });
+    };
 
-        const reportedPosts = JSON.parse(localStorage.getItem('reportedPosts') || '[]');
-        if (reportedPosts.includes(`${currentUserNum}_${id}`)) {
-            alert("이미 신고하신 게시글입니다.");
-            return;
-        }
-        const reason = window.prompt("게시글 신고 사유를 입력해주세요:");
-        if (!reason?.trim()) return;
+    const handleReportSubmit = async ({ category, reason }) => {
+        const { type, targetId } = reportModal;
         try {
-            await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/report`, { reason, mbNum: currentUserNum });
-            alert("신고가 정상적으로 접수되었습니다.");
-            reportedPosts.push(`${currentUserNum}_${id}`);
-            localStorage.setItem('reportedPosts', JSON.stringify(reportedPosts));
-            fetchAllData(true);
-        } catch (err) { alert("신고 처리 중 오류가 발생했습니다."); }
+            if (type === 'post') {
+                const res = await axios.post(`${SERVER_URL}/api/recommend/posts/${targetId}/report`, {
+                    category, reason, mbNum: currentUserNum
+                });
+                if (res?.status === 200) {
+                    setReportModal({ open: false, type: null, targetId: null });
+                    fetchAllData(true);
+                    alert("신고가 정상적으로 접수되었습니다.");
+                }
+            } else {
+                await axios.post(`${SERVER_URL}/api/comment/report/${targetId}`, {
+                    category, reason, mbNum: currentUserNum
+                });
+                setReportModal({ open: false, type: null, targetId: null });
+                fetchAllData(true, true);
+                alert("신고가 정상적으로 접수되었습니다.");
+            }
+        } catch (err) {
+            const msg = err?.response?.data ?? err?.message ?? "신고 처리 중 오류가 발생했습니다.";
+            const msgStr = typeof msg === 'string' ? msg : "신고 처리 중 오류가 발생했습니다.";
+            alert(msgStr);
+            if (msgStr.includes("이미 신고")) {
+                setReportModal({ open: false, type: null, targetId: null });
+            }
+        }
     };
 
     const handleAddComment = async (parentId = null) => {
@@ -201,14 +235,9 @@ const RecommendPostDetail = () => {
         } catch (err) { alert("삭제 실패"); }
     };
 
-    const handleReportComment = async (commentId) => {
+    const handleReportComment = (commentId) => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
-        const reason = window.prompt("댓글 신고 사유를 입력해주세요:");
-        if (!reason?.trim()) return;
-        try {
-            await axios.post(`${SERVER_URL}/api/comment/report/${commentId}`, { reason, mbNum: currentUserNum });
-            alert("신고가 정상적으로 접수되었습니다.");
-        } catch (err) { alert("이미 신고했거나 신고 처리에 실패했습니다."); }
+        setReportModal({ open: true, type: 'comment', targetId: commentId });
     };
 
     const renderComments = (targetParentId = null, depth = 0) => {
@@ -313,7 +342,11 @@ const RecommendPostDetail = () => {
                                 {isLiked ? '❤️ 추천취소' : '🤍 추천'} {post.poUp}
                             </button>
                         )}
-                        
+                        {isLoggedIn && (
+                            <button className="btn-bookmark-action" onClick={handleBookmark} disabled={isBookmarked} style={{ marginLeft: 8 }}>
+                                {isBookmarked ? '★ 즐겨찾기됨' : '☆ 즐겨찾기'}
+                            </button>
+                        )}
                         {!isPostOwner && (
                             <button className="btn-report-action" onClick={handleReportPost}>
                                 🚨 신고하기
@@ -359,6 +392,13 @@ const RecommendPostDetail = () => {
                     <img src={selectedImg} alt="원본" style={{ maxWidth: '95%', maxHeight: '95%', objectFit: 'contain' }} />
                 </div>
             )}
+
+            <ReportModal
+                isOpen={reportModal.open}
+                onClose={() => setReportModal({ open: false, type: null, targetId: null })}
+                onSubmit={handleReportSubmit}
+                title={reportModal.type === 'comment' ? '댓글 신고하기' : '게시글 신고하기'}
+            />
         </div>
     );
 };

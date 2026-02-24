@@ -21,6 +21,9 @@ public class InquiryBox {
     @Column(name = "ib_content", nullable = false, columnDefinition = "TEXT")
     private String ibContent;
 
+    @Column(name = "ib_reply", columnDefinition = "TEXT")
+    private String ibReply;
+
     @Column(name = "ib_date")
     private LocalDateTime ibDate;
 

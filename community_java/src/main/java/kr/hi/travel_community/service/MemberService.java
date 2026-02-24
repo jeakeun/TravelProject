@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import kr.hi.travel_community.dao.MemberDAO;
 import kr.hi.travel_community.model.dto.LoginDTO;
@@ -179,6 +180,58 @@ public class MemberService {
         } catch (Exception e) {
             e.printStackTrace();
             return false;
+        }
+    }
+
+    /**
+     * ✅ 프로필 사진 변경: DB BLOB에 직접 저장 (프로젝트 파일 사용 안 함)
+     */
+    @Transactional
+    public Integer updatePhoto(String id, MultipartFile file) {
+        try {
+            if (id == null || id.trim().isEmpty()) return null;
+            if (file == null || file.isEmpty()) return null;
+
+            byte[] photoData = file.getBytes();
+            String photoType = file.getContentType();
+            if (photoType == null || !photoType.startsWith("image/")) return null;
+
+            int photoVer = (int) (System.currentTimeMillis() / 1000);
+            int updated = memberDAO.updatePhotoBlobById(id.trim(), photoData, photoType, photoVer);
+            return updated > 0 ? photoVer : null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * ✅ 프로필 사진 조회 (DB BLOB → 바이트 배열)
+     */
+    public byte[] getPhotoData(String id) {
+        try {
+            if (id == null || id.trim().isEmpty()) return null;
+            var row = memberDAO.selectPhotoByMemberId(id.trim());
+            if (row == null) return null;
+            Object data = row.get("photoData");
+            if (data == null) data = row.get("photodata");
+            return data instanceof byte[] ? (byte[]) data : null;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public String getPhotoContentType(String id) {
+        try {
+            if (id == null || id.trim().isEmpty()) return null;
+            var row = memberDAO.selectPhotoByMemberId(id.trim());
+            if (row == null) return null;
+            Object t = row.get("photoType");
+            if (t == null) t = row.get("phototype");
+            return t != null ? t.toString() : "image/jpeg";
+        } catch (Exception e) {
+            return "image/jpeg";
         }
     }
 

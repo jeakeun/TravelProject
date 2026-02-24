@@ -1,7 +1,9 @@
 package kr.hi.travel_community.dao;
 
+import java.util.Map;
+
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param; // 🚩 추가
+import org.apache.ibatis.annotations.Param;
 import kr.hi.travel_community.model.dto.LoginDTO;
 import kr.hi.travel_community.model.dto.MemberSignUpDTO;
 import kr.hi.travel_community.model.vo.MemberVO;
@@ -38,11 +40,21 @@ public interface MemberDAO {
     // ✅ 비밀번호 변경
     int updatePasswordById(@Param("id") String id, @Param("pw") String pw);
 
+    // ✅ 권한 변경 (초기 계정용)
+    int updateRoleById(@Param("id") String id, @Param("role") String role);
+
     // ✅ 이메일 변경
     int updateEmailById(@Param("id") String id, @Param("email") String email);
 
     // ✅ 닉네임 변경
     int updateNicknameById(@Param("id") String id, @Param("nickname") String nickname);
+
+    // ✅ 프로필 사진 변경 (DB BLOB 저장)
+    int updatePhotoBlobById(@Param("id") String id, @Param("photoData") byte[] photoData,
+            @Param("photoType") String photoType, @Param("photoVer") int photoVer);
+
+    // 프로필 사진 조회 (이미지 서빙)
+    Map<String, Object> selectPhotoByMemberId(@Param("id") String id);
 
     // ✅ 회원 탈퇴
     int deleteMemberById(@Param("id") String id);
