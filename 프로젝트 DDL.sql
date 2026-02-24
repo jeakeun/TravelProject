@@ -40,14 +40,13 @@ CREATE TABLE `category` (
 
 -- ==========================================
 -- 4-1. 여행 추천 게시판 (Recommend)
--- [수정] po_img 컬럼 추가 (리스트 썸네일용)
 -- ==========================================
 DROP TABLE IF EXISTS `recommend_post`;
 CREATE TABLE `recommend_post` (
     `po_num`    int PRIMARY KEY AUTO_INCREMENT,
     `po_title`  varchar(100) NOT NULL,
     `po_content`    longtext NOT NULL,
-    `po_img`    varchar(100) NULL, -- 리스트 출력용 대표 이미지 파일명
+    `po_img`    varchar(100) NULL,
     `po_date`    datetime default current_timestamp not    NULL,
     `po_view`    int    NOT NULL DEFAULT 0,
     `po_up`      int    NOT NULL DEFAULT 0,
@@ -69,14 +68,13 @@ CREATE TABLE `recommend_photo` (
 
 -- ==========================================
 -- 4-2. 여행 후기 게시판 (ReviewBoard)
--- [수정] po_img 컬럼 추가 (리스트 썸네일용)
 -- ==========================================
 DROP TABLE IF EXISTS `review_post`;
 CREATE TABLE `review_post` (
     `po_num`    int PRIMARY KEY AUTO_INCREMENT,
     `po_title`  varchar(100) NOT NULL,
     `po_content`    longtext NOT NULL,
-    `po_img`    varchar(100) NULL, -- 리스트 출력용 대표 이미지 파일명
+    `po_img`    varchar(100) NULL,
     `po_date`    datetime default current_timestamp not    NULL,
     `po_view`    int    NOT NULL DEFAULT 0,
     `po_up`      int    NOT NULL DEFAULT 0,
@@ -124,7 +122,63 @@ CREATE TABLE `free_photo` (
 );
 
 -- ==========================================
--- 5. 댓글 테이블 (기존 유지)
+-- 4-4. 이벤트 게시판 (EventBoard) - 추가됨
+-- ==========================================
+DROP TABLE IF EXISTS `event_post`;
+CREATE TABLE `event_post` (
+    `po_num`    int PRIMARY KEY AUTO_INCREMENT,
+    `po_title`  varchar(100) NOT NULL,
+    `po_content`    longtext NOT NULL,
+    `po_img`    varchar(100) NULL, -- 리스트 썸네일
+    `po_date`    datetime default current_timestamp not    NULL,
+    `po_view`    int    NOT NULL DEFAULT 0,
+    `po_up`      int    NOT NULL DEFAULT 0,
+    `po_down`    int    NOT NULL DEFAULT 0,
+    `po_report` int    NOT NULL DEFAULT 0,
+    `po_del`    char(1)    NOT NULL DEFAULT "N",
+    `po_mb_num` int    NOT NULL,
+    FOREIGN KEY (`po_mb_num`) REFERENCES `member` (`mb_num`)
+);
+
+DROP TABLE IF EXISTS `event_photo`;
+CREATE TABLE `event_photo` (
+    `ph_num`    int PRIMARY KEY AUTO_INCREMENT,
+    `ph_ori_name`    varchar(100) NOT NULL,
+    `ph_name`    varchar(100) NOT NULL,
+    `ph_po_num` int    NOT NULL,
+    FOREIGN KEY (`ph_po_num`) REFERENCES `event_post` (`po_num`) ON DELETE CASCADE
+);
+
+-- ==========================================
+-- 4-5. 뉴스레터 게시판 (Newsletter) - 추가됨
+-- ==========================================
+DROP TABLE IF EXISTS `newsletter_post`;
+CREATE TABLE `newsletter_post` (
+    `po_num`    int PRIMARY KEY AUTO_INCREMENT,
+    `po_title`  varchar(100) NOT NULL,
+    `po_content`    longtext NOT NULL,
+    `po_img`    varchar(100) NULL, -- 리스트 썸네일
+    `po_date`    datetime default current_timestamp not    NULL,
+    `po_view`    int    NOT NULL DEFAULT 0,
+    `po_up`      int    NOT NULL DEFAULT 0,
+    `po_down`    int    NOT NULL DEFAULT 0,
+    `po_report` int    NOT NULL DEFAULT 0,
+    `po_del`    char(1)    NOT NULL DEFAULT "N",
+    `po_mb_num` int    NOT NULL,
+    FOREIGN KEY (`po_mb_num`) REFERENCES `member` (`mb_num`)
+);
+
+DROP TABLE IF EXISTS `newsletter_photo`;
+CREATE TABLE `newsletter_photo` (
+    `ph_num`    int PRIMARY KEY AUTO_INCREMENT,
+    `ph_ori_name`    varchar(100) NOT NULL,
+    `ph_name`    varchar(100) NOT NULL,
+    `ph_po_num` int    NOT NULL,
+    FOREIGN KEY (`ph_po_num`) REFERENCES `newsletter_post` (`po_num`) ON DELETE CASCADE
+);
+
+-- ==========================================
+-- 5. 댓글 테이블
 -- ==========================================
 DROP TABLE IF EXISTS `comment`;
 CREATE TABLE `comment` (
@@ -142,7 +196,7 @@ CREATE TABLE `comment` (
 );
 
 -- ==========================================
--- 6. 보조 및 연관 테이블 (기존 유지)
+-- 6. 보조 및 연관 테이블 (유지)
 -- ==========================================
 DROP TABLE IF EXISTS `live_rank`;
 CREATE TABLE `live_rank` (
@@ -261,9 +315,20 @@ CREATE TABLE `likes` (
 -- ==========================================
 INSERT INTO `member` (mb_num, mb_uid, mb_rol) VALUES (1, 'admin', 'ADMIN');
 INSERT INTO `board` (bo_name) VALUES ('전체게시판');
+
+-- 카테고리 삽입 (이벤트 및 뉴스레터 추가)
 INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (1, '여행 추천 게시판', 'Y', 1);
 INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (2, '여행 후기 게시판', 'Y', 1);
 INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (3, '자유 게시판', 'Y', 1);
+INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (4, '이벤트 게시판', 'Y', 1);
+INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES (5, '뉴스레터 게시판', 'Y', 1);
 
+-- 테스트 데이터
 INSERT INTO `recommend_post` (po_title, po_content, po_mb_num, po_del) 
 VALUES ('안녕하세요 추천 테스트 게시글입니다', '내용입니다.', 1, 'N');
+
+INSERT INTO `event_post` (po_title, po_content, po_mb_num, po_del) 
+VALUES ('진행중인 이벤트입니다', '이벤트 내용입니다.', 1, 'N');
+
+INSERT INTO `newsletter_post` (po_title, po_content, po_mb_num, po_del) 
+VALUES ('2월의 여행 뉴스레터', '뉴스레터 내용입니다.', 1, 'N');
