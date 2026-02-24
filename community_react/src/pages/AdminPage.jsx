@@ -126,9 +126,7 @@ function AdminPage() {
       });
       setReports((prev) =>
         prev.map((r) =>
-          r.rbNum === expandedReport
-            ? { ...r, rbReply: reportReply, rbManage: "Y" }
-            : r
+          r.rbNum === expandedReport ? { ...r, rbReply: reportReply } : r
         )
       );
       alert("답변이 저장되었습니다.");
@@ -354,24 +352,20 @@ function AdminPage() {
                             )}
                             {r.rbManage !== "D" && (
                               <>
-                                {r.rbManage !== "Y" && r.rbManage !== "D" && (
-                                  <>
-                                    <button
-                                      type="button"
-                                      className="admin-btn-delete"
-                                      onClick={() => handleReportProcess(r.rbNum, "D")}
-                                    >
-                                      삭제
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="admin-btn-hold"
-                                      onClick={() => handleReportProcess(r.rbNum, "H")}
-                                    >
-                                      보류
-                                    </button>
-                                  </>
-                                )}
+                                <button
+                                  type="button"
+                                  className="admin-btn-delete"
+                                  onClick={() => handleReportProcess(r.rbNum, "D")}
+                                >
+                                  삭제
+                                </button>
+                                <button
+                                  type="button"
+                                  className="admin-btn-hold"
+                                  onClick={() => handleReportProcess(r.rbNum, "H")}
+                                >
+                                  보류
+                                </button>
                                 <button
                                   type="button"
                                   className="admin-btn-process"
