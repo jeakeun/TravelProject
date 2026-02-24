@@ -34,8 +34,8 @@ function Main() {
   const navigate = useNavigate();
   const outletContext = useOutletContext() || {};
   
-  // 🚩 context에서 posts 데이터를 가져옵니다.
-  const { user, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang, posts = [] } = outletContext;
+  // 🚩 노란 줄 방지: Main 컴포넌트 내에서 실제 사용하는 변수(currentLang, posts)만 추출합니다.
+  const { currentLang, posts = [] } = outletContext;
 
   const t = carouselTranslations[currentLang] || carouselTranslations["KR"];
   const SERVER_URL = "http://localhost:8080";
@@ -131,7 +131,6 @@ function Main() {
             <div className="carousel-wrapper">
               {[0, 1, 2].map((idx) => {
                 const post = topThree[idx];
-                // 🚩 데이터 필드 호환성 유지
                 const postId = post?.poNum || post?.po_num || post?.postId;
                 const displayTitle = post?.poTitle || post?.po_title || t[`dest${idx + 1}_name`];
 
