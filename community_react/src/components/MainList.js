@@ -218,7 +218,7 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
             )}
           </div>
 
-          <div className="page-buttons" style={{ marginTop: '40px' }}>
+          <div className="page-buttons" style={{ marginTop: '24px' }}>
             <button className="pagination-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}>&lt;</button>
             {[...Array(totalPages)].map((_, i) => (
               <button key={i+1} className={`pagination-btn ${currentPage === i+1 ? 'active' : ''}`} onClick={() => setCurrentPage(i+1)}>{i+1}</button>
@@ -227,12 +227,12 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
           </div>
 
           {['여행 추천 게시판', '여행 후기 게시판', '자유 게시판', '이벤트', '뉴스레터'].includes(activeMenu.trim()) && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-45px', paddingRight: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-30px', paddingRight: '20px' }}>
               <button className="write-btn" onClick={() => navigate(getWritePath())}>글쓰기</button>
             </div>
           )}
 
-          <div className="search-container" style={{ marginTop: '50px', display: 'flex', justifyContent: 'center' }}>
+          <div className="search-container" style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
             <div style={searchBoxStyle}>
               <input 
                 type="text" 
