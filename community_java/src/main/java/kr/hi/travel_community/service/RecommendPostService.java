@@ -1,9 +1,11 @@
 package kr.hi.travel_community.service;
 
 import kr.hi.travel_community.entity.RecommendPost;
+import kr.hi.travel_community.entity.ReportBox;
 import kr.hi.travel_community.mapper.LikeMapper;
 import kr.hi.travel_community.repository.RecommendRepository;
 import kr.hi.travel_community.repository.CommentRepository;
+import kr.hi.travel_community.repository.ReportRepository;
 import kr.hi.travel_community.entity.Comment;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,7 +28,8 @@ public class RecommendPostService {
 
     private final RecommendRepository postRepository; 
     private final LikeMapper likeMapper; 
-    private final CommentRepository commentRepository; 
+    private final CommentRepository commentRepository;
+    private final ReportRepository reportRepository; 
     private final String SERVER_URL = "http://localhost:8080/pic/";
 
     @Transactional(readOnly = true)
@@ -180,10 +183,19 @@ public class RecommendPostService {
     }
 
     @Transactional
-    public void reportPost(Integer id) {
+    public void reportPost(Integer id, String reason, Integer mbNum) {
         postRepository.findByPoNumAndPoDel(id, "N").ifPresent(post -> {
             post.setPoReport((post.getPoReport() == null ? 0 : post.getPoReport()) + 1);
             postRepository.save(post);
+            if (mbNum != null && mbNum > 0) {
+                ReportBox rb = new ReportBox();
+                rb.setRbId(id);
+                rb.setRbName("RECOMMEND");
+                rb.setRbContent(reason != null ? reason : "");
+                rb.setRbMbNum(mbNum);
+                rb.setRbManage("N");
+                reportRepository.save(rb);
+            }
         });
     }
 

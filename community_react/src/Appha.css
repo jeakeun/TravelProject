@@ -176,9 +176,9 @@
 .pagination {
   display: flex;
   justify-content: center;
-  flex-wrap: wrap; /* ✅ 버튼 많아질 때 줄바꿈 */
+  flex-wrap: wrap;
   gap: 12px;
-  margin-top: 30px;
+  margin-top: 20px;
   width: 100%;
 }
 
@@ -239,7 +239,7 @@
 .search-container {
   display: flex;
   justify-content: center;
-  margin: 40px 0; /* ✅ 너무 멀었던 60px 살짝 줄임 */
+  margin: 24px 0;
   width: 100%;
 }
 

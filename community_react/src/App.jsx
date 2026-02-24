@@ -22,6 +22,8 @@ import ReviewBoardDetail from './components/reviewboard/ReviewBoardDetail';
 
 import NewsNotice from './pages/NewsNotice';
 import MyPage from './pages/MyPage';
+import AdminPage from './pages/AdminPage';
+import InquiryPage from './pages/InquiryPage';
 import { getUserId } from './utils/user';
 
 import Login from './auth/login';
@@ -307,10 +309,12 @@ function App() {
       }>
         <Route path="/" element={<Main />} />
         <Route path="/mypage" element={<MyPage />} />
+        <Route path="/admin" element={<AdminPage />} />
         <Route path="/login" element={<OpenLoginModal openLogin={openLogin} />} />
         <Route path="/signup" element={<OpenSignupModal openSignup={openSignup} />} />
         <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
         <Route path="/news/notice" element={<NewsNotice />} />
+        <Route path="/inquiry" element={<InquiryPage />} />
       </Route>
     </Routes>
   );
