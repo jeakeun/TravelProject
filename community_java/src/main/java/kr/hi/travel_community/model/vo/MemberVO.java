@@ -20,6 +20,7 @@ public class MemberVO {
     private String mb_email; // 회원 이메일
     private String mb_rol;   // 회원 권한
     private int mb_score;    // 회원 점수
-    private String mb_photo; // 프로필 사진 경로
+    private String mb_photo;   // (deprecated) 이전 파일명 저장용
+    private Integer mb_photo_ver; // 프로필 사진 버전 (DB blob 존재 시 캐시 무효화용)
     private String mb_agree; // 동의 여부
 }

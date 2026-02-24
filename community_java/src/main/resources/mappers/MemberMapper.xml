@@ -12,25 +12,28 @@
         <result property="mb_rol" column="mb_rol"/>
         <result property="mb_score" column="mb_score"/>
         <result property="mb_photo" column="mb_photo"/>
+        <result property="mb_photo_ver" column="mb_photo_ver"/>
         <result property="mb_agree" column="mb_agree"/>
     </resultMap>
 
     <!-- 회원가입 시 아이디와 이메일로 중복 확인 -->
     <select id="selectMember" resultMap="MemberVOMap">
-        SELECT * FROM member
+        SELECT mb_num, mb_uid, mb_nickname, mb_pw, mb_email, mb_rol, mb_score, mb_photo_ver, mb_agree FROM member
         WHERE mb_uid = #{id}
           AND mb_email = #{email}
     </select>
 
-    <!-- 로그인 시 아이디로 조회 -->
+    <!-- 로그인 시 아이디로 조회 (mb_photo_data 제외, blob 제외하여 JSON 용량 절감) -->
     <select id="selectMemberById" resultMap="MemberVOMap">
-        SELECT * FROM member
+        SELECT mb_num, mb_uid, mb_nickname, mb_pw, mb_email, mb_rol, mb_score,
+               mb_photo_ver, mb_agree
+        FROM member
         WHERE mb_uid = #{id}
     </select>
 
     <!-- 회원가입 시 이메일 중복 확인 -->
     <select id="selectMemberByEmail" resultMap="MemberVOMap">
-        SELECT * FROM member
+        SELECT mb_num, mb_uid, mb_nickname, mb_pw, mb_email, mb_rol, mb_score, mb_photo_ver, mb_agree FROM member
         WHERE mb_email = #{email}
         LIMIT 1
     </select>
@@ -77,6 +80,20 @@
         SET mb_nickname = #{nickname}
         WHERE mb_uid = #{id}
     </update>
+
+    <!-- ✅ 프로필 사진 변경 (DB BLOB 저장, 파일 사용 안 함) -->
+    <update id="updatePhotoBlobById">
+        UPDATE member
+        SET mb_photo_data = #{photoData}, mb_photo_type = #{photoType}, mb_photo_ver = #{photoVer}
+        WHERE mb_uid = #{id}
+    </update>
+
+    <!-- 프로필 사진 조회 (이미지 서빙용) -->
+    <select id="selectPhotoByMemberId" resultType="map">
+        SELECT mb_photo_data as photoData, mb_photo_type as photoType
+        FROM member
+        WHERE mb_uid = #{id} AND mb_photo_data IS NOT NULL
+    </select>
 
     <!-- ✅ 회원 탈퇴 -->
     <delete id="deleteMemberById">

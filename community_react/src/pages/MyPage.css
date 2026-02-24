@@ -163,6 +163,25 @@
   position: relative;
   flex-shrink: 0;
   width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.mypage-profile-photo-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.mypage-profile-photo-box {
+  position: relative;
+  width: 140px;
   height: 140px;
   border-radius: 12px;
   overflow: hidden;
@@ -190,6 +209,29 @@
 
 .mypage-profile-photo-fallback.show {
   display: flex;
+}
+
+.mypage-profile-photo-btn {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a6b2a;
+  background: #fff;
+  border: 1px solid #1a6b2a;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mypage-profile-photo-btn:hover:not(:disabled) {
+  background: #1a6b2a;
+  color: #fff;
+}
+
+.mypage-profile-photo-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .mypage-profile-info {
