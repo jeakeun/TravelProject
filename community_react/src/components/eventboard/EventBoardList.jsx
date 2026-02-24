@@ -170,7 +170,7 @@ const EventBoardList = ({ posts = [] }) => {
                     </div>
 
                     {isAdmin && (
-                        <button className="btn-write-footer" onClick={() => navigate('/community/write')}>
+                        <button className="btn-write-footer" onClick={() => navigate('/news/event/write')}>
                             이벤트 작성
                         </button>
                     )}

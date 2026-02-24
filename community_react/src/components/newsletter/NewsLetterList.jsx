@@ -171,7 +171,7 @@ const NewsLetterList = ({ posts = [] }) => {
                     </div>
 
                     {isAdmin && (
-                        <button className="btn-write-footer" onClick={() => navigate('/community/write', { state: { type: 'NEWS' } })}>
+                        <button className="btn-write-footer" onClick={() => navigate('/news/newsletter/write', { state: { boardType: 'newsletter' } })}>
                             뉴스레터 작성
                         </button>
                     )}
