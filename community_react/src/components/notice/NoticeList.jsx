@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './NoticeDetail'; 
+import './NoticeDetail.css'; 
 
 const NoticeList = ({ posts = [], goToDetail }) => {
     const navigate = useNavigate();
@@ -81,16 +81,9 @@ const NoticeList = ({ posts = [], goToDetail }) => {
                 </tbody>
             </table>
 
-            {/* 🚩 하단 레이아웃 영역 */}
             <div className="list-pagination-area">
-                {/* 페이지네이션 버튼 (< > 기호 적용) */}
                 <div className="page-buttons">
-                    <button 
-                        onClick={() => paginate(currentPage - 1)}
-                        disabled={currentPage === 1}
-                    >
-                        &lt;
-                    </button>
+                    <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1}>&lt;</button>
                     {[...Array(totalPages)].map((_, i) => (
                         <button 
                             key={i + 1} 
@@ -100,48 +93,23 @@ const NoticeList = ({ posts = [], goToDetail }) => {
                             {i + 1}
                         </button>
                     ))}
-                    <button 
-                        onClick={() => paginate(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                    >
-                        &gt;
-                    </button>
+                    <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages}>&gt;</button>
                 </div>
 
-                {/* 검색창 및 글쓰기 버튼 레이아웃 */}
                 <div className="footer-action-row">
                     <div className="search-footer">
-                        {/* 카테고리 선택창 */}
-                        <select 
-                            className="search-select-box"
-                            value={searchType}
-                            onChange={(e) => setSearchType(e.target.value)}
-                        >
+                        <select className="search-select-box" value={searchType} onChange={(e) => setSearchType(e.target.value)}>
                             <option value="title">제목</option>
                             <option value="content">내용</option>
                             <option value="titleContent">제목+내용</option>
                             <option value="author">작성자</option>
                         </select>
-                        
                         <div className="search-input-wrapper">
-                            <input 
-                                type="text" 
-                                placeholder="검색어를 입력하세요" 
-                                value={inputValue} 
-                                onChange={(e) => setInputValue(e.target.value)} 
-                                onKeyPress={(e) => e.key === 'Enter' && handleSearch()} 
-                            />
+                            <input type="text" placeholder="검색어를 입력하세요" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSearch()} />
                             <button className="btn-search" onClick={handleSearch}>검색</button>
                         </div>
                     </div>
-
-                    {/* 우측 끝 배치 글쓰기 버튼 */}
-                    <button 
-                        className="btn-write-footer" 
-                        onClick={() => navigate('/news/notice/write')}
-                    >
-                        글쓰기
-                    </button>
+                    <button className="btn-write-footer" onClick={() => navigate('/news/notice/write')}>글쓰기</button>
                 </div>
             </div>
         </div>
