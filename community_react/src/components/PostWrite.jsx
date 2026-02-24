@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-import { getMemberNum } from '../utils/user';
 
-function PostWrite({ user, refreshPosts, activeMenu }) {
+function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }) {
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -25,9 +24,9 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
 
   useEffect(() => {
     if (isEdit && existingPost) {
-      setTitle(existingPost.poTitle || existingPost.title || '');
+      setTitle(existingPost.poTitle || existingPost.po_title || existingPost.title || '');
       if (editorRef.current) {
-        editorRef.current.innerHTML = existingPost.poContent || existingPost.content || '';
+        editorRef.current.innerHTML = existingPost.poContent || existingPost.po_content || existingPost.content || '';
       }
     }
   }, [isEdit, existingPost]);
@@ -73,8 +72,7 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
 
     // 🚩 FormData 구성 최적화
     const formData = new FormData();
-    // currentUser를 참조하도록 수정
-    const authorNum = currentUser?.mbNum || currentUser?.mb_Num || 1;
+    const authorNum = currentUser?.mbNum || currentUser?.mb_num || 1;
 
     // 스프링 부트 컨트롤러의 DTO/파라미터 명칭과 일치시킵니다.
     formData.append('poTitle', title);
@@ -88,6 +86,7 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
       });
     }
 
+    // API 경로 결정 로직
     const apiMap = {
       '여행 추천 게시판': 'recommend',
       '여행 후기 게시판': 'reviewboard',
@@ -96,9 +95,22 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
       '뉴스레터': 'newsletter'
     };
     
-    const categoryPath = apiMap[activeMenu] || 'freeboard';
+    const path = location.pathname;
+    let urlDerivedBoard = '';
+    if (path.includes('/newsletter')) urlDerivedBoard = 'newsletter';
+    else if (path.includes('/event')) urlDerivedBoard = 'event';
+    else if (path.includes('/recommend')) urlDerivedBoard = 'recommend';
+    else if (path.includes('/freeboard')) urlDerivedBoard = 'freeboard';
+
+    let categoryPath = propsBoardType || stateBoardType || urlDerivedBoard || boardParam || apiMap[activeMenu] || 'freeboard';
+
+    if (categoryPath === '이벤트' || categoryPath === '이벤트 게시판') categoryPath = 'event';
+    if (categoryPath === '뉴스레터') categoryPath = 'newsletter';
+    if (categoryPath === '여행 추천 게시판') categoryPath = 'recommend';
+    if (categoryPath === '자유 게시판') categoryPath = 'freeboard';
+
     const apiUrl = isEdit 
-      ? `http://localhost:8080/api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.postId}`
+      ? `http://localhost:8080/api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.po_num || existingPost?.id}`
       : `http://localhost:8080/api/${categoryPath}/posts`;
 
     const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
@@ -124,7 +136,6 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
       }
     } catch (error) {
       console.error("저장 실패 상세:", error.response);
-      
       let errorMsg = "서버와 통신 중 오류가 발생했습니다.";
       if (error.response?.data) {
         // 서버에서 보낸 에러 메시지 추출
@@ -132,8 +143,7 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
           ? error.response.data 
           : (error.response.data.message || error.response.data.error || JSON.stringify(error.response.data));
       }
-      
-      alert(`저장 실패 (400): ${errorMsg}\n\n*게시판별 서버 파라미터 이름을 확인 중입니다.`);
+      alert(`저장 실패: ${errorMsg}`);
     }
   };
 
@@ -152,7 +162,7 @@ function PostWrite({ user, refreshPosts, activeMenu }) {
   return (
     <div className="post-write-wrapper" style={{ padding: '0 20px' }}>
       <h2 style={{ marginBottom: '20px', color: '#2c3e50', fontSize: '1.2rem', fontWeight: '800' }}>
-        {activeMenu} {isEdit ? '수정하기' : '글쓰기'}
+        {activeMenu || (location.pathname.includes('newsletter') ? '뉴스레터' : location.pathname.includes('event') ? '이벤트 게시판' : boardParam)} {isEdit ? '수정하기' : '글쓰기'}
       </h2>
 
       <div style={{ background: '#fff', padding: '40px', borderRadius: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>
