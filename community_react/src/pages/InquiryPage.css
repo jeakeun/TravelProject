@@ -1,8 +1,15 @@
 .inquiry-page {
-  width: 95%;
-  max-width: 900px;
+  width: 100%;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 32px 0 48px;
+  padding: 32px 40px 48px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .inquiry-page {
+    padding: 32px 20px 40px;
+  }
 }
 
 .inquiry-title {

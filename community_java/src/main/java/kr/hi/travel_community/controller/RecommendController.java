@@ -147,7 +147,11 @@ public class RecommendController {
         String combined = (category.isEmpty() ? "" : "[" + category + "] ") + reason;
         if (combined.trim().isEmpty()) combined = "신고 사유 없음";
         Integer mbNum = body != null && body.get("mbNum") != null ? Integer.parseInt(body.get("mbNum").toString()) : null;
-        recommendPostService.reportPost(id, combined, mbNum);
-        return ResponseEntity.ok("Reported");
+        try {
+            recommendPostService.reportPost(id, combined, mbNum);
+            return ResponseEntity.ok("Reported");
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 }

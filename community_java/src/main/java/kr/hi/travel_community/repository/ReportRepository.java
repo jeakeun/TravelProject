@@ -11,6 +11,9 @@ public interface ReportRepository extends JpaRepository<ReportBox, Integer> {
 
     long countByRbIdAndRbName(Integer rbId, String rbName);
 
+    /** 해당 회원이 이미 해당 게시글/댓글을 신고했는지 확인 */
+    boolean existsByRbIdAndRbNameAndRbMbNum(Integer rbId, String rbName, Integer rbMbNum);
+
     List<ReportBox> findAllByOrderByRbNumDesc();
 
     List<ReportBox> findByRbMbNumOrderByRbNumDesc(Integer rbMbNum);

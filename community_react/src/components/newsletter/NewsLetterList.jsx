@@ -77,7 +77,7 @@ const NewsLetterList = ({ posts = [] }) => {
     };
 
     return (
-        <div className="main-content">
+        <div className="main-content page-content-area">
             <h2 className="board-title">| 뉴스레터</h2>
             
             <div className="gallery-grid">

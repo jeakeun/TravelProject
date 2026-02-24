@@ -150,6 +150,9 @@ public class CommentController {
         Comment comment = commentRepository.findById(commentId).orElse(null);
         if (comment == null) return ResponseEntity.status(404).body(Map.of("error", "댓글을 찾을 수 없습니다."));
         if (mbNum != null && mbNum > 0) {
+            if (reportRepository.existsByRbIdAndRbNameAndRbMbNum(commentId, "RECOMMEND_COMMENT", mbNum)) {
+                return ResponseEntity.badRequest().body("이미 신고하신 댓글입니다.");
+            }
             ReportBox rb = new ReportBox();
             rb.setRbId(commentId);
             rb.setRbName("RECOMMEND_COMMENT");

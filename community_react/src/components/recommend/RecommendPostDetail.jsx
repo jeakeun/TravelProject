@@ -167,11 +167,6 @@ const RecommendPostDetail = () => {
             alert("로그인이 필요한 서비스입니다.");
             return;
         }
-        const reportedPosts = JSON.parse(localStorage.getItem('reportedPosts') || '[]');
-        if (reportedPosts.includes(`${currentUserNum}_${id}`)) {
-            alert("이미 신고하신 게시글입니다.");
-            return;
-        }
         setReportModal({ open: true, type: 'post', targetId: id });
     };
 
@@ -179,21 +174,30 @@ const RecommendPostDetail = () => {
         const { type, targetId } = reportModal;
         try {
             if (type === 'post') {
-                await axios.post(`${SERVER_URL}/api/recommend/posts/${targetId}/report`, {
+                const res = await axios.post(`${SERVER_URL}/api/recommend/posts/${targetId}/report`, {
                     category, reason, mbNum: currentUserNum
                 });
-                const reportedPosts = JSON.parse(localStorage.getItem('reportedPosts') || '[]');
-                reportedPosts.push(`${currentUserNum}_${targetId}`);
-                localStorage.setItem('reportedPosts', JSON.stringify(reportedPosts));
-                fetchAllData(true);
+                if (res?.status === 200) {
+                    setReportModal({ open: false, type: null, targetId: null });
+                    fetchAllData(true);
+                    alert("신고가 정상적으로 접수되었습니다.");
+                }
             } else {
                 await axios.post(`${SERVER_URL}/api/comment/report/${targetId}`, {
                     category, reason, mbNum: currentUserNum
                 });
+                setReportModal({ open: false, type: null, targetId: null });
                 fetchAllData(true, true);
+                alert("신고가 정상적으로 접수되었습니다.");
             }
-            alert("신고가 정상적으로 접수되었습니다.");
-        } catch (err) { alert("신고 처리 중 오류가 발생했습니다."); }
+        } catch (err) {
+            const msg = err?.response?.data ?? err?.message ?? "신고 처리 중 오류가 발생했습니다.";
+            const msgStr = typeof msg === 'string' ? msg : "신고 처리 중 오류가 발생했습니다.";
+            alert(msgStr);
+            if (msgStr.includes("이미 신고")) {
+                setReportModal({ open: false, type: null, targetId: null });
+            }
+        }
     };
 
     const handleAddComment = async (parentId = null) => {

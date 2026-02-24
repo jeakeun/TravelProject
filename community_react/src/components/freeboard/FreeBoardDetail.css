@@ -1,10 +1,18 @@
-/* 전체 컨테이너 */
+/* 전체 컨테이너 - 양옆 여백 통일 */
 .freeboard-list-wrapper,
 .review-detail-wrapper {
-    width: 95%;
+    width: 100%;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 12px 0;
+    padding: 12px 40px 24px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .freeboard-list-wrapper,
+    .review-detail-wrapper {
+        padding: 12px 20px 24px;
+    }
 }
 
 .board-title {

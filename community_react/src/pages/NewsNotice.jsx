@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate, useOutletContext } from "react-router-dom"; 
 import Header from '../components/Header';
+import '../components/freeboard/FreeBoardDetail.css';
 
 const NewsNotice = ({ goToDetail }) => {
     // App.jsx의 Outlet context에서 상태와 함수를 가져옵니다.

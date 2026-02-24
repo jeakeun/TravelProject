@@ -8,8 +8,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,9 +20,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import kr.hi.travel_community.entity.Bookmark;
-import kr.hi.travel_community.entity.ReportBox;
 import kr.hi.travel_community.entity.FreePost;
 import kr.hi.travel_community.entity.RecommendPost;
+import kr.hi.travel_community.entity.ReportBox;
 import kr.hi.travel_community.entity.ReviewPost;
 import kr.hi.travel_community.model.util.CustomUser;
 import kr.hi.travel_community.model.vo.MemberVO;

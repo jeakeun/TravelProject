@@ -57,6 +57,13 @@
         WHERE mb_uid = #{id}
     </update>
 
+    <!-- ✅ 권한 변경 (초기 계정용) -->
+    <update id="updateRoleById">
+        UPDATE member
+        SET mb_rol = #{role}
+        WHERE mb_uid = #{id}
+    </update>
+
     <!-- ✅ 이메일 변경 -->
     <update id="updateEmailById">
         UPDATE member

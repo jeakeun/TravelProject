@@ -1,24 +1,21 @@
 package kr.hi.travel_community.service;
 
-import kr.hi.travel_community.entity.FreePost;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import kr.hi.travel_community.entity.InquiryBox;
-import kr.hi.travel_community.entity.RecommendPost;
 import kr.hi.travel_community.entity.ReportBox;
-import kr.hi.travel_community.entity.ReviewPost;
 import kr.hi.travel_community.repository.FreeRepository;
 import kr.hi.travel_community.repository.InquiryRepository;
 import kr.hi.travel_community.repository.RecommendRepository;
 import kr.hi.travel_community.repository.ReportRepository;
 import kr.hi.travel_community.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -50,13 +47,9 @@ public class AdminService {
         }
     }
 
+    @Transactional
     public void updateInquiryReply(Integer ibNum, String reply) {
-        InquiryBox ib = inquiryRepository.findById(ibNum).orElse(null);
-        if (ib != null) {
-            ib.setIbReply(reply);
-            ib.setIbStatus("Y");
-            inquiryRepository.save(ib);
-        }
+        inquiryRepository.updateReplyAndStatus(ibNum, reply != null ? reply : "");
     }
 
     public void updateReportStatus(Integer rbNum, String status) {
@@ -114,11 +107,11 @@ public class AdminService {
     private Map<String, Object> toInquiryMap(InquiryBox ib) {
         Map<String, Object> m = new HashMap<>();
         m.put("ibNum", ib.getIbNum());
-        m.put("ibTitle", ib.getIbTitle());
-        m.put("ibContent", ib.getIbContent());
-        m.put("ibReply", ib.getIbReply());
+        m.put("ibTitle", ib.getIbTitle() != null ? ib.getIbTitle() : "");
+        m.put("ibContent", ib.getIbContent() != null ? ib.getIbContent() : "");
+        m.put("ibReply", ib.getIbReply() != null ? ib.getIbReply() : "");
         m.put("ibDate", ib.getIbDate());
-        m.put("ibStatus", ib.getIbStatus());
+        m.put("ibStatus", ib.getIbStatus() != null ? ib.getIbStatus() : "N");
         m.put("ibMbNum", ib.getIbMbNum());
         return m;
     }
@@ -126,11 +119,11 @@ public class AdminService {
     private Map<String, Object> toReportMap(ReportBox rb) {
         Map<String, Object> m = new HashMap<>();
         m.put("rbNum", rb.getRbNum());
-        m.put("rbContent", rb.getRbContent());
-        m.put("rbReply", rb.getRbReply());
-        m.put("rbManage", rb.getRbManage());
+        m.put("rbContent", rb.getRbContent() != null ? rb.getRbContent() : "");
+        m.put("rbReply", rb.getRbReply() != null ? rb.getRbReply() : "");
+        m.put("rbManage", rb.getRbManage() != null ? rb.getRbManage() : "N");
         m.put("rbId", rb.getRbId());
-        m.put("rbName", rb.getRbName());
+        m.put("rbName", rb.getRbName() != null ? rb.getRbName() : "");
         m.put("rbMbNum", rb.getRbMbNum());
         return m;
     }

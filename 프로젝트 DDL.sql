@@ -218,7 +218,9 @@ CREATE TABLE `history` (
     FOREIGN KEY (`ht_me_num`) REFERENCES `member` (`mb_num`)
 );
 
--- 기존 DB에 컬럼 추가가 필요한 경우: ALTER TABLE inquiry_box ADD COLUMN ib_reply TEXT NULL; ALTER TABLE report_box ADD COLUMN rb_reply TEXT NULL;
+-- ==========================================
+-- 문의함/신고함 (ib_reply, rb_reply, rb_manage 포함)
+-- ==========================================
 DROP TABLE IF EXISTS `inquiry_box`;
 CREATE TABLE `inquiry_box` (
     `ib_num`    int PRIMARY KEY AUTO_INCREMENT,
@@ -236,9 +238,9 @@ CREATE TABLE `report_box` (
     `rb_num`    int PRIMARY KEY AUTO_INCREMENT,
     `rb_content`    text NOT NULL,
     `rb_reply`  text NULL,
-    `rb_manage` char(1)    NULL,
+    `rb_manage` char(1)    NULL DEFAULT 'N',
     `rb_id` int    NOT NULL,
-    `rb_name`    varchar(10)    NOT NULL,
+    `rb_name`    varchar(30)    NOT NULL,
     `rb_mb_num` int    NOT NULL,
     FOREIGN KEY (`rb_mb_num`) REFERENCES `member` (`mb_num`)
 );
@@ -317,9 +319,10 @@ CREATE TABLE `likes` (
 -- ==========================================
 -- 7. 초기 데이터 삽입
 -- ==========================================
--- 초기 회원 2명 (아이디/비번 동일, 앱 기동 시 InitialDataLoader가 BCrypt로 갱신)
-INSERT INTO `member` (mb_num, mb_uid, mb_pw, mb_email, mb_nickname, mb_rol) VALUES (1, '123', '123', 'admin@test.com', 'admin', 'ADMIN');
-INSERT INTO `member` (mb_num, mb_uid, mb_pw, mb_email, mb_nickname, mb_rol) VALUES (2, '456', '456', 'user@test.com', 'user', 'USER');
+-- 초기 회원 2명 (비밀번호 BCrypt 암호화: 123->$2a$10$..., 456->$2a$10$...)
+-- 로그인: admin(123/123), user(456/456)
+INSERT INTO `member` (mb_num, mb_uid, mb_pw, mb_email, mb_nickname, mb_rol) VALUES (1, '123', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'admin@test.com', 'admin', 'ADMIN');
+INSERT INTO `member` (mb_num, mb_uid, mb_pw, mb_email, mb_nickname, mb_rol) VALUES (2, '456', '$2a$10$8K1p/a0dL2LXMIgoEDFrwOfMQfKUtEbPQ8dNFqLqjnM/zIIElKjQu', 'user@test.com', 'user', 'USER');
 INSERT INTO `board` (bo_name) VALUES ('전체게시판');
 
 -- 카테고리 삽입 (이벤트 및 뉴스레터 추가)
