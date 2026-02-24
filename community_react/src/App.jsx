@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate, Outlet } from 'react-router-dom';
-// 🚩 [수정] 사용하지 않는 useOutletContext를 제거하여 ESLint 에러 해결
 import axios from 'axios';
 
-// 스타일 및 컴포넌트 임포트
+// 스타일 임포트
 import "./pages/Main.css";
 import './Appha.css';
 import "./App.css";
 
+// 컴포넌트 임포트
 import Main from "./pages/Main";
 import Header from "./components/Header"; 
 import MainList from './components/MainList';
@@ -18,14 +18,11 @@ import FreeBoardDetail from './components/freeboard/FreeBoardDetail';
 import RecommendMain from './components/recommend/RecommendMain';
 import RecommendPostDetail from './components/recommend/RecommendPostDetail'; 
 
-// 🚩 reviewboard 관련 임포트 삭제됨
-
-import EventBoardList from './components/eventboard/EventBoardList.jsx'; 
-import EventBoardDetail from './components/eventboard/EventBoardDetail.jsx'; 
-
-// 뉴스레터 컴포넌트 임포트
-import NewsLetterList from './components/newsletter/NewsLetterList.jsx';
-import NewsLetterDetail from './components/newsletter/NewsLetterDetail.jsx';
+// 🚩 [수정] 확장자(.jsx)를 제거하여 경로 인식 에러 해결 시도
+import EventBoardList from './components/eventboard/EventBoardList'; 
+import EventBoardDetail from './components/eventboard/EventBoardDetail'; 
+import NewsLetterList from './components/newsletter/NewsLetterList';
+import NewsLetterDetail from './components/newsletter/NewsLetterDetail';
 
 import NewsNotice from './pages/NewsNotice';
 import MyPage from './pages/MyPage';
@@ -113,10 +110,9 @@ function CommunityContainer({ posts, loadPosts, loading }) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 🚩 메뉴 아이템에서 '여행 후기 게시판' 삭제
+  // 🚩 여행 후기 게시판 항목 제거
   const menuItems = ['여행 추천 게시판', '자유 게시판', '여행지도'];
 
-  // 🚩 menuPaths에서 reviewboard 삭제
   const menuPaths = useMemo(() => ({
     '여행 추천 게시판': '/community/recommend',
     '자유 게시판': '/community/freeboard',
@@ -153,8 +149,6 @@ function CommunityContainer({ posts, loadPosts, loading }) {
           <Route path="recommend/:id" element={<RecommendPostDetail />} />
           <Route path="recommend" element={<RecommendMain posts={posts} />} />
 
-          {/* 🚩 reviewboard 라우트 삭제됨 */}
-          
           <Route path="freeboard/write" element={<PostWrite activeMenu="자유 게시판" refreshPosts={loadPosts} />} />
           <Route path="freeboard/:id" element={<FreeBoardDetail />} />
           <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />
@@ -196,7 +190,6 @@ function App() {
       setLoading(true);
       let endpoint = 'recommend'; 
       if (location.pathname.includes('freeboard')) endpoint = 'freeboard';
-      // 🚩 endpoint 판별 로직에서 reviewboard 삭제
       else if (location.pathname.includes('event')) endpoint = 'event';
       else if (location.pathname.includes('newsletter')) endpoint = 'newsletter';
 
@@ -279,28 +272,17 @@ function App() {
     <Routes>
       <Route element={
         <GlobalLayout 
-          showLogin={showLogin} 
-          setShowLogin={setShowLogin} 
-          showSignup={showSignup} 
-          setShowSignup={setShowSignup} 
-          openLogin={openLogin}
-          openSignup={openSignup}
-          showFindPw={showFindPw} 
-          setShowFindPw={setShowFindPw} 
-          showResetPw={showResetPw} 
-          setShowResetPw={setShowResetPw} 
-          resetUserId={resetUserId} 
-          setResetUserId={setResetUserId}
-          showChangePw={showChangePw}
-          setShowChangePw={setShowChangePw}
-          user={user}
-          setUser={setUser}
-          onLogin={handleLogin}
-          onLogout={handleLogout}
-          currentLang={currentLang}
-          setCurrentLang={setCurrentLang}
-          posts={posts}
-          openChangePassword={openChangePassword}
+          showLogin={showLogin} setShowLogin={setShowLogin} 
+          showSignup={showSignup} setShowSignup={setShowSignup} 
+          openLogin={openLogin} openSignup={openSignup}
+          showFindPw={showFindPw} setShowFindPw={setShowFindPw} 
+          showResetPw={showResetPw} setShowResetPw={setShowResetPw} 
+          resetUserId={resetUserId} setResetUserId={setResetUserId}
+          showChangePw={showChangePw} setShowChangePw={setShowChangePw}
+          user={user} setUser={setUser}
+          onLogin={handleLogin} onLogout={handleLogout}
+          currentLang={currentLang} setCurrentLang={setCurrentLang}
+          posts={posts} openChangePassword={openChangePassword}
         />
       }>
         <Route path="/" element={<Main />} />
