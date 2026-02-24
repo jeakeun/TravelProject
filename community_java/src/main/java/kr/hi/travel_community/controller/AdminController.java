@@ -51,6 +51,15 @@ public class AdminController {
         return ResponseEntity.ok(Map.of("msg", "처리 완료"));
     }
 
+    @PutMapping("/inquiries/{ibNum}/reply")
+    public ResponseEntity<?> updateInquiryReply(@PathVariable Integer ibNum, @RequestBody Map<String, String> body, Authentication auth) {
+        if (!isAdmin(auth))
+            return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
+        String reply = body != null ? body.get("reply") : null;
+        adminService.updateInquiryReply(ibNum, reply != null ? reply : "");
+        return ResponseEntity.ok(Map.of("msg", "답변이 저장되었습니다."));
+    }
+
     @PutMapping("/reports/{rbNum}/status")
     public ResponseEntity<?> updateReportStatus(@PathVariable Integer rbNum, @RequestBody Map<String, String> body, Authentication auth) {
         if (!isAdmin(auth))
@@ -58,5 +67,14 @@ public class AdminController {
         String status = body.getOrDefault("status", "Y");
         adminService.updateReportStatus(rbNum, status);
         return ResponseEntity.ok(Map.of("msg", "처리 완료"));
+    }
+
+    @PutMapping("/reports/{rbNum}/reply")
+    public ResponseEntity<?> updateReportReply(@PathVariable Integer rbNum, @RequestBody Map<String, String> body, Authentication auth) {
+        if (!isAdmin(auth))
+            return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
+        String reply = body != null ? body.get("reply") : null;
+        adminService.updateReportReply(rbNum, reply != null ? reply : "");
+        return ResponseEntity.ok(Map.of("msg", "답변이 저장되었습니다."));
     }
 }

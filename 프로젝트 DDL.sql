@@ -164,11 +164,13 @@ CREATE TABLE `history` (
     FOREIGN KEY (`ht_me_num`) REFERENCES `member` (`mb_num`)
 );
 
+-- 기존 DB에 컬럼 추가가 필요한 경우: ALTER TABLE inquiry_box ADD COLUMN ib_reply TEXT NULL; ALTER TABLE report_box ADD COLUMN rb_reply TEXT NULL;
 DROP TABLE IF EXISTS `inquiry_box`;
 CREATE TABLE `inquiry_box` (
     `ib_num`    int PRIMARY KEY AUTO_INCREMENT,
     `ib_title`  varchar(200) NOT NULL,
     `ib_content` text NOT NULL,
+    `ib_reply`   text NULL,
     `ib_date`   datetime DEFAULT current_timestamp NOT NULL,
     `ib_status` char(1) NOT NULL DEFAULT 'N',
     `ib_mb_num` int NOT NULL,
@@ -179,6 +181,7 @@ DROP TABLE IF EXISTS `report_box`;
 CREATE TABLE `report_box` (
     `rb_num`    int PRIMARY KEY AUTO_INCREMENT,
     `rb_content`    text NOT NULL,
+    `rb_reply`  text NULL,
     `rb_manage` char(1)    NULL,
     `rb_id` int    NOT NULL,
     `rb_name`    varchar(10)    NOT NULL,

@@ -11,6 +11,11 @@ function AdminPage() {
   const [inquiries, setInquiries] = useState([]);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedInquiry, setExpandedInquiry] = useState(null);
+  const [expandedReport, setExpandedReport] = useState(null);
+  const [inquiryReply, setInquiryReply] = useState("");
+  const [reportReply, setReportReply] = useState("");
+  const [savingReply, setSavingReply] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -68,6 +73,62 @@ function AdminPage() {
     }
   };
 
+  const openInquiry = (q) => {
+    setExpandedInquiry(q?.ibNum === expandedInquiry ? null : q?.ibNum);
+    setInquiryReply(q?.ibReply ?? "");
+    setExpandedReport(null);
+  };
+
+  const saveInquiryReply = async () => {
+    if (!expandedInquiry) return;
+    setSavingReply(true);
+    try {
+      await api.put(`/api/admin/inquiries/${expandedInquiry}/reply`, {
+        reply: inquiryReply,
+      });
+      setInquiries((prev) =>
+        prev.map((q) =>
+          q.ibNum === expandedInquiry
+            ? { ...q, ibReply: inquiryReply, ibStatus: "Y" }
+            : q
+        )
+      );
+      alert("답변이 저장되었습니다.");
+    } catch (err) {
+      alert("저장 실패");
+    } finally {
+      setSavingReply(false);
+    }
+  };
+
+  const openReport = (r) => {
+    setExpandedReport(r?.rbNum === expandedReport ? null : r?.rbNum);
+    setReportReply(r?.rbReply ?? "");
+    setExpandedInquiry(null);
+  };
+
+  const saveReportReply = async () => {
+    if (!expandedReport) return;
+    setSavingReply(true);
+    try {
+      await api.put(`/api/admin/reports/${expandedReport}/reply`, {
+        reply: reportReply,
+      });
+      setReports((prev) =>
+        prev.map((r) =>
+          r.rbNum === expandedReport
+            ? { ...r, rbReply: reportReply, rbManage: "Y" }
+            : r
+        )
+      );
+      alert("답변이 저장되었습니다.");
+    } catch (err) {
+      alert("저장 실패");
+    } finally {
+      setSavingReply(false);
+    }
+  };
+
   const handleReportStatus = async (rbNum, status) => {
     try {
       await api.put(`/api/admin/reports/${rbNum}/status`, { status });
@@ -106,92 +167,148 @@ function AdminPage() {
         </button>
       </div>
 
+      {/* 1:1 문의 - 쪽지 형태 */}
       {activeTab === "inquiry" && (
         <div className="admin-section">
-          <h2 className="admin-section-title">1:1 문의 목록</h2>
+          <h2 className="admin-section-title">1:1 문의함</h2>
           {inquiries.length === 0 ? (
             <p className="admin-empty">등록된 문의가 없습니다.</p>
           ) : (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>번호</th>
-                  <th>제목</th>
-                  <th>내용</th>
-                  <th>작성자번호</th>
-                  <th>작성일</th>
-                  <th>상태</th>
-                  <th>처리</th>
-                </tr>
-              </thead>
-              <tbody>
-                {inquiries.map((q) => (
-                  <tr key={q.ibNum}>
-                    <td>{q.ibNum}</td>
-                    <td className="admin-td-title">{q.ibTitle}</td>
-                    <td className="admin-td-content">{q.ibContent}</td>
-                    <td>{q.ibMbNum}</td>
-                    <td>{formatDate(q.ibDate)}</td>
-                    <td>{q.ibStatus === "Y" ? "처리완료" : "대기중"}</td>
-                    <td>
-                      {q.ibStatus !== "Y" && (
-                        <button
-                          className="admin-btn-process"
-                          onClick={() => handleInquiryStatus(q.ibNum, "Y")}
-                        >
-                          처리완료
-                        </button>
+            <div className="admin-message-list">
+              {inquiries.map((q) => (
+                <div
+                  key={q.ibNum}
+                  className={`admin-message-card ${expandedInquiry === q.ibNum ? "expanded" : ""}`}
+                  onClick={() => !expandedInquiry || expandedInquiry === q.ibNum ? openInquiry(q) : null}
+                >
+                  <div className="admin-message-header">
+                    <span className="admin-message-from">작성자 #{q.ibMbNum}</span>
+                    <span className="admin-message-date">{formatDate(q.ibDate)}</span>
+                    <span className={`admin-message-badge ${q.ibStatus === "Y" ? "done" : ""}`}>
+                      {q.ibStatus === "Y" ? "답변완료" : "대기"}
+                    </span>
+                  </div>
+                  <div className="admin-message-subject">{q.ibTitle}</div>
+                  <div className="admin-message-preview">
+                    {(q.ibContent || "").slice(0, 80)}
+                    {(q.ibContent || "").length > 80 ? "..." : ""}
+                  </div>
+
+                  {expandedInquiry === q.ibNum && (
+                    <div className="admin-message-detail" onClick={(e) => e.stopPropagation()}>
+                      <div className="admin-message-full">{q.ibContent}</div>
+                      {q.ibReply && (
+                        <div className="admin-reply-block">
+                          <strong>관리자 답변:</strong>
+                          <p>{q.ibReply}</p>
+                        </div>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <div className="admin-reply-form">
+                        <label>답변 작성</label>
+                        <textarea
+                          value={inquiryReply}
+                          onChange={(e) => setInquiryReply(e.target.value)}
+                          placeholder="답변을 입력하세요"
+                          rows={4}
+                        />
+                        <div className="admin-reply-actions">
+                          <button
+                            type="button"
+                            className="admin-btn-reply"
+                            onClick={saveInquiryReply}
+                            disabled={savingReply}
+                          >
+                            {savingReply ? "저장 중..." : "답변 저장"}
+                          </button>
+                          {q.ibStatus !== "Y" && (
+                            <button
+                              type="button"
+                              className="admin-btn-process"
+                              onClick={() => handleInquiryStatus(q.ibNum, "Y")}
+                            >
+                              처리완료
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}
 
+      {/* 신고함 - 글 형태 */}
       {activeTab === "report" && (
         <div className="admin-section">
-          <h2 className="admin-section-title">신고 목록</h2>
+          <h2 className="admin-section-title">신고함</h2>
           {reports.length === 0 ? (
             <p className="admin-empty">등록된 신고가 없습니다.</p>
           ) : (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>번호</th>
-                  <th>신고 내용</th>
-                  <th>대상ID</th>
-                  <th>대상유형</th>
-                  <th>신고자번호</th>
-                  <th>상태</th>
-                  <th>처리</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reports.map((r) => (
-                  <tr key={r.rbNum}>
-                    <td>{r.rbNum}</td>
-                    <td className="admin-td-content">{r.rbContent}</td>
-                    <td>{r.rbId}</td>
-                    <td>{r.rbName}</td>
-                    <td>{r.rbMbNum}</td>
-                    <td>{r.rbManage === "Y" ? "처리완료" : "대기중"}</td>
-                    <td>
-                      {r.rbManage !== "Y" && (
-                        <button
-                          className="admin-btn-process"
-                          onClick={() => handleReportStatus(r.rbNum, "Y")}
-                        >
-                          처리완료
-                        </button>
+            <div className="admin-post-list">
+              {reports.map((r) => (
+                <article
+                  key={r.rbNum}
+                  className={`admin-post-card ${expandedReport === r.rbNum ? "expanded" : ""}`}
+                  onClick={() => !expandedReport || expandedReport === r.rbNum ? openReport(r) : null}
+                >
+                  <div className="admin-post-meta">
+                    <span>신고 대상: {r.rbName} #{r.rbId}</span>
+                    <span>신고자 #{r.rbMbNum}</span>
+                    <span className={`admin-post-badge ${r.rbManage === "Y" ? "done" : ""}`}>
+                      {r.rbManage === "Y" ? "처리완료" : "대기"}
+                    </span>
+                  </div>
+                  <div className="admin-post-title">신고 사유</div>
+                  <div className="admin-post-content">
+                    {(r.rbContent || "").slice(0, 120)}
+                    {(r.rbContent || "").length > 120 ? "..." : ""}
+                  </div>
+
+                  {expandedReport === r.rbNum && (
+                    <div className="admin-post-detail" onClick={(e) => e.stopPropagation()}>
+                      <div className="admin-post-full">{r.rbContent}</div>
+                      {r.rbReply && (
+                        <div className="admin-reply-block">
+                          <strong>관리자 답변:</strong>
+                          <p>{r.rbReply}</p>
+                        </div>
                       )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <div className="admin-reply-form">
+                        <label>답변 작성 (댓글 아님)</label>
+                        <textarea
+                          value={reportReply}
+                          onChange={(e) => setReportReply(e.target.value)}
+                          placeholder="관리자 답변을 입력하세요"
+                          rows={4}
+                        />
+                        <div className="admin-reply-actions">
+                          <button
+                            type="button"
+                            className="admin-btn-reply"
+                            onClick={saveReportReply}
+                            disabled={savingReply}
+                          >
+                            {savingReply ? "저장 중..." : "답변 저장"}
+                          </button>
+                          {r.rbManage !== "Y" && (
+                            <button
+                              type="button"
+                              className="admin-btn-process"
+                              onClick={() => handleReportStatus(r.rbNum, "Y")}
+                            >
+                              처리완료
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
           )}
         </div>
       )}

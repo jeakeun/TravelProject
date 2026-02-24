@@ -16,6 +16,9 @@ public class ReportBox {
     @Column(name = "rb_content")
     private String rbContent;
 
+    @Column(name = "rb_reply", columnDefinition = "TEXT")
+    private String rbReply;
+
     @Column(name = "rb_manage")
     private String rbManage;
 
