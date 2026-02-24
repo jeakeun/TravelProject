@@ -23,42 +23,33 @@ const RecommendPostDetail = () => {
     const [replyTo, setReplyTo] = useState(null);         
     const [replyInput, setReplyInput] = useState(""); 
 
-    const [selectedImg, setSelectedImg] = useState(null);
+    // 즐겨찾기 상태
     const [isBookmarked, setIsBookmarked] = useState(false);
     const [reportModal, setReportModal] = useState({ open: false, type: 'post', targetId: null });
 
     const commentAreaRef = useRef(null);
     const replyInputRef = useRef(null);
 
-    // [권한 설정] mb_num/mbNum, mb_rol/mbLevel 서버 키 둘 다 대응
     const isLoggedIn = !!user; 
     const currentUserNum = getMemberNum(user); 
     const isAdmin = user ? (Number(user.mbLevel ?? user.mb_score ?? 0) >= 10 || user.mb_rol === 'ADMIN') : false; 
 
     const isNumericId = id && !isNaN(Number(id)) && id !== "write";
-
-    // 🚩 이미지 서버 주소 설정
     const SERVER_URL = "http://localhost:8080";
 
-    /**
-     * 🚩 [핵심 수정] 본문 내 이미지 경로 보정 함수
-     * dangerouslySetInnerHTML로 렌더링하기 전, src="/pic/..." 형태를 
-     * src="http://localhost:8080/pic/..." 형태로 치환합니다.
-     */
     const fixImagePaths = (content) => {
         if (!content) return "";
-        // src="/pic/ 또는 src="pic/ 로 시작하는 모든 경로를 서버 주소와 결합
-        return content.replace(/src=["'](?:\/)?pic\//g, `src="${SERVER_URL}/pic/`);
+        let fixedContent = content.replace(/src=["'](?:\/)?pic\//g, `src="${SERVER_URL}/pic/`);
+        return fixedContent;
     };
 
     const incrementViewCount = useCallback(async () => {
         if (!isNumericId) return;
-        const viewedPosts = JSON.parse(sessionStorage.getItem('viewedPosts') || '[]');
-        if (!viewedPosts.includes(id)) {
+        const storageKey = `viewed_post_${id}`;
+        if (!sessionStorage.getItem(storageKey)) {
             try {
                 await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/view`);
-                viewedPosts.push(id);
-                sessionStorage.setItem('viewedPosts', JSON.stringify(viewedPosts));
+                sessionStorage.setItem(storageKey, 'true');
             } catch (err) {
                 console.error("조회수 증가 실패", err);
             }
@@ -67,14 +58,31 @@ const RecommendPostDetail = () => {
 
     const fetchAllData = useCallback(async (isAction = false, isCommentAction = false) => {
         if (!isNumericId) return;
-
         try {
             if (!isAction) setLoading(true);
-            
             const postRes = await axios.get(`${SERVER_URL}/api/recommend/posts/${id}`);
             setPost(postRes.data);
             setIsLiked(postRes.data.isLikedByMe || false);
-            addRecentView({ boardType: 'recommend', poNum: Number(id), poTitle: postRes.data?.poTitle });
+            
+            const bookmarkStatus = postRes.data.isBookmarkedByMe || postRes.data.isBookmarked === 'Y' || postRes.data.isBookmarked === true || postRes.data.favorited;
+            
+            const storageChange = localStorage.getItem('bookmark_changed');
+            let finalBookmarkState = bookmarkStatus;
+            if (storageChange) {
+                try {
+                    const syncData = JSON.parse(storageChange);
+                    if (Number(syncData.id) === Number(id)) {
+                        finalBookmarkState = syncData.state;
+                    }
+                } catch(e) {}
+            }
+            setIsBookmarked(finalBookmarkState);
+            
+            addRecentView({ 
+                boardType: 'recommend', 
+                poNum: Number(id), 
+                poTitle: postRes.data?.poTitle || postRes.data?.po_title 
+            });
 
             const commentRes = await axios.get(`${SERVER_URL}/api/comment/list/${id}`);
             setComments(commentRes.data || []);
@@ -91,6 +99,23 @@ const RecommendPostDetail = () => {
             setLoading(false);
         }
     }, [id, navigate, isNumericId, SERVER_URL]);
+
+    useEffect(() => {
+        const handleStorageChange = (e) => {
+            if (e.key === 'bookmark_changed' && e.newValue) {
+                try {
+                    const { id: changedId, state } = JSON.parse(e.newValue);
+                    if (Number(changedId) === Number(id)) {
+                        setIsBookmarked(state);
+                    }
+                } catch (err) {
+                    console.error("Storage parse error", err);
+                }
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, [id]);
 
     useEffect(() => { 
         if(isNumericId) {
@@ -109,15 +134,11 @@ const RecommendPostDetail = () => {
             await axios.delete(`${SERVER_URL}/api/recommend/posts/${id}`);
             alert("게시글이 삭제되었습니다.");
             navigate('/community/recommend');
-        } catch (err) {
-            alert("삭제에 실패했습니다.");
-        }
+        } catch (err) { alert("삭제에 실패했습니다."); }
     };
 
     const handleEditPost = () => {
-        navigate(`/community/recommend/write`, { 
-            state: { mode: 'edit', postData: post } 
-        });
+        navigate(`/community/recommend/write`, { state: { mode: 'edit', postData: post } });
     };
 
     const handleLikeToggle = async () => {
@@ -125,27 +146,13 @@ const RecommendPostDetail = () => {
         try {
             const res = await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/like`, { mbNum: currentUserNum });
             if (res.data.status === "liked") {
-                alert("게시글을 추천했습니다");
                 setIsLiked(true);
-                setPost(prev => ({ ...prev, poUp: prev.poUp + 1 }));
+                setPost(prev => ({ ...prev, poUp: (prev.poUp || 0) + 1 }));
+                alert("게시글을 추천했습니다.");
             } else {
-                alert("추천이 취소되었습니다");
                 setIsLiked(false);
-                setPost(prev => ({ ...prev, poUp: Math.max(0, prev.poUp - 1) }));
-            }
-        } catch (err) { alert("추천 처리 중 오류가 발생했습니다."); }
-    };
-
-    const handleCommentLike = async (commentId) => {
-        if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
-        try {
-            const res = await axios.post(`${SERVER_URL}/api/comment/like/${commentId}`, { mbNum: currentUserNum });
-            if(res.data.status === "liked") {
-                alert("댓글을 추천했습니다.");
-                setComments(prevComments => prevComments.map(c => c.coNum === commentId ? { ...c, coLike: (c.coLike || 0) + 1 } : c));
-            } else {
-                alert("댓글 추천을 취소했습니다.");
-                setComments(prevComments => prevComments.map(c => c.coNum === commentId ? { ...c, coLike: Math.max(0, (c.coLike || 0) - 1) } : c));
+                setPost(prev => ({ ...prev, poUp: Math.max(0, (prev.poUp || 0) - 1) }));
+                alert("게시글 추천을 취소했습니다.");
             }
         } catch (err) { alert("추천 처리 중 오류가 발생했습니다."); }
     };
@@ -154,19 +161,37 @@ const RecommendPostDetail = () => {
         if (!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
             await api.post("/api/mypage/bookmarks", { poNum: Number(id), boardType: "recommend" });
-            setIsBookmarked(true);
-            alert("즐겨찾기에 추가되었습니다.");
+            
+            const newState = !isBookmarked;
+            setIsBookmarked(newState);
+            
+            localStorage.setItem('bookmark_changed', JSON.stringify({ 
+                id: Number(id), 
+                state: newState, 
+                time: Date.now() 
+            }));
+
+            alert(newState ? "게시글을 즐겨찾기에 등록했습니다." : "게시글 즐겨찾기를 취소했습니다.");
         } catch (err) {
             const msg = err?.response?.data?.msg || err?.response?.data?.error;
-            alert(msg || "즐겨찾기 추가에 실패했습니다.");
+            alert(msg || "즐겨찾기 처리에 실패했습니다.");
         }
     };
 
+    const handleCommentLike = async (commentId) => {
+        if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
+        try {
+            const res = await axios.post(`${SERVER_URL}/api/comment/like/${commentId}`, { mbNum: currentUserNum });
+            if(res.data.status === "liked") {
+                setComments(prevComments => prevComments.map(c => c.coNum === commentId ? { ...c, coLike: (c.coLike || 0) + 1 } : c));
+            } else {
+                setComments(prevComments => prevComments.map(c => c.coNum === commentId ? { ...c, coLike: Math.max(0, (c.coLike || 0) - 1) } : c));
+            }
+        } catch (err) { alert("추천 처리 중 오류가 발생했습니다."); }
+    };
+
     const handleReportPost = () => {
-        if(!isLoggedIn) {
-            alert("로그인이 필요한 서비스입니다.");
-            return;
-        }
+        if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         setReportModal({ open: true, type: 'post', targetId: id });
     };
 
@@ -174,29 +199,16 @@ const RecommendPostDetail = () => {
         const { type, targetId } = reportModal;
         try {
             if (type === 'post') {
-                const res = await axios.post(`${SERVER_URL}/api/recommend/posts/${targetId}/report`, {
-                    category, reason, mbNum: currentUserNum
-                });
-                if (res?.status === 200) {
-                    setReportModal({ open: false, type: null, targetId: null });
-                    fetchAllData(true);
-                    alert("신고가 정상적으로 접수되었습니다.");
-                }
+                await axios.post(`${SERVER_URL}/api/recommend/posts/${targetId}/report`, { category, reason, mbNum: currentUserNum });
             } else {
-                await axios.post(`${SERVER_URL}/api/comment/report/${targetId}`, {
-                    category, reason, mbNum: currentUserNum
-                });
-                setReportModal({ open: false, type: null, targetId: null });
-                fetchAllData(true, true);
-                alert("신고가 정상적으로 접수되었습니다.");
+                await axios.post(`${SERVER_URL}/api/comment/report/${targetId}`, { category, reason, mbNum: currentUserNum });
             }
+            setReportModal({ open: false, type: null, targetId: null });
+            fetchAllData(true, type === 'comment');
+            alert("신고가 정상적으로 접수되었습니다.");
         } catch (err) {
-            const msg = err?.response?.data ?? err?.message ?? "신고 처리 중 오류가 발생했습니다.";
-            const msgStr = typeof msg === 'string' ? msg : "신고 처리 중 오류가 발생했습니다.";
-            alert(msgStr);
-            if (msgStr.includes("이미 신고")) {
-                setReportModal({ open: false, type: null, targetId: null });
-            }
+            alert(err?.response?.data || "이미 신고했거나 오류가 발생했습니다.");
+            setReportModal({ open: false, type: null, targetId: null });
         }
     };
 
@@ -206,11 +218,8 @@ const RecommendPostDetail = () => {
         if (!content?.trim()) return alert("내용을 입력하세요.");
         try {
             await axios.post(`${SERVER_URL}/api/comment/add/${id}`, { 
-                content: content.trim(), 
-                parentId: parentId,
-                mbNum: currentUserNum 
+                content: content.trim(), parentId: parentId, mbNum: currentUserNum 
             });
-            alert("댓글을 작성하였습니다."); 
             setCommentInput(""); setReplyInput(""); setReplyTo(null);
             fetchAllData(true, true); 
         } catch (err) { alert("등록 실패"); }
@@ -220,7 +229,6 @@ const RecommendPostDetail = () => {
         if (!editInput?.trim()) return alert("내용을 입력하세요.");
         try {
             await axios.put(`${SERVER_URL}/api/comment/update/${commentId}`, { content: editInput.trim() });
-            alert("댓글을 수정했습니다."); 
             setEditId(null); setEditInput("");
             fetchAllData(true, true);
         } catch (err) { alert("수정 실패"); }
@@ -230,14 +238,8 @@ const RecommendPostDetail = () => {
         if (!window.confirm("정말 삭제하시겠습니까?")) return;
         try {
             await axios.delete(`${SERVER_URL}/api/comment/delete/${commentId}`);
-            alert("댓글을 삭제했습니다."); 
             fetchAllData(true, true);
         } catch (err) { alert("삭제 실패"); }
-    };
-
-    const handleReportComment = (commentId) => {
-        if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
-        setReportModal({ open: true, type: 'comment', targetId: commentId });
     };
 
     const renderComments = (targetParentId = null, depth = 0) => {
@@ -245,16 +247,17 @@ const RecommendPostDetail = () => {
             const oriNum = c.coOriNum || 0;
             return targetParentId === null ? oriNum === 0 : Number(oriNum) === Number(targetParentId);
         });
-
         if (targetParentId === null) filtered.sort((a, b) => b.coNum - a.coNum);
         else filtered.sort((a, b) => a.coNum - b.coNum);
 
         return filtered.map(comment => {
-            const isCommentOwner = isLoggedIn && comment.member && getMemberNum(comment.member) === currentUserNum;
+            const isCommentOwner = isLoggedIn && (Number(comment.coMbNum) === Number(currentUserNum));
             const isReply = depth > 0;
             const isActiveEdit = editId === comment.coNum;
             const isActiveReply = replyTo === comment.coNum;
-            const authorDisplayName = `User ${getMemberNum(comment.member) ?? 'Unknown'}`;
+            
+            // 🚩 [수정] 백엔드에서 넘겨주는 coNickname을 최우선으로 사용
+            const authorDisplayName = comment.coNickname || comment.mbNickname || comment.mb_nickname || "알 수 없는 사용자";
 
             return (
                 <div key={comment.coNum}>
@@ -274,7 +277,7 @@ const RecommendPostDetail = () => {
                                     {(isCommentOwner || isAdmin) && (
                                         <span onClick={() => handleDeleteComment(comment.coNum)}>삭제</span>
                                     )}
-                                    <span onClick={() => handleReportComment(comment.coNum)} style={{ color: '#ff4d4f' }}>신고</span>
+                                    <span onClick={() => setReportModal({ open: true, type: 'comment', targetId: comment.coNum })} style={{ color: '#ff4d4f' }}>신고</span>
                                 </div>
                             )}
                         </div>
@@ -309,47 +312,76 @@ const RecommendPostDetail = () => {
     if (loading) return <div style={{ padding: '100px', textAlign: 'center' }}>데이터를 불러오는 중...</div>;
     if (!post) return <div style={{ padding: '100px', textAlign: 'center' }}>게시글을 찾을 수 없습니다.</div>;
 
-    const isPostOwner = isLoggedIn && Number(post.poMbNum) === Number(currentUserNum);
+    const isPostOwner = isLoggedIn && Number(post.poMbNum || post.po_mb_num) === Number(currentUserNum);
     const canManagePost = isPostOwner || isAdmin;
+    
+    // 🚩 [수정] 게시글 작성자도 백엔드 필드 우선순위 조정
+    const postAuthorNick = post.poNickname || post.mbNickname || post.mb_nickname || post.mbNick || `User ${post.poMbNum || post.po_mb_num}`;
 
     return (
         <div className="recommend-detail-wrapper">
             <div className="detail-container">
                 <div className="detail-header-section">
-                    <h1 className="detail-main-title">{post.poTitle}</h1>
+                    <h1 className="detail-main-title">{post.poTitle || post.po_title}</h1>
                     <div className="detail-sub-info">
-                        <span>작성자: User {post.poMbNum}</span> 
+                        <span>작성자: {postAuthorNick}</span> 
                         <span className="info-divider">|</span>
-                        <span>조회 {post.poView}</span> 
+                        <span>조회 {post.poView || post.po_view || 0}</span> 
                         <span className="info-divider">|</span>
-                        <span>추천 {post.poUp}</span> 
+                        <span>추천 {post.poUp || post.po_up || 0}</span> 
                         <span className="info-divider">|</span>
-                        <span>신고누적 {post.poReport || 0}</span> 
-                        <span className="info-divider">|</span>
-                        <span>작성일 {new Date(post.poDate).toLocaleString()}</span>
+                        <span>작성일 {new Date(post.poDate || post.po_date).toLocaleString()}</span>
                     </div>
                 </div>
 
                 <div className="detail-body-text">
-                    {/* 🚩 [수정] 본문 출력 시 fixImagePaths 함수를 거쳐서 경로를 보정한 후 출력합니다. */}
-                    <div dangerouslySetInnerHTML={{ __html: fixImagePaths(post.poContent) }} />
+                    <div dangerouslySetInnerHTML={{ __html: fixImagePaths(post.poContent || post.po_content) }} />
                 </div>
 
                 <div className="detail-bottom-actions">
                     <div className="left-group">
                         {isLoggedIn && (
-                            <button className={`btn-like-action ${isLiked ? 'active' : ''}`} onClick={handleLikeToggle}>
-                                {isLiked ? '❤️ 추천취소' : '🤍 추천'} {post.poUp}
+                            <button 
+                                className={`btn-like-action ${isLiked ? 'active' : ''}`} 
+                                onClick={handleLikeToggle}
+                                style={{ 
+                                    background: isLiked ? '#e74c3c' : '#fff', 
+                                    border: '1px solid #e74c3c', 
+                                    color: isLiked ? '#fff' : '#e74c3c', 
+                                    padding: '10px 25px', 
+                                    borderRadius: '30px', 
+                                    fontWeight: 'bold', 
+                                    cursor: 'pointer', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '5px' 
+                                }}
+                            >
+                                {isLiked ? '❤️' : '🤍'} 추천 {post.poUp || post.po_up || 0}
                             </button>
                         )}
+
                         {isLoggedIn && (
-                            <button className="btn-bookmark-action" onClick={handleBookmark} disabled={isBookmarked} style={{ marginLeft: 8 }}>
-                                {isBookmarked ? '★ 즐겨찾기됨' : '☆ 즐겨찾기'}
+                            <button 
+                                className={`btn-bookmark-action ${isBookmarked ? 'active' : ''}`} 
+                                onClick={handleBookmark}
+                                style={{ 
+                                    background: isBookmarked ? '#f1c40f' : '#fff', 
+                                    border: '1px solid #f1c40f', 
+                                    color: isBookmarked ? '#fff' : '#f1c40f', 
+                                    padding: '10px 25px', 
+                                    borderRadius: '30px', 
+                                    fontWeight: 'bold', 
+                                    cursor: 'pointer' 
+                                }}
+                            >
+                                {isBookmarked ? '★ 즐겨찾기' : '☆ 즐겨찾기'}
                             </button>
                         )}
+
                         {!isPostOwner && (
-                            <button className="btn-report-action" onClick={handleReportPost}>
-                                🚨 신고하기
+                            <button className="btn-report-action" onClick={handleReportPost} style={{ background: '#fff', border: '1px solid #ff4d4f', color: '#ff4d4f', padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer' }}>
+                                🚨 신고
                             </button>
                         )}
 
@@ -386,12 +418,6 @@ const RecommendPostDetail = () => {
                     <div className="comment-list-container">{renderComments(null)}</div>
                 </div>
             </div>
-
-            {selectedImg && (
-                <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }} onClick={() => setSelectedImg(null)}>
-                    <img src={selectedImg} alt="원본" style={{ maxWidth: '95%', maxHeight: '95%', objectFit: 'contain' }} />
-                </div>
-            )}
 
             <ReportModal
                 isOpen={reportModal.open}

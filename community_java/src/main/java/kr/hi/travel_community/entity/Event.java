@@ -22,7 +22,10 @@ public class Event {
     @Column(name = "po_num")
     private Integer poNum; // 게시글 번호 (PK)
 
-    // 🚩 [추가] 게시판 구분 필드 ('EVENT' 또는 'NEWSLETTER')
+    /**
+     * 🚩 게시판 구분 필드 ('EVENT' 또는 'NEWSLETTER')
+     * 서비스 계층의 BOARD_TYPE과 연동됩니다.
+     */
     @Column(name = "po_type", length = 20, nullable = false)
     private String poType;
 
@@ -32,6 +35,10 @@ public class Event {
     @Column(name = "po_content", nullable = false, columnDefinition = "LONGTEXT")
     private String poContent; // 내용 (에디터 사용 시 LONGTEXT 필수)
 
+    /**
+     * 🚩 이미지 파일명 저장 필드
+     * 여러 장의 UUID 파일명을 저장하기 위해 길이를 1000으로 설정했습니다.
+     */
     @Column(name = "po_img", length = 1000)
     private String poImg; // 이미지 파일명들 (콤마로 구분하여 저장)
 
@@ -68,7 +75,7 @@ public class Event {
         if (this.poDel == null) this.poDel = "N";
         if (this.poDate == null) this.poDate = LocalDateTime.now();
         
-        // 🚩 [추가] 기본 타입 설정 (값이 없을 경우를 대비)
+        // 🚩 [유지] 기본 타입 설정 (값이 없을 경우 EVENT로 설정)
         if (this.poType == null) this.poType = "EVENT";
     }
 }

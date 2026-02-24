@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-// 🚩 디자인 일관성을 위해 NewsLetterDetail.css 또는 통합된 스타일 파일을 사용하세요.
+// 🚩 디자인 일관성을 위해 기존 스타일 파일을 유지합니다.
 import './EventBoardDetail.css'; 
 
 const EventBoardList = ({ posts = [] }) => {
@@ -18,36 +18,47 @@ const EventBoardList = ({ posts = [] }) => {
     const fallbackImage = "https://placehold.co/300x200?text=No+Image";
 
     // 관리자 여부 확인
-    const isAdmin = user && (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN');
+    const isAdmin = user && (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN' || user.mbLevel >= 10);
 
-    // 이미지 경로 처리 유틸리티
+    /**
+     * 🚩 이미지 경로 처리 유틸리티
+     * 서버에 영구 저장된 이미지 파일명을 추출하여 SERVER_URL과 결합합니다.
+     */
     const getImageUrl = (post) => {
         if (!post) return fallbackImage;
         const targetUrl = post.po_img || post.poImg || post.fileUrl;
 
         if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null") {
+            // 이미 풀 경로인 경우 그대로 반환
             if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
+            // 파일명만 추출하여 서버의 /pic/ 경로와 결합 (영구 저장 대응)
             const extractedName = String(targetUrl).split(/[\\/]/).pop();
             return `${SERVER_URL}/pic/${extractedName}`;
         }
         
+        // 데이터베이스 필드에 이미지가 없을 경우 본문 내 첫 번째 이미지 태그 추출
         const content = post.po_content || post.poContent;
         if (content) {
             const imgRegex = /<img[^>]+src=["']([^"']+)["']/;
             const match = content.match(imgRegex);
-            if (match && match[1]) return match[1];
+            if (match && match[1]) {
+                const src = match[1];
+                if (src.startsWith('/pic/')) return `${SERVER_URL}${src}`;
+                return src;
+            }
         }
 
         return fallbackImage;
     };
 
-    // 정렬 및 검색 필터링
+    // 정렬 및 검색 필터링 (에러 방지 로직 보강)
     const filteredPosts = useMemo(() => {
         const safePosts = Array.isArray(posts) ? posts : [];
 
+        // 최신글 순으로 정렬 (에러 방지를 위해 ID 존재 여부 체크)
         const sortedPosts = [...safePosts].sort((a, b) => {
-            const aId = a.po_num || a.poNum || a.id || 0;
-            const bId = b.po_num || b.poNum || b.id || 0;
+            const aId = Number(a.po_num || a.poNum || a.id || 0);
+            const bId = Number(b.po_num || b.poNum || b.id || 0);
             return bId - aId;
         });
         
@@ -86,6 +97,7 @@ const EventBoardList = ({ posts = [] }) => {
                     {currentPosts.length > 0 ? (
                         currentPosts.map((post) => {
                             const poNum = post.po_num || post.poNum || post.id;
+                            const dateValue = post.po_date || post.poDate;
                             return (
                                 <div 
                                     key={poNum} 
@@ -109,7 +121,7 @@ const EventBoardList = ({ posts = [] }) => {
                                         <div className="photo-meta">
                                             <span className="post-author">관리자</span>
                                             <span className="post-date">
-                                                {(post.po_date || post.poDate) ? (post.po_date || post.poDate).split('T')[0] : ''}
+                                                {dateValue ? String(dateValue).split('T')[0] : ''}
                                             </span>
                                         </div>
                                     </div>
@@ -167,8 +179,9 @@ const EventBoardList = ({ posts = [] }) => {
                                     placeholder="이벤트 검색" 
                                     value={searchKeyword}
                                     onChange={(e) => setSearchKeyword(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && setCurrentPage(1)}
                                 />
-                                <button className="btn-search">검색</button>
+                                <button className="btn-search" onClick={() => setCurrentPage(1)}>검색</button>
                             </div>
                         </div>
 

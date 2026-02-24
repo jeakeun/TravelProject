@@ -8,9 +8,9 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "recommend_post")
-@Getter // Lombok: Getter 자동 생성
-@Setter // Lombok: Setter 자동 생성
-@NoArgsConstructor // Lombok: 기본 생성자 자동 생성
+@Getter 
+@Setter 
+@NoArgsConstructor 
 public class RecommendPost {
     
     @Id
@@ -24,7 +24,13 @@ public class RecommendPost {
     @Column(name = "po_content", columnDefinition = "LONGTEXT", nullable = false)
     private String poContent;
     
-    @Column(name = "po_date")
+    /**
+     * 🚩 [유지] po_img: 서버 외부 폴더에 저장된 파일명들을 보관 (최대 1000자)
+     */
+    @Column(name = "po_img", length = 1000)
+    private String poImg;
+
+    @Column(name = "po_date", nullable = false, updatable = false)
     private LocalDateTime poDate;
     
     @Column(name = "po_view", nullable = false)
@@ -42,18 +48,16 @@ public class RecommendPost {
     @Column(name = "po_del", nullable = false, length = 1)
     private String poDel = "N"; 
 
+    /**
+     * 🚩 작성자 고유 번호 (member 테이블의 mb_num 참조)
+     */
     @Column(name = "po_mb_num", nullable = false)
     private Integer poMbNum;
 
     /**
-     * 🚩 [핵심 수정] po_img 길이 대폭 확장
-     * UUID(36자) + 확장자(4자) + 콤마(1자) = 사진당 약 41자 소요
-     * 1000자로 설정하여 약 20장 이상의 사진 파일명도 안전하게 보관 가능하게 합니다.
+     * 🚩 [유지] 비즈니스 로직용 필드 (DB 저장 안 됨)
      */
-    @Column(name = "po_img", length = 1000) 
-    private String poImg; 
-
-    @Transient // DB 테이블에 저장되지 않는 필드
+    @Transient 
     private boolean isLikedByMe; 
 
     /**

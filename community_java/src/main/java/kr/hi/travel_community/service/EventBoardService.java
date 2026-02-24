@@ -5,6 +5,7 @@ import kr.hi.travel_community.mapper.LikeMapper;
 import kr.hi.travel_community.repository.EventRepository;
 import kr.hi.travel_community.repository.CommentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,8 +28,13 @@ public class EventBoardService {
     private final LikeMapper likeMapper;
     private final CommentRepository commentRepository;
     
-    // 이미지 불러올 때 사용할 서버 URL 경로
-    private final String SERVER_URL = "http://localhost:8080/pic/";
+    // 🚩 [수정] 외부 절대 경로 사용 (application.properties 연동)
+    @Value("${file.upload-dir:C:/travel_contents/uploads/pic/}")
+    private String uploadRoot;
+
+    // 🚩 [수정] 프론트엔드 호환성을 위한 상대 경로 방식 사용
+    private final String SERVER_URL = "/pic/";
+    
     // 이벤트 게시판 고유 타입
     private final String BOARD_TYPE = "EVENT";
 
@@ -175,29 +181,29 @@ public class EventBoardService {
     }
 
     /**
-     * 🚩 이미지 파일 물리 저장 및 엔티티 세팅 (범용 경로 수정)
+     * 🚩 이미지 파일 물리 저장 및 엔티티 세팅
      */
     private void handleImages(Event post, List<MultipartFile> images) throws Exception {
         if (images == null || images.isEmpty()) return;
         
-        // 🚩 범용적인 경로 설정: 프로젝트의 실행 경로를 기준으로 uploads/pic 폴더를 찾음
-        String rootPath = System.getProperty("user.dir");
-        String uploadDir = rootPath + File.separator + "uploads" + File.separator + "pic" + File.separator;
+        // 경로 구분자 통일
+        String cleanPath = uploadRoot.replace("\\", "/");
+        if (!cleanPath.endsWith("/")) cleanPath += "/";
         
-        File dir = new File(uploadDir);
+        File dir = new File(cleanPath);
         if (!dir.exists()) {
-            // 폴더가 없으면 상위 폴더까지 모두 생성
             dir.mkdirs(); 
         }
         
         List<String> savedNames = new ArrayList<>();
         for (MultipartFile file : images) {
             if (!file.isEmpty()) {
-                // 파일명 중복 방지를 위한 타임스탬프 추가
-                String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-                Path targetPath = Paths.get(uploadDir + fileName);
+                // UUID를 사용하여 파일명 중복 방지 및 타임스탬프보다 안전한 명명
+                String originalFileName = file.getOriginalFilename();
+                String extension = originalFileName.substring(originalFileName.lastIndexOf("."));
+                String fileName = UUID.randomUUID().toString() + extension;
                 
-                // 파일 복사 실행
+                Path targetPath = Paths.get(cleanPath).resolve(fileName);
                 Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
                 savedNames.add(fileName);
             }
@@ -237,11 +243,14 @@ public class EventBoardService {
         
         if (p.getPoImg() != null && !p.getPoImg().isEmpty()) {
             String firstImg = p.getPoImg().split(",")[0].trim();
+            // 리액트에서 /pic/파일명으로 접근 가능하도록 처리
             map.put("fileUrl", SERVER_URL + firstImg);
             map.put("po_img", firstImg);
+            map.put("poImg", SERVER_URL + firstImg); // 다중 명칭 지원
         } else {
             map.put("fileUrl", null);
             map.put("po_img", null);
+            map.put("poImg", null);
         }
         
         return map;

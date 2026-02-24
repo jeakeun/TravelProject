@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,13 +16,11 @@ public interface EventRepository extends JpaRepository<Event, Integer> {
 
     /**
      * 🚩 1. 삭제되지 않은 게시글 전체 조회 (최신순)
-     * 서비스의 getRealAllPosts()에서 사용
      */
     List<Event> findByPoDelOrderByPoNumDesc(String poDel);
 
     /**
      * 🚩 1-1. 게시판 타입별 조회 (이벤트/뉴스레터 분리용)
-     * 예: findByPoTypeAndPoDelOrderByPoNumDesc("EVENT", "N")
      */
     List<Event> findByPoTypeAndPoDelOrderByPoNumDesc(String poType, String poDel);
 
@@ -31,11 +30,12 @@ public interface EventRepository extends JpaRepository<Event, Integer> {
     Optional<Event> findByPoNumAndPoDel(Integer poNum, String poDel);
 
     /**
-     * 🚩 3. 조회수 증가 (Native Query)
-     * 주의: 테이블명이 DB 환경에 따라 'event_post' 또는 'event'일 수 있으니 확인 바랍니다.
+     * 🚩 3. 조회수 증가 (JPQL 방식)
+     * Native Query의 테이블명 의존성을 없애고 엔티티 기준으로 안전하게 업데이트합니다.
      */
     @Modifying
-    @Query(value = "UPDATE event_post SET po_view = po_view + 1 WHERE po_num = :poNum", nativeQuery = true)
+    @Transactional
+    @Query("UPDATE Event e SET e.poView = COALESCE(e.poView, 0) + 1 WHERE e.poNum = :poNum AND e.poDel = 'N'")
     int updateViewCount(@Param("poNum") Integer poNum);
 
     /**

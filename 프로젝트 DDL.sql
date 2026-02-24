@@ -11,6 +11,8 @@ CREATE TABLE `member` (
     `mb_email` varchar(50) NULL,
     `mb_rol` varchar(10) DEFAULT 'USER' NOT NULL,
     `mb_score` int NOT NULL DEFAULT 0,
+    -- JPA 에러 방지를 위해 필요한 경우 아래 주석을 풀고 mb_photo를 추가하세요
+    -- `mb_photo` LONGBLOB NULL, 
     `mb_photo_data` LONGBLOB NULL,
     `mb_photo_type` varchar(30) NULL,
     `mb_photo_ver` int NULL,
@@ -99,7 +101,7 @@ CREATE TABLE `event_post` (
     `po_img` varchar(1000) NULL,
     `po_date` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
     `po_view` int NOT NULL DEFAULT 0,
-    `po_up?` int NOT NULL DEFAULT 0,
+    `po_up` int NOT NULL DEFAULT 0, 
     `po_down` int NOT NULL DEFAULT 0,
     `po_report` int NOT NULL DEFAULT 0,
     `po_del` char(1) NOT NULL DEFAULT 'N',
@@ -112,8 +114,8 @@ CREATE TABLE `newsletter_post` (
     `po_title` varchar(100) NOT NULL,
     `po_content` LONGTEXT NOT NULL,
     `po_img` varchar(1000) NULL,
-    `po_date` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    `po_view?` int NOT NULL DEFAULT 0,
+    `po_date?` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    `po_view` int NOT NULL DEFAULT 0,
     `po_up` int NOT NULL DEFAULT 0,
     `po_down` int NOT NULL DEFAULT 0,
     `po_report` int NOT NULL DEFAULT 0,
@@ -148,7 +150,7 @@ CREATE TABLE `recommend_photo` (
 CREATE TABLE `review_photo` (
     `ph_num` int PRIMARY KEY AUTO_INCREMENT,
     `ph_ori_name` varchar(100) NOT NULL,
-    `ph_name?` varchar(255) NOT NULL,
+    `ph_name` varchar(255) NOT NULL, 
     `ph_po_num` int NOT NULL,
     FOREIGN KEY (`ph_po_num`) REFERENCES `review_post` (`po_num`) ON DELETE CASCADE
 );
@@ -227,7 +229,7 @@ CREATE TABLE `live_rank` (
 
 CREATE TABLE `history` (
     `ht_num` int PRIMARY KEY AUTO_INCREMENT,
-    `ht_time` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    `ht_time` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL, -- 🚩 쌍따옴표 오타 해결
     `ht_po_num` int NOT NULL,
     `ht_po_type` varchar(20) NOT NULL,
     `ht_me_num` int NOT NULL,
@@ -236,7 +238,7 @@ CREATE TABLE `history` (
 
 CREATE TABLE `inquiry_box` (
     `ib_num` int PRIMARY KEY AUTO_INCREMENT,
-    `ib_title?` varchar(200) NOT NULL,
+    `ib_title` varchar(200) NOT NULL, -- 🚩 ? 오타 해결
     `ib_content` text NOT NULL,
     `ib_reply` text NULL,
     `ib_date` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -263,13 +265,11 @@ CREATE TABLE `main_photo` (
     FOREIGN KEY (`mp_tv_num`) REFERENCES `travel` (`tv_num`)
 );
 
--- 5. 데이터 삽입 (수정된 핵심 부분)
--- 🚩 mb_num을 1, 2로 명시하여 스프링/리액트의 authorNum = 1 참조 오류를 방지함
+-- 5. 데이터 삽입
 INSERT INTO `member` (mb_num, mb_uid, mb_pw, mb_email, mb_nickname, mb_rol) VALUES 
 (1, '123', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'admin@test.com', 'admin', 'ADMIN'),
 (2, '456', '$2a$10$8K1p/a0dL2LXMIgoEDFrwOfMQfKUtEbPQ8dNFqLqjnM/zIIElKjQu', 'user@test.com', 'user', 'USER');
 
--- 🚩 bo_num과 cg_num도 명시적으로 삽입하여 참조 무결성 확보
 INSERT INTO `board` (bo_num, bo_name) VALUES (1, '전체게시판');
 
 INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES 
@@ -281,7 +281,6 @@ INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES
 
 INSERT INTO `kind` (ki_num, ki_name) VALUES (1, '추천점수');
 
--- 🚩 실제 생성된 mb_num = 1을 정상적으로 참조함
 INSERT INTO `recommend_post` (po_title, po_content, po_mb_num, po_del) VALUES ('안녕하세요 추천 테스트 게시글입니다', '내용입니다.', 1, 'N');
 INSERT INTO `event_post` (po_title, po_content, po_mb_num, po_del) VALUES ('진행중인 이벤트입니다', '이벤트 내용입니다.', 1, 'N');
 INSERT INTO `newsletter_post` (po_title, po_content, po_mb_num, po_del) VALUES ('2월의 여행 뉴스레터', '뉴스레터 내용입니다.', 1, 'N');
