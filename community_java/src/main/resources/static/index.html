@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-
   <meta charset="UTF-8">
   <title>Test</title>
 </head>
@@ -11,9 +10,20 @@
 
 <script>
   document.getElementById("btn").addEventListener("click", () => {
+    // 상대 경로 대신 전체 경로를 써서 테스트해보는 것도 방법입니다.
     fetch("/api/hello")
-      .then(res => res.text())
-      .then(data => console.log(data));
+      .then(res => {
+        if (!res.ok) throw new Error("서버 응답 에러: " + res.status);
+        return res.text();
+      })
+      .then(data => {
+        console.log("서버 응답 데이터:", data);
+        alert("성공: " + data);
+      })
+      .catch(err => {
+        console.error("호출 실패:", err);
+        alert("실패: " + err.message);
+      });
   });
 </script>
 
