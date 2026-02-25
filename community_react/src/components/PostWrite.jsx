@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 
+// 🚩 [수정] API 서버 주소 변수화
+const API_BASE_URL = "http://3.37.160.108:8080";
+
 function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -111,9 +114,10 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
     if (categoryPath === '여행 추천 게시판') categoryPath = 'recommend';
     if (categoryPath === '자유 게시판') categoryPath = 'freeboard';
 
+    // 🚩 [수정] localhost -> AWS IP 주소로 변경
     const apiUrl = isEdit 
-      ? `http://localhost:8080/api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.po_num || existingPost?.id}`
-      : `http://localhost:8080/api/${categoryPath}/posts`;
+      ? `${API_BASE_URL}/api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.po_num || existingPost?.id}`
+      : `${API_BASE_URL}/api/${categoryPath}/posts`;
 
     const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
 

@@ -36,6 +36,9 @@ import FindPassword from './auth/FindPassword';
 import ResetPassword from './auth/ResetPassword';
 import ChangePassword from './auth/ChangePassword';
 
+// 🚩 [수정] API 서버 주소 변수화
+const API_BASE_URL = "http://3.37.160.108:8080";
+
 axios.defaults.withCredentials = true;
 
 function OpenLoginModal({ openLogin }) {
@@ -236,9 +239,10 @@ function App() {
         return;
       }
 
+      // 🚩 [수정] localhost -> AWS IP 주소로 변경
       const apiUrl = endpoint === 'recommend' 
-        ? `http://localhost:8080/api/recommend/posts/all`
-        : `http://localhost:8080/api/${endpoint}/posts`;
+        ? `${API_BASE_URL}/api/recommend/posts/all`
+        : `${API_BASE_URL}/api/${endpoint}/posts`;
 
       const response = await axios.get(apiUrl);
       if (response.data && Array.isArray(response.data)) {
@@ -260,7 +264,6 @@ function App() {
             ...post,
             id: pId,
             isBookmarked: isBookmarked,
-            // 🚩 [수정] 백엔드에서 내려오는 mbNickname 필드를 최우선으로 매핑하여 authorNick으로 통일
             authorNick: post.mbNickname || post.mb_nickname || post.mb_nick || post.mbNick || post.member?.mbNickname || post.member?.mb_nickname || `User ${post.poMbNum || post.po_mb_num}`
           };
         });
@@ -299,7 +302,8 @@ function App() {
   useEffect(() => {
     const saved = localStorage.getItem('user');
     if (saved) return; 
-    fetch("http://localhost:8080/auth/refresh", { method: "POST", credentials: "include" })
+    // 🚩 [수정] localhost -> AWS IP 주소로 변경
+    fetch(`${API_BASE_URL}/auth/refresh`, { method: "POST", credentials: "include" })
       .then((res) => {
         if (!res.ok) return;
         return res.json();
@@ -329,7 +333,8 @@ function App() {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('accessToken');
-    fetch("http://localhost:8080/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
+    // 🚩 [수정] localhost -> AWS IP 주소로 변경
+    fetch(`${API_BASE_URL}/auth/logout`, { method: "POST", credentials: "include" }).catch(() => {});
   }, []);
 
   const openLogin = useCallback(() => {
