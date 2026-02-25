@@ -2,23 +2,103 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="kr.hi.travel_community.dao.MemberDAO">
 
+    <!-- map-underscore-to-camel-case 시에도 MemberVO(mb_Uid, mb_pw 등)에 맞게 명시 매핑 -->
+    <resultMap id="MemberVOMap" type="kr.hi.travel_community.model.vo.MemberVO">
+        <id property="mb_num" column="mb_num"/>
+        <result property="mb_Uid" column="mb_uid"/>
+        <result property="mb_nickname" column="mb_nickname"/>
+        <result property="mb_pw" column="mb_pw"/>
+        <result property="mb_email" column="mb_email"/>
+        <result property="mb_rol" column="mb_rol"/>
+        <result property="mb_score" column="mb_score"/>
+        <result property="mb_photo" column="mb_photo"/>
+        <result property="mb_photo_ver" column="mb_photo_ver"/>
+        <result property="mb_agree" column="mb_agree"/>
+    </resultMap>
+
     <!-- 회원가입 시 아이디와 이메일로 중복 확인 -->
-    <select id="selectMember" resultType="kr.hi.travel_community.model.vo.MemberVO">
-        SELECT * FROM member 
-        WHERE mb_Uid = #{id} 
-        AND mb_email = #{email}
+    <select id="selectMember" resultMap="MemberVOMap">
+        SELECT mb_num, mb_uid, mb_nickname, mb_pw, mb_email, mb_rol, mb_score, mb_photo_ver, mb_agree FROM member
+        WHERE mb_uid = #{id}
+          AND mb_email = #{email}
     </select>
 
-    <!-- 로그인 시 아이디로 조회 -->
-    <select id="selectMemberById" resultType="kr.hi.travel_community.model.vo.MemberVO">
-        SELECT * FROM member 
-        WHERE mb_Uid = #{id}
+    <!-- 로그인 시 아이디로 조회 (mb_photo_data 제외, blob 제외하여 JSON 용량 절감) -->
+    <select id="selectMemberById" resultMap="MemberVOMap">
+        SELECT mb_num, mb_uid, mb_nickname, mb_pw, mb_email, mb_rol, mb_score,
+               mb_photo_ver, mb_agree
+        FROM member
+        WHERE mb_uid = #{id}
     </select>
 
-    <!-- 새로운 회원정보 저장 -->
+    <!-- 회원가입 시 이메일 중복 확인 -->
+    <select id="selectMemberByEmail" resultMap="MemberVOMap">
+        SELECT mb_num, mb_uid, mb_nickname, mb_pw, mb_email, mb_rol, mb_score, mb_photo_ver, mb_agree FROM member
+        WHERE mb_email = #{email}
+        LIMIT 1
+    </select>
+
+    <!-- 새로운 회원정보 저장 (회원가입 시 닉네임=아이디) -->
     <insert id="insertMember">
-        INSERT INTO member (mb_Uid, mb_pw, mb_email, mb_agree)
-        VALUES (#{id}, #{pw}, #{email}, #{agree})
+        INSERT INTO member (mb_uid, mb_nickname, mb_pw, mb_email, mb_agree, mb_rol, mb_score)
+        VALUES (#{id}, #{nickname}, #{pw}, #{email}, #{agree}, 'USER', 0)
     </insert>
+
+    <!-- ✅ 아이디 + 이메일 검증 (비밀번호 찾기용) -->
+    <select id="selectMemberByIdAndEmail" resultMap="MemberVOMap">
+        SELECT mb_num, mb_uid, mb_pw, mb_email
+        FROM member
+        WHERE mb_uid = #{id}
+          AND mb_email = #{email}
+        LIMIT 1
+    </select>
+
+    <!-- ✅ 비밀번호 변경 -->
+    <update id="updatePasswordById">
+        UPDATE member
+        SET mb_pw = #{pw}
+        WHERE mb_uid = #{id}
+    </update>
+
+    <!-- ✅ 권한 변경 (초기 계정용) -->
+    <update id="updateRoleById">
+        UPDATE member
+        SET mb_rol = #{role}
+        WHERE mb_uid = #{id}
+    </update>
+
+    <!-- ✅ 이메일 변경 -->
+    <update id="updateEmailById">
+        UPDATE member
+        SET mb_email = #{email}
+        WHERE mb_uid = #{id}
+    </update>
+
+    <!-- ✅ 닉네임 변경 -->
+    <update id="updateNicknameById">
+        UPDATE member
+        SET mb_nickname = #{nickname}
+        WHERE mb_uid = #{id}
+    </update>
+
+    <!-- ✅ 프로필 사진 변경 (DB BLOB 저장, 파일 사용 안 함) -->
+    <update id="updatePhotoBlobById">
+        UPDATE member
+        SET mb_photo_data = #{photoData}, mb_photo_type = #{photoType}, mb_photo_ver = #{photoVer}
+        WHERE mb_uid = #{id}
+    </update>
+
+    <!-- 프로필 사진 조회 (이미지 서빙용) -->
+    <select id="selectPhotoByMemberId" resultType="map">
+        SELECT mb_photo_data as photoData, mb_photo_type as photoType
+        FROM member
+        WHERE mb_uid = #{id} AND mb_photo_data IS NOT NULL
+    </select>
+
+    <!-- ✅ 회원 탈퇴 -->
+    <delete id="deleteMemberById">
+        DELETE FROM member
+        WHERE mb_uid = #{id}
+    </delete>
 
 </mapper>

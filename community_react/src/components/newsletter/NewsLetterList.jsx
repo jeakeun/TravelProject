@@ -1,0 +1,197 @@
+import React, { useState, useMemo } from 'react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
+// 🚩 디자인 유지 및 에러 방지를 위해 NewsLetterDetail.css를 공용으로 사용합니다.
+import './NewsLetterDetail.css'; 
+
+const NewsLetterList = ({ posts = [] }) => {
+    const navigate = useNavigate();
+    
+    // App.jsx의 Outlet context에서 유저 정보를 받아옵니다.
+    const { user } = useOutletContext() || {};
+    
+    const [searchType, setSearchType] = useState("title");
+    const [searchKeyword, setSearchKeyword] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
+    const postsPerPage = 6; 
+
+    const SERVER_URL = "http://localhost:8080";
+    const fallbackImage = "https://placehold.co/300x200?text=No+Image";
+
+    // 관리자 여부 확인
+    const isAdmin = user && (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN' || user.mbLevel >= 10);
+
+    /**
+     * 🚩 이미지 추출 로직
+     */
+    const getImageUrl = (post) => {
+        if (!post) return fallbackImage;
+        const { po_img, poImg, fileUrl, fileName, po_content, poContent } = post;
+        const targetUrl = po_img || poImg || fileUrl || fileName;
+
+        if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null" && String(targetUrl) !== "undefined") {
+            if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
+            const extractedName = String(targetUrl).split(',')[0].split(/[\\/]/).pop();
+            return `${SERVER_URL}/pic/${extractedName}`;
+        }
+        
+        const content = po_content || poContent;
+        if (content && typeof content === 'string') {
+            const imgRegex = /<img[^>]+src=["']([^"']+)["']/;
+            const match = content.match(imgRegex);
+            if (match && match[1]) {
+                const src = match[1];
+                if (src.startsWith('/pic/')) return `${SERVER_URL}${src}`;
+                return src;
+            }
+        }
+        return fallbackImage;
+    };
+
+    const filteredPosts = useMemo(() => {
+        if (!Array.isArray(posts)) return [];
+        const sortedPosts = [...posts].sort((a, b) => {
+            const aId = a.po_num || a.poNum || 0;
+            const bId = b.po_num || b.poNum || 0;
+            return bId - aId;
+        });
+        
+        if (!searchKeyword.trim()) return sortedPosts;
+        const keyword = searchKeyword.toLowerCase();
+        return sortedPosts.filter(post => {
+            const title = (post.po_title || post.poTitle || "").toLowerCase();
+            const content = (post.po_content || post.poContent || "").toLowerCase();
+            const author = String(post.po_mb_num || post.poMbNum || "");
+            if (searchType === "title") return title.includes(keyword);
+            if (searchType === "content") return content.includes(keyword);
+            if (searchType === "title_content") return title.includes(keyword) || content.includes(keyword);
+            if (searchType === "author") return author.includes(keyword);
+            return true;
+        });
+    }, [posts, searchKeyword, searchType]);
+
+    // 페이징 계산
+    const indexOfLastPost = currentPage * postsPerPage;
+    const indexOfFirstPost = indexOfLastPost - postsPerPage;
+    const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
+    const totalPages = Math.ceil(filteredPosts.length / postsPerPage) || 1;
+
+    const paginate = (pageNumber) => {
+        if (pageNumber < 1 || pageNumber > totalPages) return;
+        setCurrentPage(pageNumber);
+        window.scrollTo(0, 0);
+    };
+
+    return (
+        <div className="news-container">
+            <div className="main-content">
+                <h2 className="board-title">| 뉴스레터</h2>
+                
+                <div className="gallery-grid">
+                    {currentPosts.length > 0 ? (
+                        currentPosts.map((post) => {
+                            const pId = post.po_num || post.poNum;
+                            return (
+                                <div 
+                                    key={pId || Math.random()} 
+                                    className="photo-card"
+                                    onClick={() => navigate(`/news/newsletter/${pId}`)}
+                                >
+                                    <div className="img-placeholder">
+                                        <img 
+                                            src={getImageUrl(post)} 
+                                            alt={post.po_title || post.poTitle} 
+                                            onError={(e) => { 
+                                                if(e.target.src !== fallbackImage) {
+                                                    e.target.src = fallbackImage; 
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="photo-info">
+                                        <p className="photo-title">
+                                            {post.po_title || post.poTitle || "제목 없음"} 
+                                        </p>
+                                        <div className="photo-meta">
+                                            <span className="post-author">관리자</span>
+                                            <span className="post-date">
+                                                {(post.po_date || post.poDate) ? (post.po_date || post.poDate).split('T')[0] : '-'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        <div className="no-data-full" style={{ gridColumn: '1/-1', textAlign: 'center', padding: '100px 0' }}>
+                            등록된 뉴스레터가 없습니다.
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* 하단 페이징 및 검색 영역 (중복 코드 정리 및 문법 교정) */}
+            <div className="list-pagination-area">
+                <div className="page-buttons">
+                    <button 
+                        className="prev" 
+                        onClick={() => paginate(currentPage - 1)}
+                        disabled={currentPage === 1}
+                    >
+                        &lt;
+                    </button>
+
+                    {[...Array(totalPages)].map((_, i) => (
+                        <button 
+                            key={i + 1} 
+                            className={currentPage === i + 1 ? 'active' : ''}
+                            onClick={() => paginate(i + 1)}
+                        >
+                            {i + 1}
+                        </button>
+                    ))}
+
+                    <button 
+                        className="next" 
+                        onClick={() => paginate(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                    >
+                        &gt;
+                    </button>
+                </div>
+
+                <div className="footer-action-row">
+                    <div className="search-footer">
+                        <select 
+                            className="search-select-box"
+                            value={searchType}
+                            onChange={(e) => setSearchType(e.target.value)}
+                        >
+                            <option value="title">제목</option>
+                            <option value="content">내용</option>
+                            <option value="title_content">제목+내용</option>
+                            <option value="author">작성자</option>
+                        </select>
+                        <div className="search-input-wrapper">
+                            <input 
+                                type="text" 
+                                placeholder="뉴스레터 검색" 
+                                value={searchKeyword}
+                                onChange={(e) => setSearchKeyword(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && setCurrentPage(1)}
+                            />
+                            <button className="btn-search" onClick={() => setCurrentPage(1)}>검색</button>
+                        </div>
+                    </div>
+                </div>
+
+                {isAdmin && (
+                    <button className="btn-write-footer" onClick={() => navigate('/news/newsletter/write', { state: { boardType: 'newsletter' } })}>
+                        뉴스레터 작성
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default NewsLetterList;

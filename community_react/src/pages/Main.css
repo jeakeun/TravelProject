@@ -1,178 +1,725 @@
-/* ===== 전역 스타일 ===== */
+/* =========================================
+   1. 기본 설정 및 초기화 (Reset & Base)
+   ========================================= */
+:root {
+    --header-height: 70px;
+    --page-size: 1200px;
+    --page-padding-x: 40px;
+    --page-padding-top: 32px;
+    --page-padding-bottom: 48px;
+}
+
 * {
-    margin: 0; padding: 0; box-sizing: border-box;
-    font-family: 'Pretendard', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Pretendard', sans-serif;
 }
 
-body { overflow-x: hidden; background-color: #f8f8f8; }
-
-/* ===== 헤더 스타일 ===== */
-header {
-    position: fixed; top: 0; left: 0; width: 100%; height: 70px;
-    background: rgb(4, 117, 4); color: #fff;
-    display: flex; align-items: center; padding: 0 60px;
-    z-index: 2000; transition: all 0.3s ease;
+body {
+    overflow-x: hidden;
+    background-color: #f8f8f8;
 }
 
-header.scrolled {
-    background: rgba(3, 80, 3, 0.95);
-    height: 60px;
+/* 전체 사이트 공통: 헤더 영역 상단 고정 */
+.App .nav-area {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 9999;
 }
 
-.logo { 
-    font-size: 26px; font-weight: 900; color: #fff; 
-    text-decoration: none; cursor: pointer; 
-}
-
-nav { flex: 1; display: flex; justify-content: center; }
-
-.nav-list { display: flex; list-style: none; gap: 40px; }
-
-/* 리액트 Link 태그는 a 태그로 렌더링됩니다 */
-.nav-item a {
-    color: #fff; text-decoration: none; font-size: 17px; font-weight: 600;
-    padding: 20px 0; display: block; position: relative;
-    transition: color 0.3s;
-}
-
-.nav-item a::after {
-    content: ''; position: absolute; bottom: 10px; left: 0; width: 0;
-    height: 2px; background: #ffd700; transition: width 0.3s;
-}
-
-.nav-item:hover a::after { width: 100%; }
-.nav-item:hover a { color: #ffd700; }
-
-.user-menu { display: flex; align-items: center; gap: 20px; font-size: 14px; }
-
-.menu-link {
-    color: #fff; text-decoration: none; font-weight: 500;
-    transition: opacity 0.3s;
-}
-.menu-link:hover { opacity: 0.7; }
-
-/* ===== 언어 선택 영역 (React State 대응) ===== */
-.lang-selector {
+.App .nav-area header {
+    width: 100%;
+    height: 70px;
+    --header-height: 70px;
+    background: linear-gradient(135deg, #1a6b2a, #228B22);
+    display: flex;
+    align-items: center;
+    padding: 0 60px;
     position: relative;
-    padding: 5px 12px;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    border-radius: 20px;
-    background: rgba(0, 0, 0, 0.1);
-    transition: all 0.3s;
+    z-index: 1;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
-.lang-selector:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: #ffd700;
+.App .nav-area header.scrolled {
+    background: linear-gradient(135deg, #145a22, #1a7a28);
+    height: 60px;
+    --header-height: 60px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
 }
 
-.current-lang { font-weight: 600; color: #fff; }
+.App .nav-area .logo {
+    font-size: 26px;
+    font-weight: 900;
+    color: #fff;
+    text-decoration: none;
+}
 
-.lang-dropdown {
-    position: absolute;
-    top: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(0, 0, 0, 0.9);
-    backdrop-filter: blur(5px);
+/* 헤더 메뉴 + 메가메뉴 내용 너비 고정 (항상 동일) */
+.App .nav-area {
+    --nav-mega-content-width: 800px;
+}
+
+.App .nav-area .nav-and-mega {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.App .nav-area .nav-mega-inner {
+    position: relative;
+    width: 100%;
+    max-width: var(--nav-mega-content-width);
+    margin: 0 auto;
+}
+
+.App .nav-area nav {
+    width: 100%;
+}
+
+.App .nav-area .nav-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
     list-style: none;
-    padding: 10px 0;
-    width: 130px;
-    z-index: 3000;
-    border-radius: 8px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    /* 리액트 조건부 렌더링 시 부드러운 등장을 위한 애니메이션 */
-    animation: fadeInDown 0.3s ease-out;
+    gap: 0;
+    width: 100%;
 }
 
-@keyframes fadeInDown {
-    from { opacity: 0; transform: translate(-50%, -10px); }
-    to { opacity: 1; transform: translate(-50%, 0); }
+.App .nav-area .nav-item {
+    position: relative;
 }
 
-.lang-dropdown li {
-    padding: 10px 15px;
-    font-size: 13px;
-    color: #eee;
-    transition: all 0.2s;
+.App .nav-area .nav-item a,
+.App .nav-area .nav-item .nav-item-trigger {
+    color: #fff;
+    text-decoration: none;
+    font-size: 17px;
+    font-weight: 600;
+    padding: 20px 0;
+    position: relative;
+    display: block;
+    cursor: pointer;
     text-align: center;
 }
 
-.lang-dropdown li:hover {
-    background-color: rgba(255, 215, 0, 0.2);
+.App .nav-area .nav-item .nav-item-trigger {
+    background: none;
+    border: none;
+}
+
+.App .nav-area .nav-item a::after,
+.App .nav-area .nav-item .nav-item-trigger::after {
+    content: '';
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: #ffd700;
+    transition: width 0.3s;
+}
+
+.App .nav-area .nav-item:hover a::after,
+.App .nav-area .nav-item:hover .nav-item-trigger::after {
+    width: 100%;
+}
+
+.App .nav-area .nav-item:hover a,
+.App .nav-area .nav-item:hover .nav-item-trigger {
     color: #ffd700;
 }
 
-/* ===== 3D 랭킹 카러셀 (JSX 구조 대응) ===== */
-#ranking { 
-    padding: 120px 0; 
-    text-align: center; 
-    background: #f0f0f0; 
+/* 헤더 호버 시 메가 메뉴 - 배경만 전체 너비, 내용은 헤더와 열 맞춤 */
+.App .nav-area .mega-menu-wrapper {
+    position: fixed;
+    top: var(--header-height, 70px);
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 0;
+    background: rgba(24, 43, 28, 0.4);
+    backdrop-filter: blur(12px);
     overflow: hidden;
+    transition: height 0.4s ease, visibility 0.4s;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+    visibility: hidden;
+    border-top: 1px solid rgba(0,0,0,0.05);
+    z-index: 9998;
+    pointer-events: none;
 }
 
-#ranking h2 { margin-bottom: 40px; font-size: 32px; font-weight: 800; }
-
-.carousel-container {
-    position: relative; width: 100%; height: 500px; 
-    perspective: 1500px; 
+.App .nav-area:hover .mega-menu-wrapper {
+    height: 240px;
+    visibility: visible;
 }
 
-.carousel-wrapper { 
-    width: 100%; height: 100%; 
-    position: relative; 
-    transform-style: preserve-3d; 
+.App .nav-area .mega-menu-content {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 0;
+    width: 100%;
+    padding: 40px 0 50px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+    box-sizing: border-box;
+    z-index: 9999;
 }
 
-.carousel-item {
-    position: absolute; width: 550px; height: 380px;
-    left: 50%; top: 50%; transform: translate(-50%, -50%);
-    border-radius: 25px; overflow: hidden;
-    transition: all 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+.App .nav-area:hover .mega-menu-content {
+    opacity: 1;
+    visibility: visible;
 }
 
-.carousel-item img { width: 100%; height: 100%; object-fit: cover; }
-
-.item-info {
-    position: absolute; bottom: 0; left: 0; width: 100%; padding: 40px;
-    background: linear-gradient(transparent, rgba(0,0,0,0.9));
-    color: #fff; text-align: left; opacity: 0; transition: 0.5s;
+/* 각 열: 위 헤더(새소식/여행지/여행게시판/고객센터) 기준으로 중앙 정렬 */
+.App .nav-area .menu-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
 }
 
-/* 3D 클래스별 위치 */
-.carousel-item.active { transform: translate(-50%, -50%) translate3d(0, 0, 300px); z-index: 10; opacity: 1; }
-.carousel-item.active .item-info { opacity: 1; }
-
-.carousel-item.prev { transform: translate(-50%, -50%) translate3d(-500px, 0, -200px) rotateY(30deg); z-index: 5; opacity: 0.5; }
-
-.carousel-item.next { transform: translate(-50%, -50%) translate3d(500px, 0, -200px) rotateY(-30deg); z-index: 5; opacity: 0.5; }
-
-.carousel-btn {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    width: 50px; height: 50px; border-radius: 50%; border: none;
-    background: rgba(255, 255, 255, 0.9); cursor: pointer; z-index: 20; 
-    font-size: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-    transition: background 0.3s;
+.App .nav-area .menu-column ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    width: 100%;
 }
-.carousel-btn:hover { background: #ffd700; }
-.prev-btn { left: 5%; } 
-.next-btn { right: 5%; }
 
-/* ===== 메인 비디오 & 기타 ===== */
-#main-video { position: relative; width: 100%; height: 100vh; background: #000; }
-#main-video iframe { width: 100%; height: 100%; border: none; }
+.App .nav-area .menu-column li {
+    margin-bottom: 12px;
+    text-align: center;
+}
 
+.App .nav-area .menu-column a,
+.App .nav-area .menu-column .nav-sub-item {
+    display: block;
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 500;
+    text-align: center;
+    margin: 0 auto;
+    transition: 0.2s;
+}
+
+.App .nav-area .menu-column a:hover {
+    color: #ffd700;
+    font-weight: bold;
+}
+
+.App .nav-area .menu-column .nav-sub-item {
+    cursor: default;
+}
+
+.App .nav-area .menu-column .nav-sub-item:hover {
+    color: rgba(255,255,255,0.9);
+}
+
+.App .nav-area .user-menu {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+}
+
+.App .nav-area .lang-selector {
+    position: relative;
+    cursor: pointer;
+    color: #fff;
+    padding: 5px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #ffffff !important;
+    min-width: 50px; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+/* 호버 시 트리거↔드롭다운 사이 갭 제거 - 레이아웃 영향 없이 마우스 이동 시 드롭다운 유지 */
+.App .nav-area .lang-arrow {
+    font-size: 10px;
+    color: rgba(255,255,255,0.9);
+    line-height: 1;
+}
+
+.App .nav-area .lang-selector.is-open::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: -30px;
+    right: -30px;
+    height: 200px;
+}
+
+.App .nav-area .lang-dropdown {
+    position: absolute;
+    top: 100%;
+    margin-top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #fff;
+    color: #333;
+    list-style: none;
+    width: 130px;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    padding: 8px 0;
+    z-index: 10001;
+    animation: fadeInDown 0.3s ease;
+    text-align: center;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -10px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+.App .nav-area .lang-dropdown li {
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 400;
+    text-align: center;
+    display: block;
+}
+
+.App .nav-area .lang-dropdown li:hover {
+    background: #f0f0f0;
+    color: #047504;
+    font-weight: 600;
+}
+
+.App .nav-area .lang-dropdown li.active {
+    font-weight: 600;
+}
+
+.App .nav-area .menu-link {
+    color: #fff;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* 닉네임 + 화살표(드롭다운 트리거) - 화살표가 닉네임 오른쪽에 배치 */
+.App .nav-area .user-name-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+/* DB 프로필 사진 (Header) */
+.App .nav-area .header-profile-photo {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(255,255,255,0.5);
+}
+
+.App .nav-area .user-name-text {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.App .nav-area .user-name-arrow {
+    font-size: 10px;
+    color: rgba(255,255,255,0.9);
+    line-height: 1;
+    padding: 0 2px;
+    user-select: none;
+}
+
+.App .nav-area .user-name-arrow:hover {
+    color: #fff;
+}
+
+/* 닉네임 드롭다운 호버 시 갭 제거 - 마우스 이동 시 드롭다운 유지 */
+.App .nav-area .user-name-wrap.is-open::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: -30px;
+    right: -30px;
+    height: 150px;
+}
+
+.App .nav-area .user-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 6px;
+    background: #fff;
+    color: #333;
+    list-style: none;
+    min-width: 120px;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    padding: 8px 0;
+    z-index: 10001;
+    animation: fadeInDown 0.2s ease;
+    text-align: center;
+}
+
+.App .nav-area .user-dropdown li {
+    padding: 0;
+}
+
+.App .nav-area .user-dropdown a,
+.App .nav-area .user-dropdown .user-dropdown-item {
+    display: block;
+    padding: 10px 16px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 400;
+    color: #333;
+    text-decoration: none;
+}
+
+.App .nav-area .user-dropdown a:hover,
+.App .nav-area .user-dropdown .user-dropdown-item:hover {
+    background: #f0f0f0;
+    color: #047504;
+    font-weight: 600;
+}
+
+.App .nav-area .user-dropdown a.active,
+.App .nav-area .user-dropdown .user-dropdown-item.active {
+    font-weight: 600;
+}
+
+.App .nav-area .user-dropdown .user-dropdown-item {
+    cursor: default;
+}
+
+/* 전체 사이트: 헤더 아래 본문이 겹치지 않도록 상단 여백 (main만 적용, 중첩 .main-content 제외) */
+.App > main.main-content {
+    padding-top: var(--header-height);
+    min-height: calc(100vh - var(--header-height));
+}
+
+/* 헤더(70px) 제외한 뷰포트만큼만 쓰여 영상이 잘리지 않음 */
+#main-video {
+    width: 100%;
+    height: calc(100vh - var(--header-height));
+    min-height: 320px;
+    background: #000;
+    position: relative;
+}
+
+#main-video iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* 스크롤 유도 아이콘 및 애니메이션 */
 .scroll-down {
-    position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-    color: #fff; font-size: 24px; animation: bounce 2s infinite;
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 0;
+    transition: background 0.3s, border-color 0.3s;
+}
+
+.scroll-down:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: #fff;
+}
+
+.scroll-down-arrow {
+    font-size: 24px;
+    display: block;
+    animation: bounce 2s infinite;
 }
 
 @keyframes bounce {
-    0%, 20%, 50%, 80%, 100% {transform: translateY(0) translateX(-50%);}
-    40% {transform: translateY(-10px) translateX(-50%);}
-    60% {transform: translateY(-5px) translateX(-50%);}
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-6px);
+    }
 }
 
-footer { background: #111; color: #777; padding: 60px; text-align: center; }
+/* 두 번째 섹션: 랭킹 */
+#ranking {
+    min-height: calc(100vh - var(--header-height));
+    padding: 60px 24px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+#ranking h2 {
+    margin-bottom: 32px;
+    font-size: 28px;
+    font-weight: 800;
+}
+
+/* 화살표가 카드 뒤에 없이 빈 공간에만 오도록 감쌈 */
+.carousel-outer {
+    position: relative;
+    width: 100%;
+    max-width: var(--page-size);
+    margin: 0 auto;
+    padding: 0 var(--page-padding-x);
+}
+
+/* 3D 캐러셀 컨테이너 (카드 영역만) */
+.carousel-container {
+    position: relative;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    height: 360px;
+    perspective: 1500px;
+}
+
+.carousel-wrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+}
+
+/* 각 개별 아이템 스타일 - 적당한 크기 */
+.carousel-item {
+    position: absolute;
+    width: 360px;
+    height: 240px;
+    left: 50%;
+    top: 50%;
+    margin-left: -180px;
+    margin-top: -120px;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+}
+
+.carousel-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 활성화 및 좌우 배치용 상태 클래스 */
+.carousel-item.active {
+    transform: translate3d(0, 0, 260px);
+    z-index: 10;
+    opacity: 1;
+}
+
+.carousel-item.prev {
+    transform: translate3d(-320px, 0, -160px) rotateY(30deg);
+    z-index: 5;
+    opacity: 0.5;
+}
+
+.carousel-item.next {
+    transform: translate3d(320px, 0, -160px) rotateY(-30deg);
+    z-index: 5;
+    opacity: 0.5;
+}
+
+/* 아이템 내부 정보(텍스트) */
+.item-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 16px 20px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.85));
+    color: #fff;
+    text-align: left;
+}
+
+.item-info h3 { font-size: 1rem; margin-bottom: 4px; }
+.item-info p { font-size: 0.85rem; opacity: 0.9; }
+
+.carousel-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: #fff;
+    cursor: pointer;
+    z-index: 100;
+    font-size: 18px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    transition: 0.3s;
+}
+
+.carousel-btn:hover {
+    background: #ffd700;
+    color: #fff;
+}
+
+/* 화살표를 카드 바로 옆에 붙이기 */
+.prev-btn {
+    left: 4px;
+}
+
+.next-btn {
+    right: 4px;
+}
+
+/* ----- 랭킹 카드 반응형: 노트북 / 데스크톱 ----- */
+/* 노트북 (~1366px): 카드 작게 */
+@media (max-width: 1366px) {
+    .carousel-outer {
+        max-width: 1020px;
+        padding: 0 48px;
+    }
+    .carousel-container {
+        max-width: 920px;
+        height: 320px;
+    }
+    .carousel-item {
+        width: 300px;
+        height: 200px;
+        margin-left: -150px;
+        margin-top: -100px;
+        border-radius: 14px;
+    }
+    .carousel-item.active {
+        transform: translate3d(0, 0, 220px);
+    }
+    .carousel-item.prev {
+        transform: translate3d(-260px, 0, -140px) rotateY(30deg);
+    }
+    .carousel-item.next {
+        transform: translate3d(260px, 0, -140px) rotateY(-30deg);
+    }
+    .item-info {
+        padding: 12px 16px;
+    }
+    .item-info h3 { font-size: 0.95rem; }
+    .item-info p { font-size: 0.8rem; }
+    .carousel-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+}
+
+/* 데스크톱 (1400px~): 카드 크게 */
+@media (min-width: 1400px) {
+    .carousel-outer {
+        max-width: 1320px;
+        padding: 0 60px;
+    }
+    .carousel-container {
+        max-width: 1200px;
+        height: 400px;
+    }
+    .carousel-item {
+        width: 400px;
+        height: 267px;
+        margin-left: -200px;
+        margin-top: -133px;
+        border-radius: 18px;
+    }
+    .carousel-item.active {
+        transform: translate3d(0, 0, 300px);
+    }
+    .carousel-item.prev {
+        transform: translate3d(-360px, 0, -180px) rotateY(30deg);
+    }
+    .carousel-item.next {
+        transform: translate3d(360px, 0, -180px) rotateY(-30deg);
+    }
+    .item-info {
+        padding: 18px 22px;
+    }
+    .item-info h3 { font-size: 1.1rem; }
+    .item-info p { font-size: 0.9rem; }
+    .carousel-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+}
+
+/* 큰 데스크톱 (1800px~): 카드 더 크게 */
+@media (min-width: 1800px) {
+    .carousel-outer {
+        max-width: 1520px;
+        padding: 0 72px;
+    }
+    .carousel-container {
+        max-width: 1380px;
+        height: 460px;
+    }
+    .carousel-item {
+        width: 460px;
+        height: 307px;
+        margin-left: -230px;
+        margin-top: -153px;
+        border-radius: 20px;
+    }
+    .carousel-item.active {
+        transform: translate3d(0, 0, 340px);
+    }
+    .carousel-item.prev {
+        transform: translate3d(-420px, 0, -200px) rotateY(30deg);
+    }
+    .carousel-item.next {
+        transform: translate3d(420px, 0, -200px) rotateY(-30deg);
+    }
+    .item-info {
+        padding: 20px 26px;
+    }
+    .item-info h3 { font-size: 1.15rem; }
+    .item-info p { font-size: 0.95rem; }
+}
+
+/* 푸터: 검은색, 크기·색 유지. 위치는 두 번째 섹션 바로 아래(조금만 스크롤하면 보임) */
+footer {
+    margin: 0;
+    background: #111;
+    color: #999;
+    padding: 60px;
+    text-align: center;
+    font-size: 14px;
+}

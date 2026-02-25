@@ -1,0 +1,48 @@
+@import "./signup.css";
+
+.login-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0 18px;
+  font-size: 14px;
+}
+
+.login-links .divider {
+  color: #bbb;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #555;
+  cursor: pointer;
+  font-size: inherit;
+}
+
+.link-btn:hover {
+  color: #1a73e8;
+  text-decoration: underline;
+}
+
+.remember-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:10px;
+}
+
+.remember-label{
+  cursor:pointer;
+  user-select:none;
+  font-size:14px;
+  color:#444;
+}
+
+.remember-label input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}

@@ -1,86 +1,131 @@
 package kr.hi.travel_community.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import kr.hi.travel_community.entity.FreePost;
+import kr.hi.travel_community.model.util.CustomUser;
+import kr.hi.travel_community.model.vo.MemberVO;
+import kr.hi.travel_community.service.FreePostService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import kr.hi.travel_community.entity.Post;
-import kr.hi.travel_community.repository.PostRepository;
-
-import java.io.File;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/freeboard")
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+// 🚩 [유지] 다른 PC 및 리액트 접속 허용
+@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"}, allowCredentials = "true")
+@RequiredArgsConstructor
 public class FreeBoardController {
 
-    @Autowired
-    private PostRepository postRepository;
+    private final FreePostService freePostService;
 
-    private final String uploadDir = System.getProperty("user.dir") + "/src/main/resources/static/pic/";
-
-    // 1. 자유 게시판 글 등록 (POST)
-    @PostMapping("/posts")
-    public ResponseEntity<?> createFreePost(
-            @RequestParam Map<String, String> allParams, 
-            @RequestParam(value = "image", required = false) MultipartFile image) {
-        
-        try {
-            Post post = new Post();
-            post.setTitle(allParams.getOrDefault("title", "제목 없음"));
-            post.setContent(allParams.getOrDefault("content", "내용 없음"));
-            
-            // Integer 타입 및 CamelCase 메서드 사용
-            post.setCategoryId(3); 
-            post.setUserId(1);
-            post.setViewCount(0);
-            post.setStatus("N");
-
-            handleImageUpload(post, image);
-
-            postRepository.save(post);
-            return ResponseEntity.ok(post);
-        } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("자유게시판 저장 실패: " + e.getMessage());
-        }
+    // 🚩 게시글 리스트 조회
+    @GetMapping("/posts")
+    public List<Map<String, Object>> getList() {
+        return freePostService.getRealAllPosts();
     }
 
-    // 🚩 2. [추가] 자유 게시판 상세 조회 및 조회수 증가 (GET)
-    // 리액트 호출 주소 예: http://localhost:8080/api/freeboard/posts/15
+    // 🚩 게시글 상세 조회
     @GetMapping("/posts/{id}")
-    public ResponseEntity<?> getFreePostDetail(@PathVariable("id") Integer id) {
-        try {
-            // 1) Repository에 작성한 메서드로 조회수 1 증가
-            postRepository.updateViewCount(id);
+    public ResponseEntity<?> getDetail(@PathVariable("id") Integer id,
+                                       @RequestParam(value = "mbNum", required = false) Integer mbNum,
+                                       HttpServletRequest request,
+                                       HttpServletResponse response) {
+        
+        // ✅ 조회수 증가 (쿠키 방어 로직을 위해 request와 response를 반드시 전달)
+        freePostService.increaseViewCount(id, request, response);
+        
+        // 상세 데이터 조회 (좋아요 상태 확인을 위해 mbNum 전달)
+        Integer currentUserNum = (mbNum != null) ? mbNum : 1;
+        Map<String, Object> postData = freePostService.getPostDetailWithImage(id, currentUserNum);
+        
+        return postData != null 
+                ? ResponseEntity.ok(postData) 
+                : ResponseEntity.status(404).body(Map.of("error", "게시글 없음"));
+    }
 
-            // 2) 상세 데이터 조회 (데이터가 없으면 404 에러 반환)
-            return postRepository.findById(id)
-                    .map(post -> {
-                        // DB에 이미지가 없을 경우 기본 이미지 처리
-                        if (post.getFileUrl() == null || post.getFileUrl().isEmpty()) {
-                            post.setFileUrl("http://localhost:8080/pic/1.jpg");
-                        }
-                        return ResponseEntity.ok(post);
-                    })
-                    .orElse(ResponseEntity.notFound().build());
-                    
+    /**
+     * 🚩 게시글 등록
+     * 서비스 계층을 통해 외부 폴더(C:/travel_contents)에 이미지를 영구 저장합니다.
+     */
+    @PostMapping("/posts")
+    public ResponseEntity<?> create(Authentication authentication,
+                                    @RequestParam(value = "title", required = false) String title,
+                                    @RequestParam(value = "poTitle", required = false) String poTitle,
+                                    @RequestParam(value = "content", required = false) String content,
+                                    @RequestParam(value = "poContent", required = false) String poContent,
+                                    @RequestParam(value = "mbNum", required = false) Integer requestMbNum,
+                                    @RequestParam(value = "poMbNum", required = false) Integer requestPoMbNum,
+                                    @RequestParam(value = "image", required = false) MultipartFile image) {
+        try {
+            String finalTitle = (title != null && !title.isEmpty()) ? title : poTitle;
+            String finalContent = (content != null && !content.isEmpty()) ? content : poContent;
+            
+            if (finalTitle == null || finalContent == null) {
+                return ResponseEntity.badRequest().body(Map.of("error", "제목과 내용을 입력하세요."));
+            }
+            
+            int mbNum = resolveMbNum(authentication, requestMbNum != null ? requestMbNum : requestPoMbNum);
+            
+            FreePost post = new FreePost();
+            post.setPoTitle(finalTitle);
+            post.setPoContent(finalContent);
+            post.setPoMbNum(mbNum);
+            
+            // ✅ 이미지가 존재할 경우 리스트로 변환하여 서비스에 전달
+            List<MultipartFile> images = (image != null) ? List.of(image) : Collections.emptyList();
+            freePostService.savePost(post, images);
+            
+            return ResponseEntity.ok("Success");
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body("게시글 로딩 실패: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("error", "등록 실패: " + e.getMessage()));
         }
     }
 
-    private void handleImageUpload(Post post, MultipartFile image) throws Exception {
-        if (image != null && !image.isEmpty()) {
-            File dir = new File(uploadDir);
-            if (!dir.exists()) dir.mkdirs();
-            String savedFileName = UUID.randomUUID().toString() + "_" + image.getOriginalFilename();
-            image.transferTo(new File(uploadDir + savedFileName));
-            post.setFileUrl("http://localhost:8080/pic/" + savedFileName);
-        } else {
-            post.setFileUrl("http://localhost:8080/pic/1.jpg");
+    private int resolveMbNum(Authentication authentication, Integer requestMbNum) {
+        if (authentication != null && authentication.getPrincipal() instanceof CustomUser) {
+            MemberVO member = ((CustomUser) authentication.getPrincipal()).getMember();
+            if (member != null) return member.getMb_num();
         }
+        return requestMbNum != null ? requestMbNum : 1;
+    }
+
+    // 🚩 게시글 수정
+    @PutMapping("/posts/{id}")
+    public ResponseEntity<?> update(@PathVariable("id") Integer id,
+                                    @RequestParam("title") String title,
+                                    @RequestParam("content") String content,
+                                    @RequestParam(value = "image", required = false) MultipartFile image) {
+        try {
+            List<MultipartFile> images = (image != null) ? List.of(image) : null;
+            freePostService.updatePost(id, title, content, images);
+            return ResponseEntity.ok("Updated Success");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "수정 실패"));
+        }
+    }
+
+    // 🚩 게시글 삭제
+    @DeleteMapping("/posts/{id}")
+    public ResponseEntity<?> delete(@PathVariable("id") Integer id) {
+        try {
+            freePostService.deletePost(id);
+            return ResponseEntity.ok("Deleted Success");
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "삭제 실패"));
+        }
+    }
+
+    // 🚩 추천(좋아요) 기능
+    @PostMapping("/posts/{id}/like")
+    public ResponseEntity<?> toggleLike(@PathVariable("id") Integer id, @RequestBody Map<String, Object> data) {
+        Object mbNumObj = data.get("mbNum");
+        int mbNum = (mbNumObj != null) ? Integer.parseInt(mbNumObj.toString()) : 1;
+        String status = freePostService.toggleLikeStatus(id, mbNum);
+        return ResponseEntity.ok(Map.of("status", status));
     }
 }

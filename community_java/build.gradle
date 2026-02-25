@@ -1,12 +1,11 @@
 plugins {
     id 'java'
-    id 'org.springframework.boot' version '3.4.2' // 🚩 4.0.2 대신 현재 가장 안정적인 3.x 버전 권장
+    id 'org.springframework.boot' version '3.4.2'
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
 group = 'kr.hi'
 version = '0.0.1-SNAPSHOT'
-description = 'Travel Community Project'
 
 java {
     toolchain {
@@ -25,7 +24,7 @@ repositories {
 }
 
 dependencies {
-    // [Web & Template]
+    // [Web & Engine]
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
@@ -35,14 +34,29 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation'
 
     // [Database & ORM]
-    // 🚩 JPA와 MyBatis를 동시에 사용하는 구성입니다.
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
+    // Spring Boot 3.4.x 대응 MyBatis 최신 버전 (중복 제거)
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4'
     runtimeOnly 'com.mysql:mysql-connector-j'
+
+    // [JWT]
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
 
     // [Lombok]
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+
+    // [Servlet API]
+    // Spring Boot 3.x (Jakarta EE 10) 환경 대응
+    compileOnly 'jakarta.servlet:jakarta.servlet-api'
+
+    // [AWS S3 - 추후 영구 저장소 확장을 위한 준비]
+    // 지금 추가해두면 나중에 S3 연동 시 코드만 작성하면 됩니다.
+    implementation 'org.springframework.cloud:spring-cloud-starter-aws:2.2.6.RELEASE'
+    // 파일 업로드 시 파일명 정제 및 유틸리티
+    implementation 'commons-io:commons-io:2.11.0'
 
     // [Test]
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
@@ -52,4 +66,9 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// 리플렉션 및 파라미터 인식을 위한 설정 (MyBatis/JPA 필수)
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs.add('-parameters')
 }

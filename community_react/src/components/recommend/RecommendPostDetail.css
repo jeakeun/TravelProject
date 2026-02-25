@@ -1,0 +1,248 @@
+/* [1. 상세 페이지 레이아웃 기초] */
+.recommend-detail-wrapper {
+    width: 100%;
+    min-height: calc(100vh - var(--header-height));
+    background-color: #fff;
+    padding: 40px 0;
+    display: flex;
+    justify-content: center;
+}
+
+.detail-container {
+    max-width: var(--page-size);
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 var(--page-padding-x);
+    box-sizing: border-box;
+}
+
+/* [2. 헤더 섹션] */
+.detail-header-section {
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.detail-main-title {
+    font-size: 32px;
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-weight: 800;
+}
+
+.detail-sub-info {
+    font-size: 14px;
+    color: #888;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.info-divider {
+    color: #ddd;
+}
+
+/* [3. 본문 이미지 및 텍스트] */
+.detail-image-wrapper {
+    width: 80%;
+    margin: 0 auto 40px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.detail-image-wrapper img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}
+
+.detail-body-text {
+    font-size: 17px;
+    line-height: 1.9;
+    color: #444;
+    margin: 40px 0 60px;
+    min-height: 150px;
+    word-break: break-all;
+}
+
+.detail-body-text img {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 12px;
+}
+
+/* [4. 하단 액션 버튼 영역 - 디자인 통일] */
+.detail-bottom-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+    margin-top: 50px;
+    margin-bottom: 40px;
+}
+
+.left-group {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+/* 추천, 신고, 즐겨찾기 버튼 공통 스타일 */
+.btn-like-action,
+.btn-report-action,
+.btn-bookmark-action {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    border-radius: 30px;
+    /* 완벽한 알약 모양 */
+    font-weight: bold;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid #ddd;
+    background-color: #fff;
+}
+
+/* 추천 버튼 (레드 포인트) */
+.btn-like-action {
+    border-color: #ff4d4f;
+    color: #ff4d4f;
+}
+
+.btn-like-action.active,
+.btn-like-action:hover {
+    background-color: #ff4d4f;
+    color: #fff;
+    border-color: #ff4d4f;
+}
+
+/* 신고 버튼 (기존 레드에서 차분한 톤으로 변경 권장하나 요청대로 유지) */
+.btn-report-action {
+    border-color: #ff4d4f;
+    color: #ff4d4f;
+}
+
+.btn-report-action:hover {
+    background-color: #ff4d4f;
+    color: #fff;
+}
+
+.btn-bookmark-action {
+    border-color: #f1c40f;
+    color: #f39c12;
+}
+
+.btn-bookmark-action:hover:not(:disabled) {
+    background-color: #f1c40f;
+    color: #fff;
+    border-color: #f1c40f;
+}
+
+.btn-bookmark-action:disabled {
+    opacity: 0.7;
+    cursor: default;
+}
+
+/* 목록으로 돌아가기 버튼 (리스트 페이지 테마 컬러 적용) */
+.btn-list-return {
+    background-color: #2c3e50;
+    color: #fff;
+    border: none;
+    padding: 14px 60px;
+    border-radius: 30px;
+    /* 알약 모양 */
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-list-return:hover {
+    background-color: #1a252f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* [5. 댓글 영역] */
+.section-divider {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 40px 0;
+}
+
+.comment-area .comment-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.comment-write-box {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 50px;
+}
+
+.comment-write-box textarea {
+    flex: 1;
+    height: 110px;
+    padding: 18px;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    /* 라운드 증가 */
+    resize: none;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.comment-write-box textarea:focus {
+    border-color: #2c3e50;
+}
+
+/* 댓글 등록 버튼 */
+.btn-comment-submit {
+    width: 110px;
+    background-color: #2c3e50;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.btn-comment-submit:hover {
+    background-color: #1a252f;
+}
+
+/* 댓글 리스트 단위 */
+.comment-unit {
+    border-bottom: 1px solid #f9f9f9;
+    padding: 25px 0;
+}
+
+.comment-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 12px;
+}
+
+.comment-btns {
+    margin-left: auto;
+    font-size: 13px;
+    color: #999;
+    display: flex;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.comment-btns span:hover {
+    text-decoration: underline;
+    color: #2c3e50;
+}

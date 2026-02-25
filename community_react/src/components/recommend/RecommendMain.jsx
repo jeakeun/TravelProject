@@ -1,24 +1,107 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import RecommendCard from './RecommendCard';
 import RankingSidebar from './RankingSidebar';
+import api from '../../api/axios'; 
 import './Recommend.css';
 
-const RecommendMain = () => {
-    const [posts, setPosts] = useState([]);
-    const [loading, setLoading] = useState(true);
+const RecommendMain = ({ posts: initialPosts = [] }) => {
+    // 🚩 로컬 상태로 posts 관리 (즐겨찾기 토글 시 즉시 반영)
+    const [posts, setPosts] = useState(initialPosts);
     const [currentPage, setCurrentPage] = useState(1);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [finalSearchTerm, setFinalSearchTerm] = useState('');
+    const [searchCategory, setSearchCategory] = useState('title');
     
-    // 🚩 검색 관련 상태 분리
-    const [searchTerm, setSearchTerm] = useState(''); // 입력창 값
-    const [finalSearchTerm, setFinalSearchTerm] = useState(''); // 실제 검색에 반영될 값
-    const [searchCategory, setSearchCategory] = useState('title'); // 검색 카테고리
-    
-    const itemsPerPage = 10; 
+    const itemsPerPage = 10;
     const navigate = useNavigate();
 
-    const IMAGE_SERVER_URL = "http://localhost:8080/pic/";
+    // 부모로부터 받은 initialPosts가 변경될 때 로컬 상태 동기화
+    useEffect(() => {
+        setPosts(initialPosts);
+    }, [initialPosts]);
+
+    // 🚩 [유지] 상세 페이지에서 즐겨찾기 누르고 돌아왔을 때 즉시 반영하는 로직
+    useEffect(() => {
+        const handleStorageChange = (e) => {
+            if (e.key === 'bookmark_changed' || e.key === 'last_bookmark_update') {
+                try {
+                    const data = JSON.parse(e.newValue);
+                    const changedId = data.id || data.poNum;
+                    const state = data.state !== undefined ? data.state : data.isBookmarked;
+
+                    setPosts(prevPosts => prevPosts.map(p => {
+                        const pId = p.poNum || p.po_num;
+                        if (Number(pId) === Number(changedId)) {
+                            return { 
+                                ...p, 
+                                isBookmarked: state ? 'Y' : 'N', 
+                                isBookmarkedByMe: state,
+                                favorited: state
+                            };
+                        }
+                        return p;
+                    }));
+                } catch (err) { console.error(err); }
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
+    }, []);
+
+    const SERVER_URL = "http://localhost:8080";
+
+    const goToDetail = (id) => {
+        if (!id) return;
+        navigate(`/community/recommend/${id}`);
+    };
+
+    /**
+     * 🚩 즐겨찾기 핸들러: 서버 통신 후 로컬 상태 즉시 업데이트
+     */
+    const handleBookmarkToggle = async (e, post) => {
+        if (e && e.stopPropagation) e.stopPropagation(); 
+        const postId = post.poNum || post.po_num;
+        
+        // 즐겨찾기 상태 판단
+        const isCurrentlyBookmarked = post.isBookmarked === 'Y' || post.isBookmarked === true || post.isBookmarkedByMe || post.favorited;
+
+        try {
+            await api.post("/api/mypage/bookmarks", { 
+                poNum: Number(postId), 
+                boardType: "recommend" 
+            });
+            
+            const newState = !isCurrentlyBookmarked;
+            
+            if (isCurrentlyBookmarked) {
+                alert("즐겨찾기가 취소되었습니다.");
+            } else {
+                alert("즐겨찾기에 등록되었습니다.");
+            }
+
+            // 🚩 리스트 상태 즉시 업데이트
+            setPosts(prevPosts => prevPosts.map(p => {
+                const pId = p.poNum || p.po_num;
+                if (Number(pId) === Number(postId)) {
+                    return { 
+                        ...p, 
+                        isBookmarked: newState ? 'Y' : 'N', 
+                        isBookmarkedByMe: newState,
+                        favorited: newState
+                    };
+                }
+                return p;
+            }));
+
+            // 전역 상태 전파 (상세페이지와 공유용)
+            localStorage.setItem('bookmark_changed', JSON.stringify({ id: postId, state: newState, time: Date.now() }));
+
+        } catch (err) {
+            const msg = err?.response?.data?.msg || err?.response?.data?.error;
+            alert(msg || "처리 중 오류가 발생했습니다.");
+        }
+    };
 
     const getThisMonday = () => {
         const now = new Date();
@@ -29,48 +112,43 @@ const RecommendMain = () => {
         return monday;
     };
 
-    useEffect(() => {
-        const fetchRecommendData = async () => {
-            try {
-                setLoading(true);
-                const response = await axios.get('http://localhost:8080/api/posts');
-                const filtered = response.data.filter(p => p.category?.trim() === "여행 추천 게시판");
-                setPosts(filtered);
-            } catch (err) {
-                console.error("데이터 로드 실패", err);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchRecommendData();
-    }, []);
-
     const sortedPosts = useMemo(() => {
+        if (!Array.isArray(posts)) return [];
         const monday = getThisMonday();
-        const thisWeekPosts = posts.filter(post => new Date(post.createdAt) >= monday);
-        return [...thisWeekPosts].sort((a, b) => {
-            const scoreA = (a.viewCount || 0) + (a.commentCount || 0) + (a.likes || 0);
-            const scoreB = (b.viewCount || 0) + (b.commentCount || 0) + (b.likes || 0);
-            return scoreB - scoreA;
+        let targetPosts = posts.filter(post => {
+            const postDate = post?.poDate || post?.po_date;
+            return postDate && new Date(postDate) >= monday;
         });
+        if (targetPosts.length === 0) targetPosts = posts;
+        
+        return [...targetPosts].sort((a, b) => 
+            ((b.poView || b.po_view || 0)) - ((a.poView || a.po_view || 0))
+        );
     }, [posts]);
 
     const listData = useMemo(() => {
-        return [...posts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        if (!Array.isArray(posts)) return [];
+        return [...posts].sort((a, b) => {
+            const dateA = new Date(a.poDate || a.po_date || 0);
+            const dateB = new Date(b.poDate || b.po_date || 0);
+            return dateB - dateA;
+        });
     }, [posts]);
 
-    // 🚩 검색 버튼 클릭 시에만 필터링되도록 finalSearchTerm 사용
     const filteredList = useMemo(() => 
         listData.filter(p => {
+            if (!p) return false;
             const term = finalSearchTerm.toLowerCase();
-            if (!term) return true; // 검색어가 없으면 전체 출력
-
-            if (searchCategory === 'title') return p.title.toLowerCase().includes(term);
-            if (searchCategory === 'user') return `user ${p.userId}`.toLowerCase().includes(term);
-            if (searchCategory === 'titleContent') {
-                return p.title.toLowerCase().includes(term) || (p.content && p.content.toLowerCase().includes(term));
-            }
-            if (searchCategory === 'destination') return p.title.toLowerCase().includes(term); 
+            if (!term) return true;
+            const title = (p.poTitle || p.po_title || "").toLowerCase();
+            const content = (p.poContent || p.po_content || "").toLowerCase();
+            // 🚩 [수정] 검색 시 mbNickname 필드 포함
+            const authorNick = (p.mbNickname || p.mb_nickname || p.mb_nick || p.mbNick || p.member?.mbNickname || p.member?.mbNick || p.member?.mb_nickname || `user ${p.poMbNum || p.po_mb_num}`).toLowerCase();
+            
+            if (searchCategory === 'title') return title.includes(term);
+            if (searchCategory === 'content') return content.includes(term);
+            if (searchCategory === 'user') return authorNick.includes(term);
+            if (searchCategory === 'titleContent') return title.includes(term) || content.includes(term);
             return true;
         }), 
         [listData, finalSearchTerm, searchCategory]
@@ -79,43 +157,91 @@ const RecommendMain = () => {
     const totalPages = Math.ceil(filteredList.length / itemsPerPage) || 1;
     const currentItems = filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-    // 🚩 검색 실행 함수
     const handleSearch = () => {
         setFinalSearchTerm(searchTerm);
-        setCurrentPage(1); // 검색 시 1페이지로 이동
+        setCurrentPage(1);
     };
 
-    const getImageUrl = (url) => {
-        if (!url) return "https://placehold.co";
-        return url.startsWith('http') ? url : `${IMAGE_SERVER_URL}${url}`;
+    const getImageUrl = (post) => {
+        const defaultImg = "https://placehold.co/600x400?text=No+Image";
+        if (!post) return defaultImg;
+        const { poImg, po_img, fileName, fileUrl, image, poContent, po_content } = post;
+        const targetUrl = poImg || po_img || fileName || fileUrl || image;
+        if (targetUrl && String(targetUrl) !== "null" && String(targetUrl).trim() !== "") {
+            if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
+            const extractedName = String(targetUrl).split(/[\\/]/).pop();
+            return `${SERVER_URL}/pic/${extractedName}`;
+        }
+        const content = poContent || po_content;
+        if (content && typeof content === 'string') {
+            const imgRegex = /<img[^>]+src=["']([^"']+)["']/;
+            const match = content.match(imgRegex);
+            if (match && match[1]) {
+                const src = match[1];
+                if (src.startsWith('/pic/')) return `${SERVER_URL}${src}`;
+                if (src.startsWith('pic/')) return `${SERVER_URL}/${src}`;
+                return src;
+            }
+        }
+        return defaultImg; 
     };
 
     const formatDate = (dateString) => {
         if (!dateString) return "-";
-        const date = new Date(dateString);
-        return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return "-";
+            return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+        } catch (e) { return "-"; }
     };
-
-    if (loading) return <div className="loading-state">데이터 로딩 중...</div>;
 
     return (
         <div className="recommend-page-root">
             <div className="top-combined-section">
                 <div className="main-cards-area">
                     {sortedPosts[0] && (
-                        <RecommendCard post={sortedPosts[0]} isMain={true} rank={1} onClick={(id) => navigate(`/community/photo/${id}`)} getImageUrl={getImageUrl} />
+                        <RecommendCard 
+                            post={sortedPosts[0]} 
+                            isMain={true} 
+                            rank={1} 
+                            onClick={(id) => goToDetail(id)} 
+                            getImageUrl={getImageUrl} 
+                            onBookmarkToggle={(postId) => handleBookmarkToggle(null, sortedPosts[0])}
+                        />
                     )}
                     <div className="sub-cards-flex">
-                        {sortedPosts[1] && <RecommendCard post={sortedPosts[1]} isMain={false} rank={2} onClick={(id) => navigate(`/community/photo/${id}`)} getImageUrl={getImageUrl} />}
-                        {sortedPosts[2] && <RecommendCard post={sortedPosts[2]} isMain={false} rank={3} onClick={(id) => navigate(`/community/photo/${id}`)} getImageUrl={getImageUrl} />}
+                        {sortedPosts[1] && (
+                            <RecommendCard 
+                                post={sortedPosts[1]} 
+                                isMain={false} 
+                                rank={2} 
+                                onClick={(id) => goToDetail(id)} 
+                                getImageUrl={getImageUrl} 
+                                onBookmarkToggle={(postId) => handleBookmarkToggle(null, sortedPosts[1])}
+                            />
+                        )}
+                        {sortedPosts[2] && (
+                            <RecommendCard 
+                                post={sortedPosts[2]} 
+                                isMain={false} 
+                                rank={3} 
+                                onClick={(id) => goToDetail(id)} 
+                                getImageUrl={getImageUrl} 
+                                onBookmarkToggle={(postId) => handleBookmarkToggle(null, sortedPosts[2])}
+                            />
+                        )}
                     </div>
                 </div>
-                
+                {/* 🚩 [수정] RankingSidebar에 onBookmarkToggle 핸들러 연결 */}
                 <RankingSidebar 
                     ranking={sortedPosts.slice(3, 10)} 
                     startRank={4} 
-                    onDetail={(id) => navigate(`/community/photo/${id}`)} 
+                    onDetail={(id) => goToDetail(id)} 
                     getImageUrl={getImageUrl} 
+                    onBookmarkToggle={(postId) => {
+                        const targetPost = posts.find(p => (p.poNum || p.po_num) === postId);
+                        if (targetPost) handleBookmarkToggle(null, targetPost);
+                    }}
                 />
             </div>
 
@@ -130,82 +256,97 @@ const RecommendMain = () => {
                             <th width="80">번호</th>
                             <th width="150">여행지</th>
                             <th>제목</th>
-                            <th width="120"></th>
+                            <th width="140">통계</th>
                             <th width="100">작성자</th>
                             <th width="180">날짜</th>
                             <th width="80">조회</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {currentItems.map((post, idx) => (
-                            <tr key={post.postId} onClick={() => navigate(`/community/photo/${post.postId}`)}>
-                                <td>{(filteredList.length - (currentPage-1)*itemsPerPage) - idx}</td>
-                                <td className="img-td"><img src={getImageUrl(post.fileUrl)} alt="" /></td>
-                                <td className="title-td">
-                                    <span className="t-text">{post.title}</span>
-                                </td>
-                                
-                                <td className="stats-td">
-                                    <div className="stats-container">
-                                        <div className="stat-item comment">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                                            </svg>
-                                            <span>{post.commentCount || 0}</span>
-                                        </div>
-                                        <div className="stat-item likes">
-                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                                            </svg>
-                                            <span>{post.likes || 0}</span>
-                                        </div>
-                                    </div>
-                                </td>
+                        {currentItems.length > 0 ? (
+                            currentItems.map((post, idx) => {
+                                const postId = post.poNum || post.po_num;
+                                const isFavorited = post.isBookmarked === 'Y' || post.isBookmarked === true || post.isBookmarkedByMe || post.favorited;
+                                // 🚩 [수정] 목록 출력 시 mbNickname 필드 우선 순위 적용
+                                const authorNick = post.mbNickname || post.mb_nickname || post.mb_nick || post.mbNick || post.member?.mbNickname || post.member?.mb_nickname || post.member?.mbNick || `User ${post.poMbNum || post.po_mb_num}`;
 
-                                <td>User {post.userId}</td>
-                                <td className="date-td">{formatDate(post.createdAt)}</td>
-                                <td>{post.viewCount}</td>
-                            </tr>
-                        ))}
+                                return (
+                                    <tr key={postId || idx} onClick={() => goToDetail(postId)} style={{ cursor: 'pointer' }}>
+                                        <td>{(filteredList.length - (currentPage-1)*itemsPerPage) - idx}</td>
+                                        <td className="img-td">
+                                            <img 
+                                                src={getImageUrl(post)} 
+                                                alt="thumb" 
+                                                onError={(e) => { 
+                                                    if (e.target.src !== "https://placehold.co/600x400?text=No+Image") {
+                                                        e.target.src = "https://placehold.co/600x400?text=No+Image"; 
+                                                    }
+                                                }} 
+                                            />
+                                        </td>
+                                        <td className="title-td"><span className="t-text">{post.poTitle || post.po_title || "제목 없음"}</span></td>
+                                        <td className="stats-td">
+                                            <div className="stats-container" style={{ display: 'flex', gap: '10px', justifyContent: 'center', alignItems: 'center' }}>
+                                                <div className="stat-item" style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                                                    <span style={{ fontSize: '12px' }}>💬</span>
+                                                    <span>{post.commentCount || post.co_count || 0}</span>
+                                                </div>
+                                                <div className="stat-item" style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#e74c3c' }}>
+                                                    <span style={{ fontSize: '12px' }}>❤️</span>
+                                                    <span>{post.poUp || post.po_up || 0}</span>
+                                                </div>
+                                                <div 
+                                                    className="stat-item" 
+                                                    onClick={(e) => handleBookmarkToggle(e, post)}
+                                                    style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                                                >
+                                                    <span style={{ fontSize: '16px', color: isFavorited ? '#f1c40f' : '#ddd' }}>
+                                                        {isFavorited ? '★' : '☆'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{authorNick}</td>
+                                        <td className="date-td">{formatDate(post.poDate || post.po_date)}</td>
+                                        <td>{post.poView || post.po_view || 0}</td>
+                                    </tr>
+                                );
+                            })
+                        ) : (
+                            <tr><td colSpan="7" style={{ textAlign: 'center', padding: '50px' }}>게시글이 없습니다.</td></tr>
+                        )}
                     </tbody>
                 </table>
 
                 <div className="list-pagination-area">
                     <div className="page-buttons">
-                        <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>이전</button>
+                        <button className="prev-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>&lt;</button>
                         {[...Array(totalPages)].map((_, i) => (
                             <button key={i+1} className={currentPage === i+1 ? 'active' : ''} onClick={() => setCurrentPage(i+1)}>{i+1}</button>
                         ))}
-                        <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>다음</button>
+                        <button className="next-btn" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>&gt;</button>
                     </div>
                     
                     <div className="footer-action-row">
                         <div className="search-footer">
-                            {/* 🚩 카테고리 선택창 분리 (박스 형태) */}
-                            <select 
-                                className="search-select-box" 
-                                value={searchCategory} 
-                                onChange={(e) => setSearchCategory(e.target.value)}
-                            >
+                            <select className="search-select-box" value={searchCategory} onChange={(e) => setSearchCategory(e.target.value)}>
                                 <option value="title">제목</option>
-                                <option value="user">작성자</option>
+                                <option value="content">내용</option>
                                 <option value="titleContent">제목+내용</option>
-                                <option value="destination">여행지</option>
+                                <option value="user">작성자</option>
                             </select>
-
-                            {/* 🚩 검색어 입력창 및 버튼 (캡슐 형태 유지) */}
                             <div className="search-input-wrapper">
                                 <input 
                                     type="text" 
                                     placeholder="검색어 입력" 
                                     value={searchTerm} 
                                     onChange={(e) => setSearchTerm(e.target.value)} 
-                                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()} 
                                 />
                                 <button className="btn-search" onClick={handleSearch}>검색</button>
                             </div>
                         </div>
-                        <button className="btn-write-footer" onClick={() => navigate('/community/write')}>추천 글쓰기</button>
+                        <button className="btn-write-footer" onClick={() => navigate('/community/recommend/write')}>추천 글쓰기</button>
                     </div>
                 </div>
             </div>
