@@ -41,12 +41,13 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // 리액트(3000번 포트) 및 다른 PC 브라우저에서의 API 요청 허용
+        // 리액트 및 실제 서버 IP 주소에서의 API 요청 허용
         registry.addMapping("/**")
                 .allowedOriginPatterns(
                     "http://localhost:3000", 
                     "http://127.0.0.1:3000",
-                    "http://*:3000" 
+                    "http://3.37.160.108",    // 프론트엔드가 동작하는 실제 서버 IP 추가
+                    "http://3.37.160.108:*"  // 해당 IP의 모든 포트 허용
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
