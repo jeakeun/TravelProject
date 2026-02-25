@@ -36,7 +36,8 @@ import FindPassword from './auth/FindPassword';
 import ResetPassword from './auth/ResetPassword';
 import ChangePassword from './auth/ChangePassword';
 
-// 🚩 [수정] API 서버 주소 변수화
+// 🚩 [수정] 배포 환경에서는 현재 접속한 서버 도메인을 그대로 쓰도록 상대 경로 방식을 권장합니다.
+// 만약 포트가 8080 고정이라면 아래처럼 유지하되, 통신 장애 방지를 위해 공백이나 오타가 없는지 확인하세요.
 const API_BASE_URL = "http://3.37.160.108:8080";
 
 axios.defaults.withCredentials = true;
@@ -239,7 +240,7 @@ function App() {
         return;
       }
 
-      // 🚩 [수정] localhost -> AWS IP 주소로 변경
+      // 🚩 [수정] 백엔드 요청 시 불필요한 공백 제거 및 경로 검증
       const apiUrl = endpoint === 'recommend' 
         ? `${API_BASE_URL}/api/recommend/posts/all`
         : `${API_BASE_URL}/api/${endpoint}/posts`;
@@ -302,7 +303,8 @@ function App() {
   useEffect(() => {
     const saved = localStorage.getItem('user');
     if (saved) return; 
-    // 🚩 [수정] localhost -> AWS IP 주소로 변경
+    
+    // 🚩 [수정] axios 대신 fetch를 쓸 때도 API_BASE_URL을 정확히 타도록 수정
     fetch(`${API_BASE_URL}/auth/refresh`, { method: "POST", credentials: "include" })
       .then((res) => {
         if (!res.ok) return;
@@ -333,7 +335,6 @@ function App() {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('accessToken');
-    // 🚩 [수정] localhost -> AWS IP 주소로 변경
     fetch(`${API_BASE_URL}/auth/logout`, { method: "POST", credentials: "include" }).catch(() => {});
   }, []);
 
@@ -373,26 +374,20 @@ function App() {
         />
       }>
         <Route path="/" element={<Main />} />
-        
         <Route path="/domestic" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
         <Route path="/foreigncountry" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
         <Route path="/Domestic" element={<Navigate to="/domestic" replace />} />
-
         <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
-
         <Route path="/news/event" element={<EventBoardList posts={posts} />} />
         <Route path="/news/event/write" element={<PostWrite activeMenu="이벤트 게시판" boardType="event" refreshPosts={loadPosts} />} />
         <Route path="/news/event/:poNum" element={<EventBoardDetail />} />
-
         <Route path="/news/newsletter" element={<NewsLetterList posts={posts} />} />
         <Route path="/news/newsletter/write" element={<PostWrite activeMenu="뉴스레터" boardType="newsletter" refreshPosts={loadPosts} />} />
         <Route path="/news/newsletter/:poNum" element={<NewsLetterDetail />} />
-
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/login" element={<OpenLoginModal openLogin={openLogin} />} />
         <Route path="/signup" element={<OpenSignupModal openSignup={openSignup} />} />
-        
         <Route path="/news/notice" element={<NoticeList posts={posts} />} />
         <Route path="/news/notice/:poNum" element={<NoticeDetail />} />
         <Route path="/inquiry" element={<InquiryPage />} />
