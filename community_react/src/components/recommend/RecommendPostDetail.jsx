@@ -7,7 +7,7 @@ import { addRecentView } from '../../utils/recentViews';
 import ReportModal from '../ReportModal';
 import './RecommendPostDetail.css';
 
-// 🚩 [수정] 배포 서버 주소 설정
+// 🚩 [수정] App.js와 동일하게 배포 서버 및 포트 8080 설정 유지
 const API_BASE_URL = "http://3.37.160.108:8080";
 const SERVER_URL = API_BASE_URL;
 
@@ -42,7 +42,7 @@ const RecommendPostDetail = () => {
 
     const fixImagePaths = (content) => {
         if (!content) return "";
-        // 🚩 [수정] SERVER_URL 변수를 사용하여 이미지 경로 치환 (이미지 폴더 pic/ 고정)
+        // 🚩 SERVER_URL 변수를 사용하여 이미지 경로 치환
         let fixedContent = content.replace(/src=["'](?:\/)?pic\//g, `src="${SERVER_URL}/pic/`);
         return fixedContent;
     };
@@ -52,8 +52,8 @@ const RecommendPostDetail = () => {
         const storageKey = `viewed_post_${id}`;
         if (!sessionStorage.getItem(storageKey)) {
             try {
-                // 🚩 [수정] 주소 체계 수정 (/api/recommend/posts/${id}/view -> /api/recommend/${id}/view)
-                await axios.post(`${SERVER_URL}/api/recommend/${id}/view`);
+                // 🚩 API 주소 체계를 App.js의 방식과 맞춤
+                await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/view`);
                 sessionStorage.setItem(storageKey, 'true');
             } catch (err) {
                 console.error("조회수 증가 실패", err);
@@ -65,8 +65,8 @@ const RecommendPostDetail = () => {
         if (!isNumericId) return;
         try {
             if (!isAction) setLoading(true);
-            // 🚩 [수정] 주소 체계 수정 (/api/recommend/posts/${id} -> /api/recommend/${id})
-            const postRes = await axios.get(`${SERVER_URL}/api/recommend/${id}`);
+            // 🚩 App.js에서 사용하는 호출 경로와 일치하도록 유지
+            const postRes = await axios.get(`${SERVER_URL}/api/recommend/posts/${id}`);
             setPost(postRes.data);
             setIsLiked(postRes.data.isLikedByMe || false);
             
@@ -137,8 +137,7 @@ const RecommendPostDetail = () => {
     const handleDeletePost = async () => {
         if (!window.confirm("정말 이 게시글을 삭제하시겠습니까?")) return;
         try {
-            // 🚩 [수정] 주소 체계 수정 (/api/recommend/posts/${id} -> /api/recommend/${id})
-            await axios.delete(`${SERVER_URL}/api/recommend/${id}`);
+            await axios.delete(`${SERVER_URL}/api/recommend/posts/${id}`);
             alert("게시글이 삭제되었습니다.");
             navigate('/community/recommend');
         } catch (err) { alert("삭제에 실패했습니다."); }
@@ -151,8 +150,7 @@ const RecommendPostDetail = () => {
     const handleLikeToggle = async () => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
-            // 🚩 [수정] 주소 체계 수정 (/api/recommend/posts/${id}/like -> /api/recommend/${id}/like)
-            const res = await axios.post(`${SERVER_URL}/api/recommend/${id}/like`, { mbNum: currentUserNum });
+            const res = await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/like`, { mbNum: currentUserNum });
             if (res.data.status === "liked") {
                 setIsLiked(true);
                 setPost(prev => ({ ...prev, poUp: (prev.poUp || 0) + 1 }));
@@ -207,8 +205,7 @@ const RecommendPostDetail = () => {
         const { type, targetId } = reportModal;
         try {
             if (type === 'post') {
-                // 🚩 [수정] 주소 체계 수정 (/api/recommend/posts/${targetId}/report -> /api/recommend/${targetId}/report)
-                await axios.post(`${SERVER_URL}/api/recommend/${targetId}/report`, { category, reason, mbNum: currentUserNum });
+                await axios.post(`${SERVER_URL}/api/recommend/posts/${targetId}/report`, { category, reason, mbNum: currentUserNum });
             } else {
                 await axios.post(`${SERVER_URL}/api/comment/report/${targetId}`, { category, reason, mbNum: currentUserNum });
             }

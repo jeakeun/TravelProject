@@ -36,9 +36,8 @@ import FindPassword from './auth/FindPassword';
 import ResetPassword from './auth/ResetPassword';
 import ChangePassword from './auth/ChangePassword';
 
-// 🚩 [수정 핵심] 포트 8080을 제거하고 빈 문자열로 설정합니다.
-// 이렇게 하면 브라우저가 현재 접속 중인 도메인(3.37.160.108)의 80포트로 요청을 보냅니다.
-const API_BASE_URL = ""; 
+// 🚩 [수정] 배포 서버의 백엔드 포트(8080)를 명확히 지정해야 로그인이 작동합니다.
+const API_BASE_URL = "http://3.37.160.108:8080"; 
 
 axios.defaults.withCredentials = true;
 
@@ -163,13 +162,11 @@ function CommunityContainer({ posts, loadPosts, loading }) {
       <main className="main-content">
         <Routes>
           {isDestinationGroup && (
-            <>
-              <Route path="/" element={
-                location.pathname.startsWith('/domestic') 
-                ? <MainList photos={[]} activeMenu="국내여행" goToDetail={(id) => navigate(`/community/domestic/${id}`)} />
-                : <Main /> 
-              } />
-            </>
+            <Route path="/" element={
+              location.pathname.startsWith('/domestic') 
+              ? <MainList photos={[]} activeMenu="국내여행" goToDetail={(id) => navigate(`/community/domestic/${id}`)} />
+              : <Main /> 
+            } />
           )}
 
           {isCommunityGroup && (
@@ -183,7 +180,6 @@ function CommunityContainer({ posts, loadPosts, loading }) {
               <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />
               
               <Route path="write" element={<PostWrite activeMenu={activeMenu} boardType={activeMenu === '여행 추천 게시판' ? 'recommend' : 'freeboard'} refreshPosts={loadPosts} />} />
-              
               <Route path="/" element={<Navigate to="freeboard" replace />} />
             </>
           )}
@@ -240,7 +236,6 @@ function App() {
         return;
       }
 
-      // 🚩 [수정] API_BASE_URL을 사용하여 상대 경로로 호출
       const apiUrl = endpoint === 'recommend' 
         ? `${API_BASE_URL}/api/recommend/posts/all`
         : `${API_BASE_URL}/api/${endpoint}/posts`;
@@ -254,7 +249,7 @@ function App() {
         }
 
         const cleanData = response.data.map(post => {
-          const pId = post.poNum || post.po_num || post.postId;
+          const pId = post.poNum || post.po_num || post.postId || post.id;
           let isBookmarked = post.isBookmarked;
           
           if (syncData && Number(syncData.id) === Number(pId)) {

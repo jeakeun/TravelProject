@@ -11,7 +11,7 @@ import java.io.File;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    // 1. 기존 업로드 경로 설정 유지 (application.properties 값을 우선함)
+    // 1. 기존 업로드 경로 설정 유지
     @Value("${file.upload-dir:/home/uploads/}")
     private String uploadDir;
 
@@ -23,7 +23,7 @@ public class WebConfig implements WebMvcConfigurer {
             path += "/";
         }
 
-        // 폴더 생성 로직 유지 (서버 실행 시 폴더 없으면 생성)
+        // 폴더 생성 로직 유지
         File directory = new File(path);
         if (!directory.exists()) {
             if (directory.mkdirs()) {
@@ -39,9 +39,13 @@ public class WebConfig implements WebMvcConfigurer {
                 .addResourceLocations(location)
                 .setCachePeriod(3600); 
 
-        // ✅ 2. 리액트 정적 파일 설정
-        // 자바 코드에서 /** 를 직접 매핑하면 500 에러 충돌이 날 수 있으므로,
-        // 스프링 부트의 기본 정적 리소스 경로를 명확히 선언만 해줍니다.
+        // ✅ 2. 정적 리소스 및 리액트 빌드 파일 매핑
+        // 기존 /static/ 외에 루트 경로의 자원들을 명확히 매핑하여 
+        // 상세페이지 새로고침 시 발생하는 경로 인식 오류를 방지합니다.
+        registry.addResourceHandler("/**")
+                .addResourceLocations("classpath:/static/")
+                .setCachePeriod(0);
+
         registry.addResourceHandler("/static/**")
                 .addResourceLocations("classpath:/static/static/")
                 .setCachePeriod(0);
@@ -49,7 +53,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // 기존 CORS 허용 패턴 유지 (백엔드 API 보안 설정)
+        // 기존 CORS 허용 패턴 유지
         registry.addMapping("/**")
                 .allowedOriginPatterns(
                     "http://localhost:3000", 
