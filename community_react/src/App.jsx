@@ -216,8 +216,9 @@ function App() {
     const path = location.pathname;
     const pathParts = path.split('/');
     const lastPart = pathParts[pathParts.length - 1];
-    const isActionPage = ['write', 'edit', 'login', 'signup'].includes(lastPart) || (lastPart && !isNaN(lastPart));
     
+    // 단순 페이지 이동이나 액션 페이지에서는 포스트 로딩 생략
+    const isActionPage = ['write', 'edit', 'login', 'signup'].includes(lastPart) || (lastPart && !isNaN(lastPart));
     if (isActionPage || path === '/') {
         setLoading(false);
         return;
@@ -236,8 +237,10 @@ function App() {
         return;
       }
 
-      // ✅ [수정] 백엔드 컨트롤러 구조에 맞춰 /posts/all 제거
-      const apiUrl = `${API_BASE_URL}/api/${endpoint}`;
+      // ✅ [수정] 백엔드 컨트롤러 구조에 맞춰 /api/recommend 및 /api/게시판/posts 설정
+      const apiUrl = endpoint === 'recommend' 
+        ? `${API_BASE_URL}/api/recommend` 
+        : `${API_BASE_URL}/api/${endpoint}/posts`;
 
       const response = await axios.get(apiUrl);
       if (response.data && Array.isArray(response.data)) {
@@ -259,7 +262,7 @@ function App() {
             ...post,
             id: pId,
             isBookmarked: isBookmarked,
-            authorNick: post.mbNickname || post.mb_nickname || post.mb_nick || post.mbNick || post.member?.mbNickname || post.member?.mb_nickname || `User ${post.poMbNum || post.po_mb_num}`
+            authorNick: post.mbNickname || post.mb_nickname || post.mb_nick || post.mbNick || post.member?.mbNickname || post.member?.mb_nickname || `User ${post.poMbNum || post.po_mb_num || ''}`
           };
         });
         setPosts(cleanData);
@@ -267,7 +270,7 @@ function App() {
         setPosts([]);
       }
     } catch (err) {
-      console.error(`${path} 데이터 로딩 실패:`, err);
+      console.error(`${path} 데이터 로딩 실패:`, err.message);
       setPosts([]); 
     } finally {
       setLoading(false);
@@ -298,7 +301,7 @@ function App() {
     const saved = localStorage.getItem('user');
     if (saved) return; 
     
-    // ✅ [수정] fetch 주소에도 API_BASE_URL 적용
+    // ✅ 자동 로그인(refresh) 시도
     fetch(`${API_BASE_URL}/auth/refresh`, { method: "POST", credentials: "include" })
       .then((res) => {
         if (!res.ok) return;
