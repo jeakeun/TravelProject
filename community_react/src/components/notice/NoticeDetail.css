@@ -1,4 +1,4 @@
-/* 전체 컨테이너 */
+/* 전체 컨테이너 - 자유게시판(FreeBoard)과 레이아웃 및 여백 통일 */
 .freeboard-list-wrapper,
 .review-detail-wrapper {
     width: 100%;
@@ -6,8 +6,18 @@
     min-height: calc(100vh - var(--header-height));
     margin: 0 auto;
     padding: var(--page-padding-top) var(--page-padding-x) var(--page-padding-bottom);
+    box-sizing: border-box;
 }
 
+@media (max-width: 768px) {
+
+    .freeboard-list-wrapper,
+    .review-detail-wrapper {
+        padding: 24px 20px 40px;
+    }
+}
+
+/* 게시판 상단 타이틀 */
 .board-title {
     font-size: 1.4rem;
     margin: 0 0 16px 5px;
@@ -15,7 +25,7 @@
     color: #2c3e50;
 }
 
-/* 테이블 스타일 */
+/* 테이블 스타일 - 공지사항 목록(NoticeList) 적용 */
 .freeboard-table {
     width: 100%;
     border-collapse: collapse;
@@ -40,6 +50,7 @@
     color: #444;
 }
 
+/* 제목 열 왼쪽 정렬 및 말줄임 처리 */
 .td-title {
     text-align: left !important;
     padding-left: 40px !important;
@@ -59,7 +70,7 @@
     width: 100%;
 }
 
-/* 페이지네이션 버튼: 40px 원형 */
+/* 페이지네이션 버튼: 40px 원형 규격 유지 */
 .page-buttons {
     display: flex;
     align-items: center;
@@ -94,7 +105,7 @@
     cursor: default;
 }
 
-/* 푸터 액션 레이아웃 (검색창 중앙, 글쓰기 우측) */
+/* 푸터 액션 레이아웃 (검색창 중앙, 글쓰기 우측 고정) */
 .footer-action-row {
     width: 100%;
     display: flex;
@@ -110,7 +121,7 @@
     gap: 12px;
 }
 
-/* 카테고리 선택창 디자인 */
+/* 검색 선택/입력창 디자인 */
 .search-select-box {
     height: 46px;
     padding: 0 15px;
@@ -123,7 +134,6 @@
     cursor: pointer;
 }
 
-/* 검색 입력창 디자인 */
 .search-input-wrapper {
     display: flex;
     align-items: center;
@@ -165,7 +175,7 @@
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* 상세페이지 전용 스타일 */
+/* --- 상세페이지(NoticeDetail) 전용 스타일 --- */
 .detail-container {
     background: #fff;
     padding: 40px;
@@ -183,6 +193,7 @@
     font-size: 2rem;
     color: #2c3e50;
     margin-bottom: 15px;
+    word-break: break-all;
 }
 
 .detail-sub-info {
@@ -199,6 +210,14 @@
     min-height: 300px;
     line-height: 1.8;
     font-size: 1.05rem;
+}
+
+/* 본문 내 이미지 자동 크기 조절 (중요) */
+.detail-body-text img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 20px 0;
 }
 
 .detail-bottom-actions {
@@ -219,10 +238,30 @@
     background: #fff;
     cursor: pointer;
     font-weight: 600;
+    transition: background 0.2s;
+}
+
+.btn-edit-action:hover,
+.btn-delete-action:hover {
+    background: #f8f9fa;
 }
 
 .btn-list-return {
     background: #2c3e50;
     color: #fff;
     border: none;
+}
+
+.btn-list-return:hover {
+    background: #1a252f;
+}
+
+/* 로딩 박스 스타일 추가 */
+.loading-box {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+    font-size: 1.1rem;
+    color: #666;
 }

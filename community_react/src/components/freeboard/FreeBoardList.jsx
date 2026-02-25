@@ -10,8 +10,8 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10; 
 
-    // 🚩 [추가] 자동 배포 환경을 위한 서버 URL 설정
-    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+    // 🚩 [수정] 자동 배포 환경을 위해 배포 서버 IP로 고정 설정
+    const SERVER_URL = "http://3.37.160.108:8080";
 
     // 검색 실행 함수
     const handleSearch = () => {
@@ -23,7 +23,7 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
      * 🚩 필터링 로직
      */
     const filteredItems = useMemo(() => {
-        // 🚩 SERVER_URL을 논리에 포함하여 "사용되지 않음" 경고(노란줄) 해결
+        // 🚩 SERVER_URL 참조를 유지하여 배포 환경 대응
         if (!SERVER_URL) return []; 
 
         const safePosts = Array.isArray(posts) ? posts : [];
@@ -43,7 +43,7 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
                 default: return title.includes(term);
             }
         });
-    }, [posts, appliedSearch, searchType, SERVER_URL]); // 의존성 배열에 추가
+    }, [posts, appliedSearch, searchType, SERVER_URL]); 
     
     // 페이징 계산
     const totalPages = Math.ceil(filteredItems.length / itemsPerPage) || 1;

@@ -5,6 +5,9 @@ function ResetPassword({ onClose, onBackToFindPw, userId }) {
   const [newPw, setNewPw] = useState("");
   const [newPw2, setNewPw2] = useState("");
 
+  // 🚩 [수정] 배포 서버 주소 설정
+  const API_BASE_URL = "http://3.37.160.108:8080";
+
   const submitHandler = async (e) => {
     e.preventDefault();
 
@@ -18,7 +21,8 @@ function ResetPassword({ onClose, onBackToFindPw, userId }) {
     }
 
     try {
-      const res = await fetch("http://localhost:8080/auth/reset-password", {
+      // 🚩 [수정] localhost -> 배포 서버 IP로 변경
+      const res = await fetch(`${API_BASE_URL}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: userId, newPw }),

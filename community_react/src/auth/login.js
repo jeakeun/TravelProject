@@ -6,6 +6,9 @@ function Login({ onClose, onLogin, onOpenSignup, onOpenFindPw }) {
   const [pw, setPw] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
+  // 🚩 [수정] 배포 서버 주소 설정
+  const API_BASE_URL = "http://3.37.160.108:8080";
+
   const submitHandler = async (e) => {
     e.preventDefault();
 
@@ -16,7 +19,8 @@ function Login({ onClose, onLogin, onOpenSignup, onOpenFindPw }) {
     if (!cleanedPw) return alert("비밀번호를 입력하세요.");
 
     try {
-      const response = await fetch("http://localhost:8080/login", {
+      // 🚩 [수정] localhost -> 배포 서버 IP로 변경
+      const response = await fetch(`${API_BASE_URL}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // ✅ refreshToken 쿠키 받기/보내기

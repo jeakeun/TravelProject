@@ -18,8 +18,8 @@ const EventBoardDetail = () => {
 
     const isLoggedIn = !!user; 
     
-    // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정 (환경 변수 우선 사용)
-    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+    // 🚩 [수정] 자동 배포 환경을 위해 배포 서버 IP로 설정
+    const SERVER_URL = "http://3.37.160.108:8080";
 
     // 유저 번호 추출 (mb_num 또는 mbNum 대응)
     const currentUserNum = user ? (user.mb_num || user.mbNum) : null; 
@@ -68,7 +68,7 @@ const EventBoardDetail = () => {
         } finally {
             setLoading(false);
         }
-    }, [poNum, navigate, isNumericId, currentUserNum, SERVER_URL]); // SERVER_URL 의존성 추가
+    }, [poNum, navigate, isNumericId, currentUserNum, SERVER_URL]);
 
     useEffect(() => { 
         if(isNumericId) {

@@ -17,24 +17,20 @@ function Mapha({ category, keyword }) {
   // 🚩 useMemo를 사용하여 CATEGORY_CODES 참조를 고정합니다.
   const codes = useMemo(() => CATEGORY_CODES, []);
 
-  // 🚩 자동 배포 환경(HTTPS/도메인) 대응을 위한 서버 URL (필요 시 확장용)
-  // const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
-
   useEffect(() => {
     const { kakao } = window;
-    // 카카오 객체가 로드되지 않았을 경우를 대비한 방어 코드
+    
+    // 🚩 API가 로드되지 않았을 경우, 재시도하거나 사용자에게 알림을 주는 방어 로직
     if (!kakao || !kakao.maps) {
-      console.error("카카오 지도 API가 로드되지 않았습니다. index.html의 스크립트를 확인하세요.");
+      console.warn("카카오 지도 API 로딩 대기 중...");
       return;
     }
 
     kakao.maps.load(() => {
       // 1. 지도 초기화 (최초 1회 실행)
-      if (!mapInstance.current) {
+      if (!mapInstance.current && mapContainer.current) {
         const options = {
-          // 🚩 지도의 초기 중심을 서울 시청 좌표로 설정
           center: new kakao.maps.LatLng(37.5665, 126.9780), 
-          // 🚩 서울 전역이 한눈에 보이도록 확대 레벨을 9로 설정
           level: 9 
         };
         mapInstance.current = new kakao.maps.Map(mapContainer.current, options);
@@ -42,6 +38,8 @@ function Mapha({ category, keyword }) {
       }
 
       const map = mapInstance.current;
+      if (!map) return; // 지도 인스턴스 생성 실패 시 중단
+
       const ps = new kakao.maps.services.Places();
       const infowindow = infowindowRef.current;
 
@@ -97,7 +95,6 @@ function Mapha({ category, keyword }) {
             bounds.extend(new kakao.maps.LatLng(place.y, place.x));
           });
 
-          // 키워드 검색 시에만 지도 범위를 결과에 맞게 조정
           if (keyword) {
             map.setBounds(bounds);
           }
@@ -115,10 +112,10 @@ function Mapha({ category, keyword }) {
         });
       }
       
-      // 🚩 배포 환경에서 컨테이너 크기 불일치로 지도가 깨지는 것을 방지하기 위해 재정렬 실행
+      // 🚩 배포 환경 릴레이아웃 처리
       setTimeout(() => {
-        map.relayout();
-      }, 100);
+        if (mapInstance.current) mapInstance.current.relayout();
+      }, 300);
     });
   }, [category, keyword, codes]); 
 
@@ -126,13 +123,13 @@ function Mapha({ category, keyword }) {
     <div 
       ref={mapContainer} 
       style={{ 
-        width: '500px',        // 가로 사이즈 고정 유지
-        height: '450px',       // 세로 사이즈 고정 유지
-        borderRadius: '15px',  // 둥근 모서리 유지
-        border: '1px solid #ddd', // 부드러운 테두리 유지
-        boxShadow: '0 4px 15px rgba(0,0,0,0.1)', // 그림자 효과 유지
-        margin: '0',           // 왼쪽 정렬 유지
-        overflow: 'hidden'     // 지도가 테두리 밖으로 나가지 않게 설정 유지
+        width: '500px',
+        height: '450px',
+        borderRadius: '15px',
+        border: '1px solid #ddd',
+        boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+        margin: '0',
+        overflow: 'hidden'
       }} 
     />
   );

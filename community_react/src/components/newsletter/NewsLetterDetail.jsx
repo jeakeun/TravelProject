@@ -20,8 +20,8 @@ const NewsLetterDetail = () => {
     const currentUserNum = user ? (user.mb_num || user.mbNum) : null; 
     const isAdmin = user ? (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN' || user.mbLevel >= 10) : false; 
 
-    // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정 (환경 변수 적용)
-    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+    // 🚩 [수정] 자동 배포 환경을 위해 배포 서버 IP로 고정 설정
+    const SERVER_URL = "http://3.37.160.108:8080";
 
     // poNum이 숫자인지 확인
     const isNumericId = poNum && !isNaN(Number(poNum));
@@ -33,7 +33,7 @@ const NewsLetterDetail = () => {
     const formatContent = (content) => {
         if (!content) return "";
         // /pic/ 경로로 시작하는 이미지 src를 서버 주소와 결합
-        // 🚩 SERVER_URL을 동적으로 참조하여 배포 환경에서도 이미지가 깨지지 않게 함
+        // 🚩 SERVER_URL을 참조하여 배포 환경에서도 이미지가 깨지지 않게 함
         return content.replace(/src="\/pic\//g, `src="${SERVER_URL}/pic/`);
     };
 
@@ -56,7 +56,7 @@ const NewsLetterDetail = () => {
             }
             setLoading(false);
         }
-    }, [poNum, navigate, isNumericId, currentUserNum, SERVER_URL]); // SERVER_URL 의존성 추가
+    }, [poNum, navigate, isNumericId, currentUserNum, SERVER_URL]);
 
     useEffect(() => { 
         if(isNumericId) {

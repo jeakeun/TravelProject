@@ -42,7 +42,7 @@ const RecommendPostDetail = () => {
 
     const fixImagePaths = (content) => {
         if (!content) return "";
-        // 🚩 [수정] SERVER_URL 변수를 사용하여 이미지 경로 치환
+        // 🚩 [수정] SERVER_URL 변수를 사용하여 이미지 경로 치환 (이미지 폴더 pic/ 고정)
         let fixedContent = content.replace(/src=["'](?:\/)?pic\//g, `src="${SERVER_URL}/pic/`);
         return fixedContent;
     };
@@ -52,8 +52,8 @@ const RecommendPostDetail = () => {
         const storageKey = `viewed_post_${id}`;
         if (!sessionStorage.getItem(storageKey)) {
             try {
-                // 🚩 [수정] SERVER_URL 변수 사용
-                await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/view`);
+                // 🚩 [수정] 주소 체계 수정 (/api/recommend/posts/${id}/view -> /api/recommend/${id}/view)
+                await axios.post(`${SERVER_URL}/api/recommend/${id}/view`);
                 sessionStorage.setItem(storageKey, 'true');
             } catch (err) {
                 console.error("조회수 증가 실패", err);
@@ -65,8 +65,8 @@ const RecommendPostDetail = () => {
         if (!isNumericId) return;
         try {
             if (!isAction) setLoading(true);
-            // 🚩 [수정] SERVER_URL 변수 사용
-            const postRes = await axios.get(`${SERVER_URL}/api/recommend/posts/${id}`);
+            // 🚩 [수정] 주소 체계 수정 (/api/recommend/posts/${id} -> /api/recommend/${id})
+            const postRes = await axios.get(`${SERVER_URL}/api/recommend/${id}`);
             setPost(postRes.data);
             setIsLiked(postRes.data.isLikedByMe || false);
             
@@ -90,7 +90,6 @@ const RecommendPostDetail = () => {
                 poTitle: postRes.data?.poTitle || postRes.data?.po_title 
             });
 
-            // 🚩 [수정] SERVER_URL 변수 사용
             const commentRes = await axios.get(`${SERVER_URL}/api/comment/list/${id}`);
             setComments(commentRes.data || []);
             
@@ -138,8 +137,8 @@ const RecommendPostDetail = () => {
     const handleDeletePost = async () => {
         if (!window.confirm("정말 이 게시글을 삭제하시겠습니까?")) return;
         try {
-            // 🚩 [수정] SERVER_URL 변수 사용
-            await axios.delete(`${SERVER_URL}/api/recommend/posts/${id}`);
+            // 🚩 [수정] 주소 체계 수정 (/api/recommend/posts/${id} -> /api/recommend/${id})
+            await axios.delete(`${SERVER_URL}/api/recommend/${id}`);
             alert("게시글이 삭제되었습니다.");
             navigate('/community/recommend');
         } catch (err) { alert("삭제에 실패했습니다."); }
@@ -152,8 +151,8 @@ const RecommendPostDetail = () => {
     const handleLikeToggle = async () => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
-            // 🚩 [수정] SERVER_URL 변수 사용
-            const res = await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/like`, { mbNum: currentUserNum });
+            // 🚩 [수정] 주소 체계 수정 (/api/recommend/posts/${id}/like -> /api/recommend/${id}/like)
+            const res = await axios.post(`${SERVER_URL}/api/recommend/${id}/like`, { mbNum: currentUserNum });
             if (res.data.status === "liked") {
                 setIsLiked(true);
                 setPost(prev => ({ ...prev, poUp: (prev.poUp || 0) + 1 }));
@@ -169,7 +168,6 @@ const RecommendPostDetail = () => {
     const handleBookmark = async () => {
         if (!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
-            // 즐겨찾기는 기존 api 인스턴스(인터셉터 포함 가능성)를 그대로 유지
             await api.post("/api/mypage/bookmarks", { poNum: Number(id), boardType: "recommend" });
             
             const newState = !isBookmarked;
@@ -191,7 +189,6 @@ const RecommendPostDetail = () => {
     const handleCommentLike = async (commentId) => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
-            // 🚩 [수정] SERVER_URL 변수 사용
             const res = await axios.post(`${SERVER_URL}/api/comment/like/${commentId}`, { mbNum: currentUserNum });
             if(res.data.status === "liked") {
                 setComments(prevComments => prevComments.map(c => c.coNum === commentId ? { ...c, coLike: (c.coLike || 0) + 1 } : c));
@@ -209,9 +206,9 @@ const RecommendPostDetail = () => {
     const handleReportSubmit = async ({ category, reason }) => {
         const { type, targetId } = reportModal;
         try {
-            // 🚩 [수정] SERVER_URL 변수 사용
             if (type === 'post') {
-                await axios.post(`${SERVER_URL}/api/recommend/posts/${targetId}/report`, { category, reason, mbNum: currentUserNum });
+                // 🚩 [수정] 주소 체계 수정 (/api/recommend/posts/${targetId}/report -> /api/recommend/${targetId}/report)
+                await axios.post(`${SERVER_URL}/api/recommend/${targetId}/report`, { category, reason, mbNum: currentUserNum });
             } else {
                 await axios.post(`${SERVER_URL}/api/comment/report/${targetId}`, { category, reason, mbNum: currentUserNum });
             }
@@ -229,7 +226,6 @@ const RecommendPostDetail = () => {
         const content = parentId ? replyInput : commentInput;
         if (!content?.trim()) return alert("내용을 입력하세요.");
         try {
-            // 🚩 [수정] SERVER_URL 변수 사용
             await axios.post(`${SERVER_URL}/api/comment/add/${id}`, { 
                 content: content.trim(), parentId: parentId, mbNum: currentUserNum 
             });
@@ -241,7 +237,6 @@ const RecommendPostDetail = () => {
     const handleUpdateComment = async (commentId) => {
         if (!editInput?.trim()) return alert("내용을 입력하세요.");
         try {
-            // 🚩 [수정] SERVER_URL 변수 사용
             await axios.put(`${SERVER_URL}/api/comment/update/${commentId}`, { content: editInput.trim() });
             setEditId(null); setEditInput("");
             fetchAllData(true, true);
@@ -251,7 +246,6 @@ const RecommendPostDetail = () => {
     const handleDeleteComment = async (commentId) => {
         if (!window.confirm("정말 삭제하시겠습니까?")) return;
         try {
-            // 🚩 [수정] SERVER_URL 변수 사용
             await axios.delete(`${SERVER_URL}/api/comment/delete/${commentId}`);
             fetchAllData(true, true);
         } catch (err) { alert("삭제 실패"); }

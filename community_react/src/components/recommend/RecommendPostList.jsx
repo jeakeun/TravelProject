@@ -4,7 +4,7 @@ import axios from 'axios';
 import api from '../../api/axios'; 
 import './Recommend.css'; 
 
-// 🚩 [수정] 배포 서버 주소 설정
+// 🚩 [수정] 배포 서버 주소 설정 (포트 8080 유지)
 const API_BASE_URL = "http://3.37.160.108:8080";
 const SERVER_URL = `${API_BASE_URL}/pic/`;
 
@@ -23,8 +23,8 @@ const RecommendPostList = () => {
     const fetchPosts = useCallback(async (type = "", keyword = "") => {
         setLoading(true);
         try {
-            // 🚩 [수정] localhost 주소를 API_BASE_URL 변수로 변경
-            let url = `${API_BASE_URL}/api/recommend/posts/all`;
+            // 🚩 [수정] 주소 체계에 맞춰 경로 수정 (/api/recommend/posts/all -> /api/recommend)
+            let url = `${API_BASE_URL}/api/recommend`;
             if (keyword) {
                 url += `?type=${type}&keyword=${encodeURIComponent(keyword)}`;
             }

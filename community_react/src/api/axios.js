@@ -1,8 +1,10 @@
 // src/api/axios.js
 import axios from "axios";
 
+const API_BASE_URL = 'http://3.37.160.108:8080';
+
 const api = axios.create({
-  baseURL: 'http://3.37.160.108:8080', // localhost를 실제 IP로 변경!
+  baseURL: API_BASE_URL,
   withCredentials: true, // ✅ refreshToken 쿠키 포함
   headers: {
     "Content-Type": "application/json",
@@ -45,7 +47,7 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // 네가 만든 백엔드가 403을 주는 경우도 있어서 401/403 둘 다 처리하고 싶으면 여기 포함 가능
+    // 401/403 처리
     if ((status === 401 || status === 403) && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -65,14 +67,16 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshRes = await fetch("http://localhost:8080/auth/refresh", {
+        // 🚩 [수정] localhost:8080을 API_BASE_URL 변수로 변경하여 배포 서버를 바라보게 함
+        const refreshRes = await fetch(`${API_BASE_URL}/auth/refresh`, {
           method: "POST",
           credentials: "include",
         });
 
         if (!refreshRes.ok) {
           // refresh 실패 → 서버 쿠키 삭제 + 로컬 정리
-          await fetch("http://localhost:8080/auth/logout", {
+          // 🚩 [수정] 로그아웃 주소도 배포 서버 주소로 변경
+          await fetch(`${API_BASE_URL}/auth/logout`, {
             method: "POST",
             credentials: "include",
           }).catch(() => {});

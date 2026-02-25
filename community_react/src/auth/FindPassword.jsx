@@ -5,6 +5,9 @@ function FindPassword({ onClose, onBackToLogin, onGoResetPassword }) {
   const [id, setId] = useState("");
   const [email, setEmail] = useState("");
 
+  // 🚩 [수정] 배포 서버 주소 설정
+  const API_BASE_URL = "http://3.37.160.108:8080";
+
   const submitHandler = async (e) => {
     e.preventDefault();
 
@@ -23,7 +26,8 @@ function FindPassword({ onClose, onBackToLogin, onGoResetPassword }) {
     const payload = { id: trimmedId, email: trimmedEmail };
 
     try {
-      const res = await fetch("http://localhost:8080/auth/verify-user", {
+      // 🚩 [수정] localhost -> 배포 서버 IP로 변경
+      const res = await fetch(`${API_BASE_URL}/auth/verify-user`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

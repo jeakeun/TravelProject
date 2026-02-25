@@ -17,8 +17,8 @@ const FreeBoardDetail = () => {
     const isLoggedIn = !!user;
     const currentUserNum = getMemberNum(user);
 
-    // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정 (환경 변수 우선 사용)
-    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+    // 🚩 [수정] 자동 배포 환경을 위해 배포 서버 IP로 고정 설정
+    const SERVER_URL = "http://3.37.160.108:8080";
 
     /**
      * 🚩 본문 내 이미지 경로를 영구 저장소 경로로 변환
@@ -27,7 +27,7 @@ const FreeBoardDetail = () => {
     const formatContent = (content) => {
         if (!content) return "";
         // /pic/ 경로로 시작하는 이미지 src를 서버 주소와 결합
-        // 🚩 SERVER_URL을 동적으로 참조하여 배포 환경에서도 이미지가 깨지지 않게 함
+        // 🚩 SERVER_URL을 참조하여 배포 환경에서도 이미지가 깨지지 않게 함
         return content.replace(/src="\/pic\//g, `src="${SERVER_URL}/pic/`);
     };
 
@@ -39,7 +39,7 @@ const FreeBoardDetail = () => {
 
         try {
             setLoading(true);
-            // 🚩 환경 변수가 반영된 SERVER_URL 사용
+            // 🚩 고정된 SERVER_URL을 사용하여 게시글 상세 정보 호출
             const res = await axios.get(`${SERVER_URL}/api/freeboard/posts/${id}`);
             setPost(res.data);
             addRecentView({ boardType: 'freeboard', poNum: Number(id), poTitle: res.data?.poTitle });
@@ -50,7 +50,7 @@ const FreeBoardDetail = () => {
         } finally {
             setLoading(false);
         }
-    }, [id, navigate, SERVER_URL]); // SERVER_URL 의존성 추가
+    }, [id, navigate, SERVER_URL]);
 
     useEffect(() => { fetchDetail(); }, [fetchDetail]);
 
@@ -63,12 +63,25 @@ const FreeBoardDetail = () => {
     const handleBookmark = async () => {
         if (!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
+            // 즐겨찾기 API는 기존 공용 api 인스턴스(axios)를 사용하되 
+            // 만약 여기서도 베이스 URL 이슈가 발생하면 api 인스턴스 설정 자체를 점검해야 합니다.
             await api.post("/api/mypage/bookmarks", { poNum: Number(id), boardType: "freeboard" });
             setIsBookmarked(true);
             alert("즐겨찾기에 추가되었습니다.");
         } catch (err) {
             const msg = err?.response?.data?.msg || err?.response?.data?.error;
             alert(msg || "즐겨찾기 추가에 실패했습니다.");
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!window.confirm("삭제하시겠습니까?")) return;
+        try {
+            await axios.delete(`${SERVER_URL}/api/freeboard/posts/${id}`);
+            alert("삭제되었습니다.");
+            navigate('/community/freeboard');
+        } catch (err) {
+            alert("삭제 중 오류가 발생했습니다.");
         }
     };
 
@@ -92,7 +105,7 @@ const FreeBoardDetail = () => {
                     <div dangerouslySetInnerHTML={{ __html: formatContent(post.poContent) }} />
                 </div>
                 
-                {/* 하단 버튼 영역: 리뷰보드(ReviewBoard)와 레이아웃/클래스 완벽 통일 */}
+                {/* 하단 버튼 영역 */}
                 <div className="detail-bottom-actions">
                     <div className="left-group">
                         {isLoggedIn && (
@@ -110,7 +123,7 @@ const FreeBoardDetail = () => {
                                 </button>
                                 <button 
                                     className="btn-delete-action" 
-                                    onClick={() => { if(window.confirm("삭제하시겠습니까?")) { /* 삭제 로직은 기존과 동일하게 유지 */ } }}
+                                    onClick={handleDelete}
                                 >
                                     🗑️ 삭제
                                 </button>
