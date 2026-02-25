@@ -3,8 +3,9 @@ import React from 'react';
 const RecommendCard = ({ post, isMain, rank, onClick, getImageUrl, onBookmarkToggle }) => {
     if (!post) return null;
 
-    // 🚩 자동 배포 환경을 위한 서버 URL 설정 (환경 변수 우선 사용)
-    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+    // 🚩 [수정] 8080 포트 차단을 피하기 위해 빈 문자열("")로 설정합니다.
+    // 이렇게 하면 현재 접속 중인 80 포트를 통해 이미지를 안전하게 가져옵니다.
+    const SERVER_URL = "";
 
     // 🚩 ID 추출: poNum을 우선순위로 사용
     const postId = post.poNum || post.po_num || post.postId;

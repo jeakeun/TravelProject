@@ -36,9 +36,9 @@ import FindPassword from './auth/FindPassword';
 import ResetPassword from './auth/ResetPassword';
 import ChangePassword from './auth/ChangePassword';
 
-// 🚩 [수정] 배포 환경에서는 현재 접속한 서버 도메인을 그대로 쓰도록 상대 경로 방식을 권장합니다.
-// 만약 포트가 8080 고정이라면 아래처럼 유지하되, 통신 장애 방지를 위해 공백이나 오타가 없는지 확인하세요.
-const API_BASE_URL = "http://3.37.160.108:8080";
+// 🚩 [수정 핵심] 포트 8080을 제거하고 빈 문자열로 설정합니다.
+// 이렇게 하면 브라우저가 현재 접속 중인 도메인(3.37.160.108)의 80포트로 요청을 보냅니다.
+const API_BASE_URL = ""; 
 
 axios.defaults.withCredentials = true;
 
@@ -240,7 +240,7 @@ function App() {
         return;
       }
 
-      // 🚩 [수정] 백엔드 요청 시 불필요한 공백 제거 및 경로 검증
+      // 🚩 [수정] API_BASE_URL을 사용하여 상대 경로로 호출
       const apiUrl = endpoint === 'recommend' 
         ? `${API_BASE_URL}/api/recommend/posts/all`
         : `${API_BASE_URL}/api/${endpoint}/posts`;
@@ -304,7 +304,6 @@ function App() {
     const saved = localStorage.getItem('user');
     if (saved) return; 
     
-    // 🚩 [수정] axios 대신 fetch를 쓸 때도 API_BASE_URL을 정확히 타도록 수정
     fetch(`${API_BASE_URL}/auth/refresh`, { method: "POST", credentials: "include" })
       .then((res) => {
         if (!res.ok) return;

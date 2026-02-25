@@ -52,20 +52,20 @@ const RecommendPostDetail = () => {
         const storageKey = `viewed_post_${id}`;
         if (!sessionStorage.getItem(storageKey)) {
             try {
-                // 🚩 [수정] localhost 주소를 SERVER_URL 변수로 변경
+                // 🚩 [수정] SERVER_URL 변수 사용
                 await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/view`);
                 sessionStorage.setItem(storageKey, 'true');
             } catch (err) {
                 console.error("조회수 증가 실패", err);
             }
         }
-    }, [id, isNumericId]); // SERVER_URL은 상수이므로 제외하여 경고 제거
+    }, [id, isNumericId]);
 
     const fetchAllData = useCallback(async (isAction = false, isCommentAction = false) => {
         if (!isNumericId) return;
         try {
             if (!isAction) setLoading(true);
-            // 🚩 [수정] localhost 주소를 SERVER_URL 변수로 변경
+            // 🚩 [수정] SERVER_URL 변수 사용
             const postRes = await axios.get(`${SERVER_URL}/api/recommend/posts/${id}`);
             setPost(postRes.data);
             setIsLiked(postRes.data.isLikedByMe || false);
@@ -90,7 +90,7 @@ const RecommendPostDetail = () => {
                 poTitle: postRes.data?.poTitle || postRes.data?.po_title 
             });
 
-            // 🚩 [수정] localhost 주소를 SERVER_URL 변수로 변경
+            // 🚩 [수정] SERVER_URL 변수 사용
             const commentRes = await axios.get(`${SERVER_URL}/api/comment/list/${id}`);
             setComments(commentRes.data || []);
             
@@ -105,7 +105,7 @@ const RecommendPostDetail = () => {
             }
             setLoading(false);
         }
-    }, [id, navigate, isNumericId]); // SERVER_URL은 상수이므로 제외하여 경고 제거
+    }, [id, navigate, isNumericId]);
 
     useEffect(() => {
         const handleStorageChange = (e) => {
@@ -169,6 +169,7 @@ const RecommendPostDetail = () => {
     const handleBookmark = async () => {
         if (!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
+            // 즐겨찾기는 기존 api 인스턴스(인터셉터 포함 가능성)를 그대로 유지
             await api.post("/api/mypage/bookmarks", { poNum: Number(id), boardType: "recommend" });
             
             const newState = !isBookmarked;

@@ -190,7 +190,7 @@ const RecommendPostList = () => {
                                 // 🚩 즐겨찾기 상태 판단 로직 강화
                                 const isFavorited = post.isBookmarkedByMe || post.isBookmarked === 'Y' || post.favorited;
                                 
-                                // 🚩 [수정] 작성자 닉네임 필드 매핑 보강 (mbNickname 추가)
+                                // 🚩 [수정] 작성자 닉네임 필드 매핑 보강
                                 const authorNick = post.mbNickname || post.mb_nickname || post.mb_nick || post.mbNick || post.member?.mbNickname || post.member?.mb_nickname || post.member?.mbNick || post.member?.mb_nick || post.mb_id || `User ${post.poMbNum || post.po_mb_num}`;
                                 
                                 return (

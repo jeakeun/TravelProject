@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 
-// 🚩 [수정] 변수 선언 위치를 확실히 상단으로 고정
-const API_BASE_URL = "http://3.37.160.108:8080";
+// 🚩 [수정] 8080 포트 차단을 피하기 위해 상대 경로("")로 변경합니다.
+// 이렇게 하면 현재 접속 중인 80포트를 통해 백엔드로 요청이 전달됩니다.
+const API_BASE_URL = "";
 
 function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }) {
   const navigate = useNavigate();
@@ -107,7 +108,6 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
     if (categoryPath === '여행 추천 게시판') categoryPath = 'recommend';
     if (categoryPath === '자유 게시판') categoryPath = 'freeboard';
 
-    // 🚩 [수정] 템플릿 리터럴 가독성 및 변수 적용 재확인
     const apiUrl = isEdit 
       ? `${API_BASE_URL}/api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.po_num || existingPost?.id}`
       : `${API_BASE_URL}/api/${categoryPath}/posts`;

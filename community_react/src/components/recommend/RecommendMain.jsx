@@ -49,8 +49,8 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
         return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
-    // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정 (환경 변수 우선 사용)
-    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+    // 🚩 [수정] 8080 포트 차단을 피하기 위해 SERVER_URL을 빈 문자열로 설정합니다.
+    const SERVER_URL = "";
 
     const goToDetail = (id) => {
         if (!id) return;
@@ -233,7 +233,7 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
                         )}
                     </div>
                 </div>
-                {/* 🚩 [수정] RankingSidebar에 onBookmarkToggle 핸들러 연결 */}
+                {/* 🚩 RankingSidebar에 onBookmarkToggle 핸들러 연결 */}
                 <RankingSidebar 
                     ranking={sortedPosts.slice(3, 10)} 
                     startRank={4} 
@@ -268,7 +268,7 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
                             currentItems.map((post, idx) => {
                                 const postId = post.poNum || post.po_num;
                                 const isFavorited = post.isBookmarked === 'Y' || post.isBookmarked === true || post.isBookmarkedByMe || post.favorited;
-                                // 🚩 [수정] 목록 출력 시 mbNickname 필드 우선 순위 적용
+                                // 🚩 목록 출력 시 mbNickname 필드 우선 순위 적용
                                 const authorNick = post.mbNickname || post.mb_nickname || post.mb_nick || post.mbNick || post.member?.mbNickname || post.member?.mb_nickname || post.member?.mbNick || `User ${post.poMbNum || post.po_mb_num}`;
 
                                 return (
