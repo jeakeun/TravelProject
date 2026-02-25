@@ -6,7 +6,9 @@ import kr.hi.travel_community.mapper.LikeMapper;
 import kr.hi.travel_community.repository.RecommendRepository;
 import kr.hi.travel_community.repository.CommentRepository;
 import kr.hi.travel_community.repository.ReportRepository;
+import kr.hi.travel_community.repository.MemberRepository; 
 import kr.hi.travel_community.entity.Comment;
+import kr.hi.travel_community.entity.Member; 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -31,12 +33,11 @@ public class RecommendPostService {
     private final LikeMapper likeMapper; 
     private final CommentRepository commentRepository;
     private final ReportRepository reportRepository; 
-    
-    // 🚩 [수정] application.properties에서 지정한 물리 경로를 읽어옵니다. (기본값 설정)
+    private final MemberRepository memberRepository; 
+
     @Value("${file.upload-dir:C:/travel_contents/uploads/pic/}")
     private String uploadRoot;
 
-    // 🚩 [수정] WebConfig에서 설정한 Resource Handler 경로와 일치시킵니다.
     private final String SERVER_URL = "/pic/";
 
     @Transactional(readOnly = true)
@@ -72,9 +73,7 @@ public class RecommendPostService {
             case "author":
                 try {
                     Integer mbNum = Integer.parseInt(keyword);
-                    result = postRepository.findByPoDelOrderByPoNumDesc("N").stream()
-                            .filter(p -> p.getPoMbNum().equals(mbNum))
-                            .collect(Collectors.toList());
+                    result = postRepository.findByPoMbNumAndPoDelOrderByPoNumDesc(mbNum, "N");
                 } catch (NumberFormatException e) {
                     result = new ArrayList<>();
                 }
@@ -123,6 +122,15 @@ public class RecommendPostService {
                     cMap.put("coNum", c.getCoNum());
                     cMap.put("coContent", c.getCoContent());
                     cMap.put("coMbNum", c.getCoMbNum());
+                    
+                    // 🚩 [수정] getMb_nickname -> getMbNickname (엔티티 필드명과 일치)
+                    String nickname = "알 수 없는 사용자";
+                    Optional<Member> mOpt = memberRepository.findById(c.getCoMbNum());
+                    if(mOpt.isPresent()) {
+                        nickname = mOpt.get().getMbNickname(); 
+                    }
+                    cMap.put("coNickname", nickname);
+                    
                     cMap.put("coDate", c.getCoDate());
                     cMap.put("canEdit", mbNum != null && (c.getCoMbNum().equals(mbNum) || mbNum == 1)); 
                     return cMap;
@@ -209,14 +217,13 @@ public class RecommendPostService {
         });
     }
 
-    /**
-     * 🚩 이미지 저장 로직
-     * 외부 경로에 파일을 저장하여 서버 재시작 시에도 데이터를 유지합니다.
-     */
     private void handleImages(RecommendPost post, List<MultipartFile> images) throws Exception {
         if (images == null || images.isEmpty()) return;
         
-        File dir = new File(uploadRoot);
+        String cleanPath = uploadRoot.replace("\\", "/");
+        if (!cleanPath.endsWith("/")) cleanPath += "/";
+        
+        File dir = new File(cleanPath);
         if (!dir.exists()) dir.mkdirs();
         
         List<String> savedNames = new ArrayList<>();
@@ -229,8 +236,7 @@ public class RecommendPostService {
                 }
                 String fileName = UUID.randomUUID().toString() + extension;
                 
-                // 🚩 Paths.get을 사용하여 경로 구분자 문제 방지
-                Path targetPath = Paths.get(uploadRoot).resolve(fileName);
+                Path targetPath = Paths.get(cleanPath).resolve(fileName);
                 Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
                 savedNames.add(fileName);
             }
@@ -251,6 +257,14 @@ public class RecommendPostService {
         map.put("poUp", p.getPoUp() != null ? p.getPoUp() : 0);
         map.put("poMbNum", p.getPoMbNum());
 
+        // 🚩 [수정] getMb_nickname -> getMbNickname (엔티티 필드명과 일치)
+        String mbNickname = "알 수 없는 사용자";
+        Optional<Member> mOpt = memberRepository.findById(p.getPoMbNum());
+        if(mOpt.isPresent()) {
+            mbNickname = mOpt.get().getMbNickname();
+        }
+        map.put("mbNickname", mbNickname);
+
         long commentCount = commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getPoNum(), "RECOMMEND", "N");
         map.put("commentCount", commentCount);
 
@@ -259,7 +273,6 @@ public class RecommendPostService {
         int score = views + (likes * 2) + ((int) commentCount * 3);
         map.put("score", score);
 
-        // 🚩 [수정] 프론트엔드에서 도메인에 상관없이 접근할 수 있도록 SERVER_URL(/pic/) 사용
         if (p.getPoImg() != null && !p.getPoImg().trim().isEmpty()) {
             String firstImg = p.getPoImg().split(",")[0].trim();
             map.put("fileUrl", SERVER_URL + firstImg);

@@ -17,7 +17,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/event")
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"}, allowCredentials = "true")
 @RequiredArgsConstructor
 public class EventBoardController {
 
@@ -68,10 +68,10 @@ public class EventBoardController {
                                     @RequestParam(value = "poTitle", required = false) String poTitle,
                                     @RequestParam(value = "content", required = false) String content,
                                     @RequestParam(value = "poContent", required = false) String poContent,
-                                    @RequestParam(value = "poMbNum", required = false) Integer poMbNum, // 🚩 추가
+                                    @RequestParam(value = "poMbNum", required = false) Integer poMbNum,
                                     @RequestParam(value = "image", required = false) MultipartFile image) {
         
-        // 🚩 권한 체크: 인증 객체가 있거나, 프론트에서 관리자 번호(1)를 보낸 경우 허용
+        // 🚩 권한 체크 로직 유지
         if (!isAdmin(authentication) && (poMbNum == null || poMbNum != 1)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "관리자 권한이 필요합니다."));
         }
@@ -84,7 +84,6 @@ public class EventBoardController {
                 return ResponseEntity.badRequest().body(Map.of("error", "제목과 내용을 입력해주세요."));
             }
             
-            // 작성자 번호 결정: 1순위 인증객체, 2순위 프론트 전달값, 3순위 기본값(1)
             int mbNum = (authentication != null) ? resolveMbNum(authentication) : (poMbNum != null ? poMbNum : 1);
             
             Event post = new Event(); 
@@ -92,6 +91,7 @@ public class EventBoardController {
             post.setPoContent(finalContent);
             post.setPoMbNum(mbNum);
             
+            // ✅ 이미지를 서비스로 전달하여 영구 저장 처리
             List<MultipartFile> images = (image != null) ? List.of(image) : Collections.emptyList();
             eventBoardService.savePost(post, images);
             
@@ -113,7 +113,6 @@ public class EventBoardController {
                                     @RequestParam(value = "poContent", required = false) String poContent,
                                     @RequestParam(value = "image", required = false) MultipartFile image) {
         
-        // 수정 시 권한 체크 완화
         try {
             String finalTitle = (poTitle != null && !poTitle.isEmpty()) ? poTitle : title;
             String finalContent = (poContent != null && !poContent.isEmpty()) ? poContent : content;
@@ -163,7 +162,6 @@ public class EventBoardController {
             MemberVO member = ((CustomUser) authentication.getPrincipal()).getMember();
             if (member != null) {
                 String role = member.getMb_rol();
-                // 🚩 "ADMIN" 뿐만 아니라 "ROLE_ADMIN"인 경우도 허용하도록 보강
                 return "ADMIN".equalsIgnoreCase(role) || "ROLE_ADMIN".equalsIgnoreCase(role);
             }
         }

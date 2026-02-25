@@ -5,6 +5,7 @@ import kr.hi.travel_community.mapper.LikeMapper;
 import kr.hi.travel_community.repository.FreeRepository;
 import kr.hi.travel_community.repository.CommentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,12 +27,19 @@ public class FreePostService {
     private final FreeRepository postRepository;
     private final LikeMapper likeMapper;
     private final CommentRepository commentRepository;
-    private final String SERVER_URL = "http://localhost:8080/pic/";
+
+    // 🚩 [유지] 외부 절대 경로 사용 (application.properties 연동)
+    @Value("${file.upload-dir:C:/travel_contents/uploads/pic/}")
+    private String uploadRoot;
+
+    // 🚩 [유지] 상대 경로 방식 사용
+    private final String SERVER_URL = "/pic/";
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getRealAllPosts() {
         return postRepository.findByPoDelOrderByPoNumDesc("N").stream()
-                .map(this::convertToMap).collect(Collectors.toList());
+                .map(this::convertToMap) // ✅ 이제 convertToMap 메서드가 아래에 정의되어 에러가 사라집니다.
+                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -74,7 +82,6 @@ public class FreePostService {
         postRepository.save(post);
     }
 
-    // 🚩 Controller의 updatePost 빨간줄 해결용 메서드
     @Transactional
     public void updatePost(Integer id, String title, String content, List<MultipartFile> images) throws Exception {
         FreePost post = postRepository.findByPoNumAndPoDel(id, "N")
@@ -92,7 +99,6 @@ public class FreePostService {
         postRepository.findByPoNumAndPoDel(id, "N").ifPresent(p -> p.setPoDel("Y"));
     }
 
-    // 🚩 Controller의 toggleLikeStatus 빨간줄 해결용 메서드 (반환값 String 확인)
     @Transactional
     public String toggleLikeStatus(Integer poNum, Integer mbNum) {
         int count = likeMapper.checkLikeStatus(poNum, mbNum);
@@ -114,20 +120,32 @@ public class FreePostService {
 
     private void handleImages(FreePost post, List<MultipartFile> images) throws Exception {
         if (images == null || images.isEmpty()) return;
-        String uploadDir = System.getProperty("user.dir") + File.separator + "uploads" + File.separator + "pic" + File.separator;
-        File dir = new File(uploadDir);
+
+        String cleanPath = uploadRoot.replace("\\", "/");
+        if (!cleanPath.endsWith("/")) cleanPath += "/";
+
+        File dir = new File(cleanPath);
         if (!dir.exists()) dir.mkdirs();
+
         List<String> savedNames = new ArrayList<>();
         for (MultipartFile file : images) {
             if (!file.isEmpty()) {
-                String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-                Files.copy(file.getInputStream(), Paths.get(uploadDir + fileName), StandardCopyOption.REPLACE_EXISTING);
+                String originalFileName = file.getOriginalFilename();
+                String extension = originalFileName.substring(originalFileName.lastIndexOf("."));
+                String fileName = UUID.randomUUID().toString() + extension;
+
+                Path targetPath = Paths.get(cleanPath).resolve(fileName);
+                Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
                 savedNames.add(fileName);
             }
         }
         if (!savedNames.isEmpty()) post.setFileUrl(String.join(",", savedNames));
     }
 
+    /**
+     * 🚩 [해결] 이 메서드가 없어서 서비스 상단에서 빨간 줄이 발생했습니다.
+     * 엔티티 객체를 리액트가 읽기 편한 Map 구조로 변환합니다.
+     */
     private Map<String, Object> convertToMap(FreePost p) {
         Map<String, Object> map = new HashMap<>();
         map.put("poNum", p.getPoNum());
@@ -139,8 +157,14 @@ public class FreePostService {
         map.put("poMbNum", p.getPoMbNum());
         map.put("commentCount", commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getPoNum(), "FREE", "N"));
         
-        if (p.getFileUrl() != null && !p.getFileUrl().isEmpty()) {
-            map.put("fileUrl", SERVER_URL + p.getFileUrl().split(",")[0].trim());
+        // 🚩 DB의 fileUrl(po_img) 컬럼에 데이터가 있으면 리액트용 경로로 변환
+        if (p.getFileUrl() != null && !p.getFileUrl().trim().isEmpty()) {
+            String firstImg = p.getFileUrl().split(",")[0].trim();
+            map.put("fileUrl", SERVER_URL + firstImg);
+            map.put("poImg", SERVER_URL + firstImg); 
+        } else {
+            map.put("fileUrl", null);
+            map.put("poImg", null);
         }
         return map;
     }

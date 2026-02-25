@@ -5,6 +5,7 @@ import kr.hi.travel_community.mapper.LikeMapper;
 import kr.hi.travel_community.repository.NewsLetterRepository;
 import kr.hi.travel_community.repository.CommentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,8 +28,13 @@ public class NewsLetterService {
     private final LikeMapper likeMapper;
     private final CommentRepository commentRepository;
     
-    // 이미지 불러올 때 사용할 서버 URL 경로
-    private final String SERVER_URL = "http://localhost:8080/pic/";
+    // 🚩 [수정] 외부 절대 경로 사용 (application.properties 연동)
+    @Value("${file.upload-dir:C:/travel_contents/uploads/pic/}")
+    private String uploadRoot;
+
+    // 🚩 [수정] 프론트엔드 호출용 상대 경로
+    private final String SERVER_URL = "/pic/";
+    
     // 댓글 및 좋아요 구분을 위한 타입 상수
     private final String BOARD_TYPE = "NEWSLETTER";
 
@@ -175,25 +181,29 @@ public class NewsLetterService {
     }
 
     /**
-     * 🚩 이미지 파일 물리 저장 및 엔티티 세팅 (범용 상대 경로 수정)
+     * 🚩 이미지 파일 물리 저장 및 엔티티 세팅 (외부 절대 경로 적용)
      */
     private void handleImages(NewsLetter post, List<MultipartFile> images) throws Exception {
         if (images == null || images.isEmpty()) return;
         
-        // 🚩 특정 PC 경로 대신 실행 환경의 루트 경로(user.dir) 사용
-        String rootPath = System.getProperty("user.dir");
-        String uploadDir = rootPath + File.separator + "uploads" + File.separator + "pic" + File.separator;
+        // 경로 구분자 정리
+        String cleanPath = uploadRoot.replace("\\", "/");
+        if (!cleanPath.endsWith("/")) cleanPath += "/";
         
-        File dir = new File(uploadDir);
+        File dir = new File(cleanPath);
         if (!dir.exists()) {
-            dir.mkdirs(); // 하위 폴더까지 한 번에 생성
+            dir.mkdirs(); 
         }
         
         List<String> savedNames = new ArrayList<>();
         for (MultipartFile file : images) {
             if (!file.isEmpty()) {
-                String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
-                Path targetPath = Paths.get(uploadDir + fileName);
+                // 중복 방지를 위한 UUID 파일명 사용
+                String originalFileName = file.getOriginalFilename();
+                String extension = originalFileName.substring(originalFileName.lastIndexOf("."));
+                String fileName = UUID.randomUUID().toString() + extension;
+                
+                Path targetPath = Paths.get(cleanPath).resolve(fileName);
                 
                 // 파일 저장
                 Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
@@ -236,11 +246,13 @@ public class NewsLetterService {
         
         if (p.getPoImg() != null && !p.getPoImg().isEmpty()) {
             String firstImg = p.getPoImg().split(",")[0].trim();
-            map.put("fileUrl", SERVER_URL + firstImg);
-            map.put("po_img", firstImg);
+            map.put("fileUrl", SERVER_URL + firstImg); // 이미지 표시를 위한 URL
+            map.put("po_img", firstImg);             // 파일명 데이터
+            map.put("poImg", SERVER_URL + firstImg);   // 대체 필드 지원
         } else {
             map.put("fileUrl", null);
             map.put("po_img", null);
+            map.put("poImg", null);
         }
         
         return map;

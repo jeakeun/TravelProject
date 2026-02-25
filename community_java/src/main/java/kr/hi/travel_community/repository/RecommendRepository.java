@@ -35,18 +35,21 @@ public interface RecommendRepository extends JpaRepository<RecommendPost, Intege
 
     /**
      * 🚩 통합 검색: 제목 또는 내용에 키워드가 포함된 경우
-     * JPQL을 사용하여 가독성과 정확성을 높였습니다.
      */
-    @Query("SELECT p FROM RecommendPost p " +
+    @Query("SELECT p FROM RecommendPost p " + 
            "WHERE (p.poTitle LIKE %:keyword% OR p.poContent LIKE %:keyword%) " +
            "AND p.poDel = :poDel " +
            "ORDER BY p.poNum DESC")
     List<RecommendPost> findByTitleOrContent(@Param("keyword") String keyword, @Param("poDel") String poDel);
 
     /**
-     * 🚩 조회수 증가: 데이터 정합성을 위한 벌크 업데이트 (Atomic Update)
-     * @Modifying: DB 데이터를 수정할 때 필수
-     * COALESCE: poView가 null일 경우 0으로 처리하여 계산 오류 방지
+     * 🚩 [추가] 작성자(mbNum)로 게시글 찾기
+     * 서비스의 searchPosts 메서드 내 "author" 케이스에서 빨간 줄이 뜨지 않도록 추가합니다.
+     */
+    List<RecommendPost> findByPoMbNumAndPoDelOrderByPoNumDesc(Integer poMbNum, String poDel);
+
+    /**
+     * 🚩 조회수 증가
      */
     @Modifying
     @Query("UPDATE RecommendPost p SET p.poView = COALESCE(p.poView, 0) + 1 " +
@@ -54,7 +57,7 @@ public interface RecommendRepository extends JpaRepository<RecommendPost, Intege
     int updateViewCount(@Param("id") Integer id);
 
     /**
-     * 🚩 좋아요(추천) 수 동기화: DB에서 직접 추천수 업데이트 시 사용
+     * 🚩 좋아요(추천) 수 동기화
      */
     @Modifying
     @Query("UPDATE RecommendPost p SET p.poUp = COALESCE(p.poUp, 0) + :amount " +

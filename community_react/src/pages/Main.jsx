@@ -33,8 +33,9 @@ function Main() {
   const [carouselIndex, setCarouselIndex] = useState(0);
   const navigate = useNavigate();
   const outletContext = useOutletContext() || {};
-  // 🚩 context에서 posts 데이터를 가져옵니다.
-  const { user, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang, posts = [] } = outletContext;
+  
+  // 🚩 노란 줄 방지: Main 컴포넌트 내에서 실제 사용하는 변수(currentLang, posts)만 추출합니다.
+  const { currentLang, posts = [] } = outletContext;
 
   const t = carouselTranslations[currentLang] || carouselTranslations["KR"];
   const SERVER_URL = "http://localhost:8080";
@@ -43,35 +44,45 @@ function Main() {
   const topThree = useMemo(() => {
     if (!Array.isArray(posts)) return [];
     return [...posts]
-      .sort((a, b) => (b.poView || 0) - (a.poView || 0))
+      .sort((a, b) => (b.poView || b.po_view || 0) - (a.poView || a.po_view || 0))
       .slice(0, 3);
   }, [posts]);
 
-  // 🚩 [이미지 로직] RecommendMain과 동일한 이미지 추출 함수
+  // 🚩 [이미지 로직] 다중 파일명 및 절대/상대 경로 모두 대응
   const getImageUrl = (post) => {
     const defaultImg = "https://placehold.co/1200x800?text=No+Image";
     if (!post) return defaultImg;
-    const { poImg, fileName, fileUrl, image, poContent } = post;
-    const targetUrl = poImg || fileName || fileUrl || image;
+    
+    // 필드명 다양성 대응 (poImg, po_img, fileName 등)
+    const targetUrl = post.poImg || post.po_img || post.fileName || post.fileUrl || post.image;
 
     if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null") {
+      // 1. 이미 완전한 URL(http)인 경우
       if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
-      const extractedName = String(targetUrl).split(/[\\/]/).pop();
+      
+      // 2. 콤마로 구분된 다중 파일명인 경우 첫 번째 파일만 추출
+      const firstFile = String(targetUrl).split(',')[0].trim();
+      
+      // 3. 파일명만 있는 경우 서버 경로와 결합
+      const extractedName = firstFile.split(/[\\/]/).pop();
       return `${SERVER_URL}/pic/${extractedName}`;
     }
-    if (poContent && typeof poContent === 'string') {
+
+    // 4. 이미지가 없을 경우 본문 내 첫 번째 img 태그 검색
+    if (post.poContent && typeof post.poContent === 'string') {
       const imgRegex = /<img[^>]+src=["']([^"']+)["']/;
-      const match = poContent.match(imgRegex);
+      const match = post.poContent.match(imgRegex);
       if (match && match[1]) return match[1];
     }
+    
     return defaultImg; 
   };
 
-  // 3. 카러셀 로직
+  // 카러셀 로직
   const handlePrev = () => setCarouselIndex((prev) => (prev === 0 ? 2 : prev - 1));
   const handleNext = () => setCarouselIndex((prev) => (prev === 2 ? 0 : prev + 1));
 
-  // 4. 스크롤 이벤트 (헤더 스타일 조절)
+  // 스크롤 이벤트 (헤더 스타일 조절)
   useEffect(() => {
     const header = document.querySelector('.App .nav-area header');
     if (!header) return;
@@ -98,15 +109,20 @@ function Main() {
 
   return (
     <div className="main-container">
-      {/* ===== 메인 비디오 (헤더는 GlobalLayout에서 한 번만 렌더) ===== */}
+      {/* ===== 메인 비디오 ===== */}
       <section id="main-video">
-        <iframe src="https://www.youtube.com/embed/1La4QzGeaaQ?autoplay=1&mute=1&controls=0&loop=1&playlist=1La4QzGeaaQ" frameBorder="0" allow="autoplay; fullscreen" title="video"></iframe>
+        <iframe 
+          src="https://www.youtube.com/embed/1La4QzGeaaQ?autoplay=1&mute=1&controls=0&loop=1&playlist=1La4QzGeaaQ" 
+          frameBorder="0" 
+          allow="autoplay; fullscreen" 
+          title="video"
+        ></iframe>
         <button type="button" className="scroll-down" onClick={scrollToRanking} aria-label="두 번째 화면으로">
           <span className="scroll-down-arrow">⬇</span>
         </button>
       </section>
 
-      {/* ===== 랭킹 카러셀: 화살표는 카드 뒤에 없이 빈 공간에만 배치 ===== */}
+      {/* ===== 랭킹 카러셀 ===== */}
       <section id="ranking">
         <h2>{t.rank_main_title}</h2>
         <div className="carousel-outer">
@@ -115,16 +131,23 @@ function Main() {
             <div className="carousel-wrapper">
               {[0, 1, 2].map((idx) => {
                 const post = topThree[idx];
+                const postId = post?.poNum || post?.po_num || post?.postId;
+                const displayTitle = post?.poTitle || post?.po_title || t[`dest${idx + 1}_name`];
+
                 return (
                   <div 
                     key={idx} 
                     className={getCarouselClass(idx)}
-                    onClick={() => post && navigate(`/community/recommend/${post.poNum}`)}
+                    onClick={() => post && navigate(`/community/recommend/${postId}`)}
                     style={{ cursor: post ? 'pointer' : 'default' }}
                   >
-                    <img src={getImageUrl(post)} alt={post?.poTitle || "Ranking"} />
+                    <img 
+                      src={getImageUrl(post)} 
+                      alt={displayTitle} 
+                      onError={(e) => { e.target.src = "https://placehold.co/1200x800?text=No+Image"; }}
+                    />
                     <div className="item-info">
-                      <h3>{post ? `0${idx + 1}. ${post.poTitle}` : t[`dest${idx + 1}_name`]}</h3>
+                      <h3>{post ? `0${idx + 1}. ${displayTitle}` : displayTitle}</h3>
                       <p>
                         {post 
                           ? (post.poContent?.replace(/<[^>]*>?/gm, '').substring(0, 40) + "...") 

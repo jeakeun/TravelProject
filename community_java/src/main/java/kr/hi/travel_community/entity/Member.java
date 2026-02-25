@@ -18,6 +18,9 @@ public class Member {
     @Column(nullable = false, unique = true, length = 30)
     private String mbUid;
 
+    @Column(name = "mb_nickname", nullable = false, length = 50)
+    private String mbNickname;
+
     @Column(length = 255)
     private String mbPw;
 

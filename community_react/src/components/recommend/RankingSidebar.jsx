@@ -1,21 +1,37 @@
 import React from 'react';
 
-const RankingSidebar = ({ ranking, startRank, onDetail, getImageUrl }) => {
+const RankingSidebar = ({ ranking, startRank, onDetail, getImageUrl, onBookmarkToggle }) => {
     return (
         <aside className="ranking-section">
             <h3 className="ranking-title">실시간 추천 랭킹</h3>
             <div className="rank-list">
                 {ranking.map((post, idx) => {
-                    // 🚩 [유지] 데이터 구조에 따라 poNum 또는 postId 중 존재하는 값을 사용
-                    const postId = post.poNum || post.postId;
+                    // 🚩 ID 추출 로직 유지
+                    const postId = post.poNum || post.po_num || post.postId;
                     
+                    // 🚩 즐겨찾기 상태 판별 로직 유지
+                    const isBookmarked = 
+                        post.isBookmarkedByMe === true || 
+                        post.isBookmarked === 'Y' || 
+                        post.isBookmarked === true || 
+                        post.favorited === true;
+
+                    // 🚩 [수정] 즐겨찾기 버튼 클릭 핸들러
+                    const handleBookmarkClick = (e) => {
+                        e.stopPropagation(); // 상세 페이지 이동 방지
+                        e.preventDefault();
+                        
+                        // 부모(RecommendMain)로부터 전달받은 함수 실행
+                        if (typeof onBookmarkToggle === 'function') {
+                            onBookmarkToggle(postId, post); 
+                        }
+                    };
+
                     return (
-                        <div key={postId} className="rank-item" onClick={() => onDetail(postId)}>
+                        <div key={postId || idx} className="rank-item" onClick={() => onDetail(postId)}>
                             <div className="rank-thumb-box">
                                 <img 
                                     className="rank-thumb" 
-                                    // 🚩 [핵심 수정] poImg 필드 하나만 보내는 대신 post 객체 전체를 전달합니다.
-                                    // 이를 통해 본문(poContent)에 있는 Base64 이미지를 추출하는 로직이 정상 작동합니다.
                                     src={getImageUrl(post)} 
                                     alt="" 
                                     onError={(e) => { e.target.src = "https://placehold.co/100x100?text=No+Img"; }}
@@ -23,12 +39,31 @@ const RankingSidebar = ({ ranking, startRank, onDetail, getImageUrl }) => {
                             </div>
                             
                             <div className="rank-info">
-                                {/* 🚩 1. 제목 필드 수정: post.poTitle 유지 */}
-                                <p className="rank-title">{post.poTitle}</p>
-                                <div className="rank-meta">
+                                <p className="rank-title">{post.poTitle || post.po_title || "제목 없음"}</p>
+                                <div className="rank-meta" style={{ display: 'flex', alignItems: 'center' }}>
                                     <span className="rank-num-badge">{startRank + idx}</span>
-                                    {/* 🚩 2. 추천수 필드 수정: post.poUp 유지 */}
-                                    <span className="rank-likes">❤️ {post.poUp || 0}</span>
+                                    
+                                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+                                        {/* 추천수(하트) */}
+                                        <span className="rank-likes" style={{ fontSize: '0.9em' }}>
+                                            ❤️ {post.poUp || post.po_up || 0}
+                                        </span>
+                                        
+                                        {/* 🚩 즐겨찾기 별 버튼 (기능 연결됨) */}
+                                        <span 
+                                            className="rank-bookmarks" 
+                                            onClick={handleBookmarkClick}
+                                            style={{ 
+                                                cursor: 'pointer', 
+                                                marginLeft: '8px',
+                                                color: isBookmarked ? '#f1c40f' : '#ccc',
+                                                fontSize: '1.1em',
+                                                transition: 'color 0.2s'
+                                            }}
+                                        >
+                                            {isBookmarked ? '★' : '☆'}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

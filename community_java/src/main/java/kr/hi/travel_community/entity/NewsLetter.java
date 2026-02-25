@@ -28,6 +28,11 @@ public class NewsLetter {
     @Column(name = "po_content", nullable = false, columnDefinition = "LONGTEXT")
     private String poContent; // 내용 (LONGTEXT로 설정하여 대용량 텍스트 지원)
 
+    /**
+     * 🚩 이미지 파일명 저장 필드
+     * 서비스에서 생성되는 UUID 파일명들이 콤마(,)로 구분되어 저장되므로 
+     * 넉넉하게 1000자로 설정했습니다.
+     */
     @Column(name = "po_img", length = 1000)
     private String poImg; // 이미지 파일명들
 
@@ -54,6 +59,7 @@ public class NewsLetter {
 
     /**
      * 🚩 엔티티 저장 전 기본값 설정
+     * 데이터 삽입 시 null 값이 들어가는 것을 방지하고 초기값을 보장합니다.
      */
     @PrePersist
     public void prePersist() {

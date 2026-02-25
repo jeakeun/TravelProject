@@ -15,7 +15,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/recommend")
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"}, allowCredentials = "true")
 @RequiredArgsConstructor
 public class RecommendController {
 
@@ -28,43 +28,50 @@ public class RecommendController {
 
     /**
      * 🚩 전체 게시글 조회 (검색 기능 포함)
-     * 리액트에서 보낸 type(카테고리)과 keyword(검색어)를 받습니다.
      */
     @GetMapping("/posts/all")
     public ResponseEntity<List<Map<String, Object>>> getRealAllPosts(
             @RequestParam(value = "type", required = false) String type,
             @RequestParam(value = "keyword", required = false) String keyword) {
         
-        // 검색어가 파라미터로 넘어왔을 경우 (검색 로직 실행)
         if (type != null && keyword != null && !keyword.trim().isEmpty()) {
-            System.out.println("검색 요청 실행 -> 타입: " + type + ", 키워드: " + keyword);
+            System.out.println("🚩 검색 요청 실행 -> 타입: " + type + ", 키워드: " + keyword);
             return ResponseEntity.ok(recommendPostService.searchPosts(type, keyword));
         }
         
-        // 검색어가 없을 경우 기존처럼 전체 목록 반환
         return ResponseEntity.ok(recommendPostService.getRealAllPosts()); 
     }
 
     /**
      * 🚩 상세 페이지 조회 및 조회수 처리
+     * [수정] Authentication 객체를 추가하여 로그인 유저의 mbNum과 Role을 정확히 판단합니다.
      */
     @GetMapping("/posts/{id}")
     public ResponseEntity<?> getPostDetail(
+            Authentication authentication,
             @PathVariable(value = "id") Integer id, 
             @RequestParam(value = "mbNum", required = false) Integer mbNum,
             HttpServletRequest request, 
             HttpServletResponse response) {
         
-        // 🚩 서비스에서 쿠키를 검사하여 중복 증가를 방지합니다.
         recommendPostService.increaseViewCount(id, request, response);
         
-        Integer currentUserNum = (mbNum != null) ? mbNum : 1; 
-        String currentUserRole = "ADMIN"; 
+        // 🚩 [수정] 닉네임 표시 및 본인 확인을 위해 실제 로그인 정보를 기반으로 데이터 세팅
+        Integer currentUserNum = resolveMbNum(authentication, mbNum);
+        String currentUserRole = "USER";
+        
+        if (authentication != null && authentication.getPrincipal() instanceof CustomUser) {
+            MemberVO member = ((CustomUser) authentication.getPrincipal()).getMember();
+            if (member != null) {
+                currentUserRole = member.getMb_rol();
+            }
+        }
 
         Map<String, Object> postData = recommendPostService.getPostDetailWithImage(id, currentUserNum);
         
         if (postData != null) {
-            boolean isOwner = postData.get("poMbNum").equals(currentUserNum);
+            // poMbNum과 현재 유저의 번호를 비교 (poMbNum은 서비스에서 쿼리로 채워져야 함)
+            boolean isOwner = postData.get("poMbNum") != null && postData.get("poMbNum").equals(currentUserNum);
             boolean isAdmin = "ADMIN".equals(currentUserRole);
             
             postData.put("isOwner", isOwner);
@@ -74,12 +81,14 @@ public class RecommendController {
         return postData != null ? ResponseEntity.ok(postData) : ResponseEntity.notFound().build();
     }
 
-    // 서비스에서 자동으로 처리하므로 프론트에서 개별 호출하지 않도록 주의
     @PostMapping("/posts/{id}/view")
     public ResponseEntity<?> increaseView(@PathVariable(value = "id") Integer id) {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * 🚩 게시글 생성
+     */
     @PostMapping("/posts")
     public ResponseEntity<?> createPost(
             Authentication authentication,
@@ -92,7 +101,8 @@ public class RecommendController {
             RecommendPost post = new RecommendPost();
             post.setPoTitle(poTitle);
             post.setPoContent(poContent);
-            post.setPoMbNum(mbNum); // 로그인 회원 번호와 동일하게
+            post.setPoMbNum(mbNum);
+            
             recommendPostService.savePost(post, images);
             return ResponseEntity.ok("Success");
         } catch (Exception e) {
@@ -100,6 +110,9 @@ public class RecommendController {
         }
     }
 
+    /**
+     * [수정] 공통 로직: Authentication 정보가 있으면 해당 유저 정보를, 없으면 전달된 ID(또는 기본값 1)를 반환
+     */
     private int resolveMbNum(Authentication authentication, Integer requestMbNum) {
         if (authentication != null && authentication.getPrincipal() instanceof CustomUser) {
             MemberVO member = ((CustomUser) authentication.getPrincipal()).getMember();

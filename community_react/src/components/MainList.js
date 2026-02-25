@@ -23,7 +23,7 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
     '숙박': '🏨'
   };
 
-  // 🚩 기본 이미지 경로
+  // 🚩 기본 이미지 경로 (이미지가 없거나 엑박일 때 사용)
   const FALLBACK_IMAGE = "https://placehold.co/300x200?text=No+Image";
 
   useEffect(() => {
@@ -47,7 +47,10 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
   const toggleFav = (e, id) => {
     e.stopPropagation();
     if (setPhotos) {
-        setPhotos(prev => prev.map(p => p.postId === id ? { ...p, isFav: !p.isFav } : p));
+        setPhotos(prev => prev.map(p => {
+          const postId = p.poNum || p.po_num || p.postId;
+          return postId === id ? { ...p, isFav: !p.isFav } : p;
+        }));
     }
   };
 
@@ -55,7 +58,8 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
     e.stopPropagation();
     if (setPhotos) {
         setPhotos(prev => prev.map(p => {
-          if (p.postId === id) {
+          const postId = p.poNum || p.po_num || p.postId;
+          if (postId === id) {
             const currentlyLiked = p.likedByMe || false;
             return { 
               ...p, 
@@ -68,9 +72,12 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
     }
   };
 
-  // 서버의 poTitle 필드로 검색
+  // 서버의 poTitle 필드로 검색 (다양한 필드명 대응)
   const filteredItems = useMemo(() => 
-    photos.filter(p => (p.poTitle || p.title || "").toLowerCase().includes(appliedSearch.toLowerCase())), 
+    photos.filter(p => {
+      const title = p.poTitle || p.po_title || p.title || "";
+      return title.toLowerCase().includes(appliedSearch.toLowerCase());
+    }), 
     [photos, appliedSearch]
   );
   
@@ -119,8 +126,8 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
 
   return (
     <div className="main-content-inner" style={{ width: '100%' }}>
-      {/* 🚩 [수정] '국내여행' 또는 '여행지도' 메뉴일 때 지도 레이아웃 노출 */}
-      {['국내여행', '여행지도'].includes(activeMenu.trim()) ? (
+      {/* 🚩 '국내여행' 메뉴일 때 지도 레이아웃 노출 */}
+      {activeMenu.trim() === '국내여행' ? (
         <div className="map-section" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '20px' }}>
           
           {/* 1. 지도 상단 카테고리 필터 버튼 */}
@@ -184,9 +191,13 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
             {currentItems.length > 0 ? (
               currentItems.map((photo, idx) => {
                 const virtualNum = filteredItems.length - ((currentPage - 1) * itemsPerPage + idx);
+                // 🚩 데이터 필드 호환성 유지
+                const postId = photo.poNum || photo.po_num || photo.postId;
+                const displayTitle = photo.poTitle || photo.po_title || photo.title;
+                const displayImg = photo.fileUrl || (photo.poImg ? `http://localhost:8080/pic/${photo.poImg.split(',')[0]}` : FALLBACK_IMAGE);
 
                 return (
-                  <div key={photo.postId || idx} className="photo-card" onClick={() => goToDetail(photo.postId)} style={{ position: 'relative' }}>
+                  <div key={postId || idx} className="photo-card" onClick={() => goToDetail(postId)} style={{ position: 'relative' }}>
                     <span className="card-badge" style={{ 
                         position: 'absolute', top: '12px', left: '12px', background: 'rgba(0,0,0,0.7)', 
                         color: '#fff', padding: '3px 9px', borderRadius: '5px', fontSize: '11px', fontWeight: 'bold', zIndex: 5
@@ -194,18 +205,22 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
                       No.{virtualNum}
                     </span>
                     <div className="img-placeholder">
-                      <img src={photo.fileUrl || FALLBACK_IMAGE} alt="" onError={(e) => { e.target.src = FALLBACK_IMAGE; }} />
+                      <img 
+                        src={displayImg} 
+                        alt="" 
+                        onError={(e) => { e.target.src = FALLBACK_IMAGE; }} 
+                      />
                     </div>
                     <div className="photo-info">
-                      <strong className="photo-title">{photo.poTitle || photo.title}</strong>
+                      <strong className="photo-title">{displayTitle}</strong>
                       <div className="info-actions">
-                        <button onClick={(e) => toggleFav(e, photo.postId)} className="fav-btn" style={{ color: photo.isFav ? '#FFD700' : '#ccc' }}>
+                        <button onClick={(e) => toggleFav(e, postId)} className="fav-btn" style={{ color: photo.isFav ? '#FFD700' : '#ccc' }}>
                           {photo.isFav ? '★' : '☆'}
                         </button>
                         <div className="info-bottom">
-                          <span>👁️ {photo.poView || 0}</span>
-                          <span onClick={(e) => handleLike(e, photo.postId)} style={{ color: photo.likedByMe ? '#ff4d4d' : '#666' }}>
-                            {photo.likedByMe ? '❤️' : '🤍'} {photo.likes || 0}
+                          <span>👁️ {photo.poView || photo.po_view || 0}</span>
+                          <span onClick={(e) => handleLike(e, postId)} style={{ color: photo.likedByMe ? '#ff4d4d' : '#666' }}>
+                            {photo.likedByMe ? '❤️' : '🤍'} {photo.likes || photo.poUp || photo.po_up || 0}
                           </span>
                         </div>
                       </div>
@@ -226,8 +241,8 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
             <button className="pagination-btn" disabled={currentPage === totalPages} onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}>&gt;</button>
           </div>
 
-          {['여행 추천 게시판', '여행 후기 게시판', '자유 게시판', '이벤트', '뉴스레터'].includes(activeMenu.trim()) && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-30px', paddingRight: '20px' }}>
+          {['여행 추천 게시판', '여행 후기 게시판', '자유 게시판', '이벤트', '뉴스레터', '이벤트 게시판'].includes(activeMenu.trim()) && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-45px', paddingRight: '20px' }}>
               <button className="write-btn" onClick={() => navigate(getWritePath())}>글쓰기</button>
             </div>
           )}

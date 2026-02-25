@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 @Table(name = "free_post")
 @Data
 public class FreePost {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "po_num")
@@ -40,8 +41,11 @@ public class FreePost {
     @Column(name = "po_mb_num", nullable = false)
     private Integer poMbNum;
 
-    // 🚩 [수정] DB 스키마의 다른 테이블들과 이름을 맞추기 위해 
-    // 실제 DB 컬럼명을 po_img로 매핑합니다. (또는 아래 SQL 명령어로 DB 컬럼을 추가하세요)
+    /**
+     * 🚩 [수정] 외부 저장 파일명 보관 필드
+     * 서비스 클래스에서 사용하는 변수명(fileUrl)을 유지하되, 
+     * DB 컬럼명은 po_img로 매핑하고 길이를 1000자로 확장했습니다.
+     */
     @Column(name = "po_img", length = 1000)
     private String fileUrl;
 

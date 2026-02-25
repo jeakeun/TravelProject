@@ -20,14 +20,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import kr.hi.travel_community.entity.Bookmark;
+import kr.hi.travel_community.entity.BookMark;
 import kr.hi.travel_community.entity.FreePost;
 import kr.hi.travel_community.entity.RecommendPost;
 import kr.hi.travel_community.entity.ReportBox;
 import kr.hi.travel_community.entity.ReviewPost;
 import kr.hi.travel_community.model.util.CustomUser;
 import kr.hi.travel_community.model.vo.MemberVO;
-import kr.hi.travel_community.repository.BookmarkRepository;
+import kr.hi.travel_community.repository.BookMarkRepository;
 import kr.hi.travel_community.repository.FreeRepository;
 import kr.hi.travel_community.repository.RecommendRepository;
 import kr.hi.travel_community.repository.ReportRepository;
@@ -37,10 +37,7 @@ import kr.hi.travel_community.service.RecommendPostService;
 import kr.hi.travel_community.service.ReviewPostService;
 import lombok.RequiredArgsConstructor;
 
-/**
- * 마이페이지 - 내가 쓴 글 DB 연동
- * JWT 인증 후 회원 번호(mb_num)로 추천/후기/자유 게시판 글 조회
- */
+
 @RestController
 @RequestMapping("/api/mypage")
 @CrossOrigin(origins = "http://localhost:3000", allowCredentials = "true")
@@ -50,7 +47,7 @@ public class MypageController {
     private final RecommendPostService recommendPostService;
     private final ReviewPostService reviewPostService;
     private final FreePostService freePostService;
-    private final BookmarkRepository bookmarkRepository;
+    private final BookMarkRepository bookmarkRepository;
     private final ReportRepository reportRepository;
     private final RecommendRepository recommendRepository;
     private final ReviewRepository reviewRepository;
@@ -81,9 +78,7 @@ public class MypageController {
                 p.put("boardName", "여행 추천");
                 combined.add(p);
             }
-        } catch (Exception e) {
-            // ignore
-        }
+        } catch (Exception e) {}
 
         try {
             List<Map<String, Object>> review = reviewPostService.searchPosts("author", mbNumStr);
@@ -92,9 +87,7 @@ public class MypageController {
                 p.put("boardName", "여행 후기");
                 combined.add(p);
             }
-        } catch (Exception e) {
-            // ignore
-        }
+        } catch (Exception e) {}
 
         try {
             List<Map<String, Object>> freeAll = freePostService.getRealAllPosts();
@@ -106,9 +99,7 @@ public class MypageController {
                     })
                     .collect(Collectors.toList());
             combined.addAll(free);
-        } catch (Exception e) {
-            // ignore
-        }
+        } catch (Exception e) {}
 
         combined.sort((a, b) -> {
             Object da = a.get("poDate");
@@ -134,10 +125,11 @@ public class MypageController {
         }
 
         int mbNum = member.getMb_num();
-        List<Bookmark> list = bookmarkRepository.findByBmMbNumOrderByBmNumDesc(mbNum);
+        // 🚩 BookMark 클래스 사용
+        List<BookMark> list = bookmarkRepository.findByBmMbNumOrderByBmNumDesc(mbNum);
         List<Map<String, Object>> result = new ArrayList<>();
         int limit = 5;
-        for (Bookmark b : list) {
+        for (BookMark b : list) {
             if (result.size() >= limit) break;
             String title = resolvePostTitle(b.getBmPoType(), b.getBmPoNum());
             Map<String, Object> m = new HashMap<>();
@@ -204,9 +196,7 @@ public class MypageController {
                 Optional<FreePost> opt = freeRepository.findByPoNumAndPoDel(poNum, "N");
                 return opt.map(FreePost::getPoTitle).orElse(null);
             }
-        } catch (Exception e) {
-            // ignore
-        }
+        } catch (Exception e) {}
         return null;
     }
 
@@ -234,7 +224,8 @@ public class MypageController {
             return ResponseEntity.ok(Map.of("msg", "이미 즐겨찾기에 추가되어 있습니다."));
         }
 
-        Bookmark b = new Bookmark();
+    
+        BookMark b = new BookMark();
         b.setBmMbNum(mbNum);
         b.setBmPoNum(poNum);
         b.setBmPoType(boardType);
@@ -255,11 +246,12 @@ public class MypageController {
                 return ResponseEntity.status(401).body(Map.of("error", "회원 정보를 찾을 수 없습니다."));
             }
 
-            Optional<Bookmark> opt = bookmarkRepository.findById(bmNum);
+      
+            Optional<BookMark> opt = bookmarkRepository.findById(bmNum);
             if (opt.isEmpty()) {
                 return ResponseEntity.status(404).body(Map.of("error", "즐겨찾기를 찾을 수 없습니다."));
             }
-            Bookmark b = opt.get();
+            BookMark b = opt.get();
             Integer bmMb = b.getBmMbNum();
             int mbNum = member.getMb_num();
             if (bmMb == null || bmMb.intValue() != mbNum) {

@@ -13,37 +13,49 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class Comment {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "co_num")
     private Integer coNum;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(name = "co_content", columnDefinition = "TEXT", nullable = false)
     private String coContent;
 
     @CreationTimestamp
+    @Column(name = "co_date", updatable = false)
     private LocalDateTime coDate;
 
     @Builder.Default
+    @Column(name = "co_like")
     private Integer coLike = 0;
 
     @Builder.Default
+    @Column(name = "co_del", length = 1)
     private String coDel = "N";
 
+    /**
+     * 대댓글 기능을 위한 원댓글 번호 (부모 댓글 ID)
+     */
     @Column(name = "co_ori_num")
     private Integer coOriNum;
 
-    // 🚩 [수정] Post 엔티티 대신 게시글 번호와 타입을 저장합니다.
+    /**
+     * 게시글 번호 (RecommendPost 등의 ID)
+     */
     @Column(name = "co_po_num", nullable = false)
     private Integer coPoNum;
 
+    /**
+     * 게시글 타입 (RECOMMEND, FREE 등)
+     */
     @Column(name = "co_po_type", nullable = false)
-    private String coPoType; // "RECOMMEND", "FREE", "REVIEW" 등
+    private String coPoType; 
 
+    /**
+     * 작성자 회원 번호 (Integer 필드 유지)
+     */
     @Column(name = "co_mb_num", nullable = false)
     private Integer coMbNum;
-    
-    // Member 엔티티와 관계가 유지되어야 한다면 아래 주석을 해제하고 위 coMbNum을 지우세요.
-    // @ManyToOne
-    // @JoinColumn(name = "co_mb_num")
-    // private Member member;
+
 }
