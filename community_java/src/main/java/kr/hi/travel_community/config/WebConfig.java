@@ -33,9 +33,13 @@ public class WebConfig implements WebMvcConfigurer {
             }
         }
 
-        // 🚩 리액트에서 <img src="http://IP:8080/pic/파일명.jpg"> 로 접근 가능하게 매핑
+        // 🚩 [수정] 리눅스/배포 환경 호환성을 위해 프로토콜 식별자 최적화
+        // 리눅스 절대경로(/home/...)일 때는 file: 을, 윈도우일 때는 file:/// 를 사용하도록 대응
+        String location = path.startsWith("/") ? "file:" + path : "file:///" + path;
+
+        // 리액트에서 <img src="http://IP:8080/pic/파일명.jpg"> 로 접근 가능하게 매핑
         registry.addResourceHandler("/pic/**")
-                .addResourceLocations("file:///" + path)
+                .addResourceLocations(location)
                 .setCachePeriod(3600); 
     }
 
@@ -46,8 +50,9 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOriginPatterns(
                     "http://localhost:3000", 
                     "http://127.0.0.1:3000",
-                    "http://3.37.160.108",    // 프론트엔드가 동작하는 실제 서버 IP 추가
-                    "http://3.37.160.108:*"  // 해당 IP의 모든 포트 허용
+                    "http://3.37.160.108",    // 프론트엔드가 동작하는 실제 서버 IP
+                    "http://3.37.160.108:*",  // 모든 포트 허용
+                    "https://3.37.160.108"    // SSL 적용 대비
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")

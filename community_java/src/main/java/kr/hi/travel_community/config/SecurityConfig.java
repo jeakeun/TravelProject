@@ -46,16 +46,15 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
              
-        		// 1. 리액트 정적 리소스 허용 (JS, CSS, 이미지 등)
+                // 1. 리액트 정적 리소스 허용 (JS, CSS, 이미지 등)
                 .requestMatchers("/", "/index.html", "/static/**", "/favicon.ico", "/manifest.json", "/logo*.png").permitAll()
                 
                 // 2. 백엔드 API 및 이미지 경로 허용
                 .requestMatchers("/api/**", "/pic/**").permitAll()
                 
                 // 3. 리액트 라우터 경로 허용 (새로고침 시 403 방지)
-                // 리액트에서 사용하는 주요 페이지 경로들을 여기에 추가하세요.
                 .requestMatchers("/login", "/signup", "/community/**", "/news/**",
-                		"/domestic", "/foreigncountry", "/").permitAll()
+                        "/domestic", "/foreigncountry", "/").permitAll()
                 .anyRequest().permitAll()
             )
           
@@ -71,7 +70,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000")); 
+        
+        // 🚩 [수정] 배포 환경의 IP 주소를 허용 리스트에 추가합니다.
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://3.37.160.108" // 배포된 서버의 프론트엔드 접속 주소
+        )); 
+        
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
