@@ -49,7 +49,8 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
         return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
-    const SERVER_URL = "http://localhost:8080";
+    // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정 (환경 변수 우선 사용)
+    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
     const goToDetail = (id) => {
         if (!id) return;

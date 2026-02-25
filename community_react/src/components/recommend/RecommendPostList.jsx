@@ -4,6 +4,10 @@ import axios from 'axios';
 import api from '../../api/axios'; 
 import './Recommend.css'; 
 
+// 🚩 [수정] 배포 서버 주소 설정
+const API_BASE_URL = "http://3.37.160.108:8080";
+const SERVER_URL = `${API_BASE_URL}/pic/`;
+
 const RecommendPostList = () => {
     const navigate = useNavigate();
     const [posts, setPosts] = useState([]);
@@ -15,13 +19,12 @@ const RecommendPostList = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const postsPerPage = 10;
 
-    const SERVER_URL = "http://localhost:8080/pic/";
-
     // 데이터 패칭 함수
     const fetchPosts = useCallback(async (type = "", keyword = "") => {
         setLoading(true);
         try {
-            let url = 'http://localhost:8080/api/recommend/posts/all';
+            // 🚩 [수정] localhost 주소를 API_BASE_URL 변수로 변경
+            let url = `${API_BASE_URL}/api/recommend/posts/all`;
             if (keyword) {
                 url += `?type=${type}&keyword=${encodeURIComponent(keyword)}`;
             }

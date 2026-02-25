@@ -14,7 +14,8 @@ const EventBoardList = ({ posts = [] }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const postsPerPage = 6; 
 
-    const SERVER_URL = "http://localhost:8080";
+    // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정 (환경 변수 우선 사용)
+    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
     const fallbackImage = "https://placehold.co/300x200?text=No+Image";
 
     // 관리자 여부 확인
@@ -33,6 +34,7 @@ const EventBoardList = ({ posts = [] }) => {
         if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null" && String(targetUrl) !== "undefined") {
             if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
             const extractedName = String(targetUrl).split(/[\\/]/).pop();
+            // 🚩 SERVER_URL을 참조하여 배포 환경에 대응
             return `${SERVER_URL}/pic/${extractedName}`;
         }
         
@@ -43,6 +45,7 @@ const EventBoardList = ({ posts = [] }) => {
             const match = content.match(imgRegex);
             if (match && match[1]) {
                 const src = match[1];
+                // 🚩 SERVER_URL을 참조하여 배포 환경에 대응
                 if (src.startsWith('/pic/')) return `${SERVER_URL}${src}`;
                 return src;
             }
@@ -107,8 +110,10 @@ const EventBoardList = ({ posts = [] }) => {
                                             src={getImageUrl(post)} 
                                             alt={post.po_title || post.poTitle} 
                                             onError={(e) => { 
-                                                e.target.onerror = null; 
-                                                e.target.src = fallbackImage; 
+                                                if (e.target.src !== fallbackImage) {
+                                                    e.target.onerror = null; 
+                                                    e.target.src = fallbackImage; 
+                                                }
                                             }}
                                         />
                                     </div>

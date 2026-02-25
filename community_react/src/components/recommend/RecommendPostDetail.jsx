@@ -7,6 +7,10 @@ import { addRecentView } from '../../utils/recentViews';
 import ReportModal from '../ReportModal';
 import './RecommendPostDetail.css';
 
+// 🚩 [수정] 배포 서버 주소 설정
+const API_BASE_URL = "http://3.37.160.108:8080";
+const SERVER_URL = API_BASE_URL;
+
 const RecommendPostDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -35,10 +39,10 @@ const RecommendPostDetail = () => {
     const isAdmin = user ? (Number(user.mbLevel ?? user.mb_score ?? 0) >= 10 || user.mb_rol === 'ADMIN') : false; 
 
     const isNumericId = id && !isNaN(Number(id)) && id !== "write";
-    const SERVER_URL = "http://localhost:8080";
 
     const fixImagePaths = (content) => {
         if (!content) return "";
+        // 🚩 [수정] SERVER_URL 변수를 사용하여 이미지 경로 치환
         let fixedContent = content.replace(/src=["'](?:\/)?pic\//g, `src="${SERVER_URL}/pic/`);
         return fixedContent;
     };
@@ -48,18 +52,20 @@ const RecommendPostDetail = () => {
         const storageKey = `viewed_post_${id}`;
         if (!sessionStorage.getItem(storageKey)) {
             try {
+                // 🚩 [수정] localhost 주소를 SERVER_URL 변수로 변경
                 await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/view`);
                 sessionStorage.setItem(storageKey, 'true');
             } catch (err) {
                 console.error("조회수 증가 실패", err);
             }
         }
-    }, [id, isNumericId, SERVER_URL]);
+    }, [id, isNumericId]); // SERVER_URL은 상수이므로 제외하여 경고 제거
 
     const fetchAllData = useCallback(async (isAction = false, isCommentAction = false) => {
         if (!isNumericId) return;
         try {
             if (!isAction) setLoading(true);
+            // 🚩 [수정] localhost 주소를 SERVER_URL 변수로 변경
             const postRes = await axios.get(`${SERVER_URL}/api/recommend/posts/${id}`);
             setPost(postRes.data);
             setIsLiked(postRes.data.isLikedByMe || false);
@@ -84,6 +90,7 @@ const RecommendPostDetail = () => {
                 poTitle: postRes.data?.poTitle || postRes.data?.po_title 
             });
 
+            // 🚩 [수정] localhost 주소를 SERVER_URL 변수로 변경
             const commentRes = await axios.get(`${SERVER_URL}/api/comment/list/${id}`);
             setComments(commentRes.data || []);
             
@@ -98,7 +105,7 @@ const RecommendPostDetail = () => {
             }
             setLoading(false);
         }
-    }, [id, navigate, isNumericId, SERVER_URL]);
+    }, [id, navigate, isNumericId]); // SERVER_URL은 상수이므로 제외하여 경고 제거
 
     useEffect(() => {
         const handleStorageChange = (e) => {
@@ -131,6 +138,7 @@ const RecommendPostDetail = () => {
     const handleDeletePost = async () => {
         if (!window.confirm("정말 이 게시글을 삭제하시겠습니까?")) return;
         try {
+            // 🚩 [수정] SERVER_URL 변수 사용
             await axios.delete(`${SERVER_URL}/api/recommend/posts/${id}`);
             alert("게시글이 삭제되었습니다.");
             navigate('/community/recommend');
@@ -144,6 +152,7 @@ const RecommendPostDetail = () => {
     const handleLikeToggle = async () => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
+            // 🚩 [수정] SERVER_URL 변수 사용
             const res = await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/like`, { mbNum: currentUserNum });
             if (res.data.status === "liked") {
                 setIsLiked(true);
@@ -181,6 +190,7 @@ const RecommendPostDetail = () => {
     const handleCommentLike = async (commentId) => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
+            // 🚩 [수정] SERVER_URL 변수 사용
             const res = await axios.post(`${SERVER_URL}/api/comment/like/${commentId}`, { mbNum: currentUserNum });
             if(res.data.status === "liked") {
                 setComments(prevComments => prevComments.map(c => c.coNum === commentId ? { ...c, coLike: (c.coLike || 0) + 1 } : c));
@@ -198,6 +208,7 @@ const RecommendPostDetail = () => {
     const handleReportSubmit = async ({ category, reason }) => {
         const { type, targetId } = reportModal;
         try {
+            // 🚩 [수정] SERVER_URL 변수 사용
             if (type === 'post') {
                 await axios.post(`${SERVER_URL}/api/recommend/posts/${targetId}/report`, { category, reason, mbNum: currentUserNum });
             } else {
@@ -217,6 +228,7 @@ const RecommendPostDetail = () => {
         const content = parentId ? replyInput : commentInput;
         if (!content?.trim()) return alert("내용을 입력하세요.");
         try {
+            // 🚩 [수정] SERVER_URL 변수 사용
             await axios.post(`${SERVER_URL}/api/comment/add/${id}`, { 
                 content: content.trim(), parentId: parentId, mbNum: currentUserNum 
             });
@@ -228,6 +240,7 @@ const RecommendPostDetail = () => {
     const handleUpdateComment = async (commentId) => {
         if (!editInput?.trim()) return alert("내용을 입력하세요.");
         try {
+            // 🚩 [수정] SERVER_URL 변수 사용
             await axios.put(`${SERVER_URL}/api/comment/update/${commentId}`, { content: editInput.trim() });
             setEditId(null); setEditInput("");
             fetchAllData(true, true);
@@ -237,6 +250,7 @@ const RecommendPostDetail = () => {
     const handleDeleteComment = async (commentId) => {
         if (!window.confirm("정말 삭제하시겠습니까?")) return;
         try {
+            // 🚩 [수정] SERVER_URL 변수 사용
             await axios.delete(`${SERVER_URL}/api/comment/delete/${commentId}`);
             fetchAllData(true, true);
         } catch (err) { alert("삭제 실패"); }
@@ -256,7 +270,6 @@ const RecommendPostDetail = () => {
             const isActiveEdit = editId === comment.coNum;
             const isActiveReply = replyTo === comment.coNum;
             
-            // 🚩 [수정] 백엔드에서 넘겨주는 coNickname을 최우선으로 사용
             const authorDisplayName = comment.coNickname || comment.mbNickname || comment.mb_nickname || "알 수 없는 사용자";
 
             return (
@@ -315,7 +328,6 @@ const RecommendPostDetail = () => {
     const isPostOwner = isLoggedIn && Number(post.poMbNum || post.po_mb_num) === Number(currentUserNum);
     const canManagePost = isPostOwner || isAdmin;
     
-    // 🚩 [수정] 게시글 작성자도 백엔드 필드 우선순위 조정
     const postAuthorNick = post.poNickname || post.mbNickname || post.mb_nickname || post.mbNick || `User ${post.poMbNum || post.po_mb_num}`;
 
     return (

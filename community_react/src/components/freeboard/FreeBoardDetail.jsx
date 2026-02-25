@@ -16,7 +16,9 @@ const FreeBoardDetail = () => {
 
     const isLoggedIn = !!user;
     const currentUserNum = getMemberNum(user);
-    const SERVER_URL = "http://localhost:8080";
+
+    // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정 (환경 변수 우선 사용)
+    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
     /**
      * 🚩 본문 내 이미지 경로를 영구 저장소 경로로 변환
@@ -25,6 +27,7 @@ const FreeBoardDetail = () => {
     const formatContent = (content) => {
         if (!content) return "";
         // /pic/ 경로로 시작하는 이미지 src를 서버 주소와 결합
+        // 🚩 SERVER_URL을 동적으로 참조하여 배포 환경에서도 이미지가 깨지지 않게 함
         return content.replace(/src="\/pic\//g, `src="${SERVER_URL}/pic/`);
     };
 
@@ -36,6 +39,7 @@ const FreeBoardDetail = () => {
 
         try {
             setLoading(true);
+            // 🚩 환경 변수가 반영된 SERVER_URL 사용
             const res = await axios.get(`${SERVER_URL}/api/freeboard/posts/${id}`);
             setPost(res.data);
             addRecentView({ boardType: 'freeboard', poNum: Number(id), poTitle: res.data?.poTitle });
@@ -46,7 +50,7 @@ const FreeBoardDetail = () => {
         } finally {
             setLoading(false);
         }
-    }, [id, navigate]);
+    }, [id, navigate, SERVER_URL]); // SERVER_URL 의존성 추가
 
     useEffect(() => { fetchDetail(); }, [fetchDetail]);
 

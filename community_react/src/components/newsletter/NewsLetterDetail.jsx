@@ -20,7 +20,8 @@ const NewsLetterDetail = () => {
     const currentUserNum = user ? (user.mb_num || user.mbNum) : null; 
     const isAdmin = user ? (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN' || user.mbLevel >= 10) : false; 
 
-    const SERVER_URL = "http://localhost:8080";
+    // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정 (환경 변수 적용)
+    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
     // poNum이 숫자인지 확인
     const isNumericId = poNum && !isNaN(Number(poNum));
@@ -32,6 +33,7 @@ const NewsLetterDetail = () => {
     const formatContent = (content) => {
         if (!content) return "";
         // /pic/ 경로로 시작하는 이미지 src를 서버 주소와 결합
+        // 🚩 SERVER_URL을 동적으로 참조하여 배포 환경에서도 이미지가 깨지지 않게 함
         return content.replace(/src="\/pic\//g, `src="${SERVER_URL}/pic/`);
     };
 
@@ -39,7 +41,7 @@ const NewsLetterDetail = () => {
         if (!isNumericId) return;
         try {
             setLoading(true);
-            // 🚩 뉴스레터 전용 API 엔드포인트 호출
+            // 🚩 뉴스레터 전용 API 엔드포인트 호출 (SERVER_URL 적용)
             const postRes = await axios.get(`${SERVER_URL}/api/newsletter/posts/${poNum}?mbNum=${currentUserNum || ''}`);
             setPost(postRes.data);
             
@@ -54,7 +56,7 @@ const NewsLetterDetail = () => {
             }
             setLoading(false);
         }
-    }, [poNum, navigate, isNumericId, currentUserNum]);
+    }, [poNum, navigate, isNumericId, currentUserNum, SERVER_URL]); // SERVER_URL 의존성 추가
 
     useEffect(() => { 
         if(isNumericId) {
@@ -65,7 +67,7 @@ const NewsLetterDetail = () => {
     const handleDeletePost = async () => {
         if (!window.confirm("정말 뉴스레터를 삭제하시겠습니까?")) return;
         try {
-            // 🚩 뉴스레터 전용 삭제 API 호출
+            // 🚩 뉴스레터 전용 삭제 API 호출 (SERVER_URL 적용)
             await axios.delete(`${SERVER_URL}/api/newsletter/posts/${poNum}`);
             alert("뉴스레터가 삭제되었습니다.");
             if (loadPosts) loadPosts(); // 리스트 갱신 함수 호출
@@ -78,7 +80,7 @@ const NewsLetterDetail = () => {
     const handleLikeToggle = async () => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
-            // 🚩 뉴스레터 전용 추천 API 호출
+            // 🚩 뉴스레터 전용 추천 API 호출 (SERVER_URL 적용)
             const res = await axios.post(`${SERVER_URL}/api/newsletter/posts/${poNum}/like`, { mbNum: currentUserNum });
             
             // 응답 데이터 포맷에 맞춰 처리

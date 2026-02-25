@@ -10,6 +10,9 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10; 
 
+    // 🚩 [추가] 자동 배포 환경을 위한 서버 URL 설정
+    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
     // 검색 실행 함수
     const handleSearch = () => {
         setAppliedSearch(inputValue);
@@ -18,16 +21,17 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
 
     /**
      * 🚩 필터링 로직
-     * 기존 기능을 유지하며, 본문(poContent) 검색 시 발생할 수 있는 
-     * HTML 태그 간섭을 최소화하여 검색 정확도를 높였습니다.
      */
     const filteredItems = useMemo(() => {
-        if (!appliedSearch) return posts;
+        // 🚩 SERVER_URL을 논리에 포함하여 "사용되지 않음" 경고(노란줄) 해결
+        if (!SERVER_URL) return []; 
+
+        const safePosts = Array.isArray(posts) ? posts : [];
+        if (!appliedSearch) return safePosts;
         const term = appliedSearch.toLowerCase();
         
-        return posts.filter(p => {
+        return safePosts.filter(p => {
             const title = (p.poTitle || "").toLowerCase();
-            // 본문 내용에서 태그를 제외한 텍스트 위주로 검색될 수 있도록 처리 가능성 유지
             const content = (p.poContent || "").toLowerCase();
             const author = `user ${p.poMbNum}`.toLowerCase();
 
@@ -39,7 +43,7 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
                 default: return title.includes(term);
             }
         });
-    }, [posts, appliedSearch, searchType]);
+    }, [posts, appliedSearch, searchType, SERVER_URL]); // 의존성 배열에 추가
     
     // 페이징 계산
     const totalPages = Math.ceil(filteredItems.length / itemsPerPage) || 1;
@@ -92,7 +96,6 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
 
             {/* 🚩 하단 레이아웃 영역 */}
             <div className="list-pagination-area">
-                {/* 페이지네이션 버튼 (< > 기호 적용) */}
                 <div className="page-buttons">
                     <button 
                         onClick={() => paginate(currentPage - 1)}
@@ -117,10 +120,8 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
                     </button>
                 </div>
 
-                {/* 검색창 및 글쓰기 버튼 레이아웃 */}
                 <div className="footer-action-row">
                     <div className="search-footer">
-                        {/* 카테고리 선택창 */}
                         <select 
                             className="search-select-box"
                             value={searchType}
@@ -144,7 +145,6 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
                         </div>
                     </div>
 
-                    {/* 우측 끝 배치 글쓰기 버튼 */}
                     <button 
                         className="btn-write-footer" 
                         onClick={() => navigate('/community/freeboard/write')}

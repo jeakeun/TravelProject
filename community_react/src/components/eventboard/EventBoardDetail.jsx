@@ -17,7 +17,9 @@ const EventBoardDetail = () => {
     const [isLiked, setIsLiked] = useState(false);
 
     const isLoggedIn = !!user; 
-    const SERVER_URL = "http://localhost:8080";
+    
+    // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정 (환경 변수 우선 사용)
+    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
     // 유저 번호 추출 (mb_num 또는 mbNum 대응)
     const currentUserNum = user ? (user.mb_num || user.mbNum) : null; 
@@ -33,6 +35,7 @@ const EventBoardDetail = () => {
     const formatContent = (content) => {
         if (!content) return "";
         // /pic/ 경로로 시작하는 이미지 src를 서버 주소와 결합
+        // 🚩 SERVER_URL을 동적으로 참조하여 배포 환경에서도 이미지가 깨지지 않게 함
         return content.replace(/src="\/pic\//g, `src="${SERVER_URL}/pic/`);
     };
 
@@ -65,7 +68,7 @@ const EventBoardDetail = () => {
         } finally {
             setLoading(false);
         }
-    }, [poNum, navigate, isNumericId, currentUserNum]);
+    }, [poNum, navigate, isNumericId, currentUserNum, SERVER_URL]); // SERVER_URL 의존성 추가
 
     useEffect(() => { 
         if(isNumericId) {

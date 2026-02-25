@@ -38,7 +38,9 @@ function Main() {
   const { currentLang, posts = [] } = outletContext;
 
   const t = carouselTranslations[currentLang] || carouselTranslations["KR"];
-  const SERVER_URL = "http://localhost:8080";
+  
+  // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정 (환경 변수 적용)
+  const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
   // 🚩 [데이터 로직] 추천 게시판 1,2,3위 추출 (조회수 기준 정렬)
   const topThree = useMemo(() => {

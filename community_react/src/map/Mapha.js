@@ -17,11 +17,14 @@ function Mapha({ category, keyword }) {
   // 🚩 useMemo를 사용하여 CATEGORY_CODES 참조를 고정합니다.
   const codes = useMemo(() => CATEGORY_CODES, []);
 
+  // 🚩 자동 배포 환경(HTTPS/도메인) 대응을 위한 서버 URL (필요 시 확장용)
+  // const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
   useEffect(() => {
     const { kakao } = window;
     // 카카오 객체가 로드되지 않았을 경우를 대비한 방어 코드
     if (!kakao || !kakao.maps) {
-      console.error("카카오 지도 API가 로드되지 않았습니다.");
+      console.error("카카오 지도 API가 로드되지 않았습니다. index.html의 스크립트를 확인하세요.");
       return;
     }
 
@@ -29,9 +32,9 @@ function Mapha({ category, keyword }) {
       // 1. 지도 초기화 (최초 1회 실행)
       if (!mapInstance.current) {
         const options = {
-          // 🚩 지도의 초기 중심을 서울 시청 좌표로 변경
+          // 🚩 지도의 초기 중심을 서울 시청 좌표로 설정
           center: new kakao.maps.LatLng(37.5665, 126.9780), 
-          // 🚩 서울 전역이 한눈에 보이도록 확대 레벨을 9로 설정 (기존 제주도와 동일 레벨)
+          // 🚩 서울 전역이 한눈에 보이도록 확대 레벨을 9로 설정
           level: 9 
         };
         mapInstance.current = new kakao.maps.Map(mapContainer.current, options);
@@ -51,7 +54,7 @@ function Mapha({ category, keyword }) {
         if (infowindow) infowindow.close();
       };
 
-      // 인포윈도우 표시 함수 (세련된 스타일 적용)
+      // 인포윈도우 표시 함수 (세련된 스타일 유지)
       const displayInfoWindow = (marker, place) => {
         const detailUrl = "https://place.map.kakao.com/" + place.id;
         const phone = place.phone ? place.phone : "정보 없음";
@@ -112,8 +115,10 @@ function Mapha({ category, keyword }) {
         });
       }
       
-      // 🚩 부모 크기 변화에 대응하여 지도를 즉시 재정렬합니다.
-      map.relayout();
+      // 🚩 배포 환경에서 컨테이너 크기 불일치로 지도가 깨지는 것을 방지하기 위해 재정렬 실행
+      setTimeout(() => {
+        map.relayout();
+      }, 100);
     });
   }, [category, keyword, codes]); 
 

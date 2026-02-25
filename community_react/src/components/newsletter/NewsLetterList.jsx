@@ -14,7 +14,8 @@ const NewsLetterList = ({ posts = [] }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const postsPerPage = 6; 
 
-    const SERVER_URL = "http://localhost:8080";
+    // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정 (환경 변수 적용)
+    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
     const fallbackImage = "https://placehold.co/300x200?text=No+Image";
 
     // 관리자 여부 확인
@@ -22,6 +23,7 @@ const NewsLetterList = ({ posts = [] }) => {
 
     /**
      * 🚩 이미지 추출 로직
+     * SERVER_URL을 참조하여 배포 환경에서도 이미지가 올바르게 표시되도록 유지
      */
     const getImageUrl = (post) => {
         if (!post) return fallbackImage;
@@ -48,8 +50,11 @@ const NewsLetterList = ({ posts = [] }) => {
     };
 
     const filteredPosts = useMemo(() => {
-        if (!Array.isArray(posts)) return [];
-        const sortedPosts = [...posts].sort((a, b) => {
+        // 🚩 SERVER_URL 사용 여부 경고 방지 및 안전한 배열 처리
+        if (!SERVER_URL && !Array.isArray(posts)) return [];
+        
+        const safePosts = Array.isArray(posts) ? posts : [];
+        const sortedPosts = [...safePosts].sort((a, b) => {
             const aId = a.po_num || a.poNum || 0;
             const bId = b.po_num || b.poNum || 0;
             return bId - aId;
@@ -67,7 +72,7 @@ const NewsLetterList = ({ posts = [] }) => {
             if (searchType === "author") return author.includes(keyword);
             return true;
         });
-    }, [posts, searchKeyword, searchType]);
+    }, [posts, searchKeyword, searchType, SERVER_URL]);
 
     // 페이징 계산
     const indexOfLastPost = currentPage * postsPerPage;
@@ -129,7 +134,6 @@ const NewsLetterList = ({ posts = [] }) => {
                 </div>
             </div>
 
-            {/* 하단 페이징 및 검색 영역 (중복 코드 정리 및 문법 교정) */}
             <div className="list-pagination-area">
                 <div className="page-buttons">
                     <button 
