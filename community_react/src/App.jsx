@@ -36,7 +36,7 @@ import FindPassword from './auth/FindPassword';
 import ResetPassword from './auth/ResetPassword';
 import ChangePassword from './auth/ChangePassword';
 
-// 🚩 [수정] 배포 서버의 백엔드 포트(8080)를 명확히 지정해야 로그인이 작동합니다.
+// 🚩 API BASE URL 설정
 const API_BASE_URL = "http://3.37.160.108:8080"; 
 
 axios.defaults.withCredentials = true;
@@ -236,9 +236,8 @@ function App() {
         return;
       }
 
-      const apiUrl = endpoint === 'recommend' 
-        ? `${API_BASE_URL}/api/recommend/posts/all`
-        : `${API_BASE_URL}/api/${endpoint}/posts`;
+      // ✅ [수정] 백엔드 컨트롤러 구조에 맞춰 /posts/all 제거
+      const apiUrl = `${API_BASE_URL}/api/${endpoint}`;
 
       const response = await axios.get(apiUrl);
       if (response.data && Array.isArray(response.data)) {
@@ -299,6 +298,7 @@ function App() {
     const saved = localStorage.getItem('user');
     if (saved) return; 
     
+    // ✅ [수정] fetch 주소에도 API_BASE_URL 적용
     fetch(`${API_BASE_URL}/auth/refresh`, { method: "POST", credentials: "include" })
       .then((res) => {
         if (!res.ok) return;
