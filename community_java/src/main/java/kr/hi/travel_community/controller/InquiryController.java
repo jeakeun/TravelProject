@@ -66,7 +66,7 @@ public class InquiryController {
             m.put("ibContent", ib.getIbContent() != null ? ib.getIbContent() : "");
             m.put("ibReply", ib.getIbReply() != null ? ib.getIbReply() : "");
             m.put("ibDate", ib.getIbDate());
-            m.put("ibStatus", ib.getIbStatus() != null ? ib.getIbStatus() : "N");
+            m.put(image.png"ibStatus", ib.getIbStatus() != null ? ib.getIbStatus() : "N");
             m.put("ibSeen", ib.getIbSeen() != null ? ib.getIbSeen() : "N");
             list.add(m);
         }

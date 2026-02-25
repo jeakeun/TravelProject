@@ -1,6 +1,0 @@
--- ※ 프로젝트 DDL.sql의 member 테이블에 mb_nickname이 이미 포함되어 있습니다.
--- 전체 스키마 적용 시에는 "프로젝트 DDL.sql"만 실행하세요.
--- 
--- 기존 DB에 mb_nickname이 없을 때만 아래 실행 (이미 있으면 "Duplicate column" 에러 무시):
--- ALTER TABLE `member` ADD COLUMN `mb_nickname` varchar(30) NULL AFTER `mb_uid`;
--- UPDATE `member` SET mb_nickname = mb_uid WHERE mb_nickname IS NULL OR mb_nickname = '';
