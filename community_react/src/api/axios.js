@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8080",
+  baseURL: 'http://3.37.160.108:8080', // localhost를 실제 IP로 변경!
   withCredentials: true, // ✅ refreshToken 쿠키 포함
   headers: {
     "Content-Type": "application/json",

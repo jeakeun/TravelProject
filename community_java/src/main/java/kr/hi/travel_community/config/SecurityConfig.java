@@ -46,7 +46,16 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
              
-                .requestMatchers("/api/**", "/pic/**", "/static/**", "/favicon.ico").permitAll()
+        		// 1. 리액트 정적 리소스 허용 (JS, CSS, 이미지 등)
+                .requestMatchers("/", "/index.html", "/static/**", "/favicon.ico", "/manifest.json", "/logo*.png").permitAll()
+                
+                // 2. 백엔드 API 및 이미지 경로 허용
+                .requestMatchers("/api/**", "/pic/**").permitAll()
+                
+                // 3. 리액트 라우터 경로 허용 (새로고침 시 403 방지)
+                // 리액트에서 사용하는 주요 페이지 경로들을 여기에 추가하세요.
+                .requestMatchers("/login", "/signup", "/community/**", "/news/**",
+                		"/domestic", "/foreigncountry", "/").permitAll()
                 .anyRequest().permitAll()
             )
           

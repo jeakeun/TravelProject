@@ -26,8 +26,6 @@ repositories {
 dependencies {
     // [Web & Engine]
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
-    implementation 'org.thymeleaf.extras:thymeleaf-extras-springsecurity6'
 
     // [Security & Validation]
     implementation 'org.springframework.boot:spring-boot-starter-security'
