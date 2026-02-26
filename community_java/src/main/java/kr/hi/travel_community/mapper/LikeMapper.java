@@ -5,6 +5,8 @@ import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface LikeMapper {
+    // === 추천(Like) 관련 ===
+    
     // 추천 여부 확인
     int checkLikeStatus(@Param("poNum") Integer poNum, @Param("mbNum") Integer mbNum);
 
@@ -13,4 +15,15 @@ public interface LikeMapper {
 
     // 추천 로그 삭제
     void deleteLikeLog(@Param("poNum") Integer poNum, @Param("mbNum") Integer mbNum);
+
+    // === 즐겨찾기(Scrap) 관련 추가 ===
+
+    // 스크랩 여부 확인
+    int checkScrapStatus(@Param("poNum") Integer poNum, @Param("mbNum") Integer mbNum);
+
+    // 스크랩 로그 추가
+    void insertScrapLog(@Param("poNum") Integer poNum, @Param("mbNum") Integer mbNum);
+
+    // 스크랩 로그 삭제
+    void deleteScrapLog(@Param("poNum") Integer poNum, @Param("mbNum") Integer mbNum);
 }
