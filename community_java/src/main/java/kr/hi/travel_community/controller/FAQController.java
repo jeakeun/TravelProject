@@ -42,8 +42,9 @@ public class FAQController {
     }
 
     // 🚩 FAQ 저장 (관리자만 가능)
+    // 보완: @ModelAttribute를 사용하여 multipart/form-data(FormData) 수신 지원
     @PostMapping("/posts")
-    public ResponseEntity<String> savePost(Authentication authentication, @RequestBody FAQ post) {
+    public ResponseEntity<String> savePost(Authentication authentication, @ModelAttribute FAQ post) {
         try {
             // ✅ 관리자 권한 체크
             if (!isAdmin(authentication)) {
@@ -62,19 +63,22 @@ public class FAQController {
     }
 
     // 🚩 FAQ 수정 (관리자만 가능)
+    // 보완: PUT 메서드에서도 FormData를 받을 수 있도록 @ModelAttribute 적용
     @PutMapping("/posts/{id}")
     public ResponseEntity<String> updatePost(
             Authentication authentication,
             @PathVariable("id") Integer id,
-            @RequestBody Map<String, String> updateData) {
+            @ModelAttribute FAQ updateData) { 
         try {
             // ✅ 관리자 권한 체크
             if (!isAdmin(authentication)) {
                 return ResponseEntity.status(403).body("관리자만 수정할 수 있습니다.");
             }
 
-            String title = updateData.get("title");
-            String content = updateData.get("content");
+            // React에서 보낸 poTitle, poContent가 updateData 객체에 자동으로 담김
+            String title = updateData.getPoTitle();
+            String content = updateData.getPoContent();
+            
             faqService.updatePost(id, title, content);
             return ResponseEntity.ok("updated");
         } catch (Exception e) {
@@ -112,14 +116,12 @@ public class FAQController {
     public ResponseEntity<?> toggleScrap(@PathVariable("id") Integer id, @RequestBody Map<String, Object> data) {
         Object mbNumObj = data.get("mbNum");
         int mbNum = (mbNumObj != null) ? Integer.parseInt(mbNumObj.toString()) : 1;
-        // 서비스의 toggleScrapStatus 메서드 호출
         String status = faqService.toggleScrapStatus(id, mbNum);
         return ResponseEntity.ok(Map.of("status", status));
     }
 
     /**
      * ✅ 관리자 여부 확인 공통 로직
-     * CustomUser에서 MemberVO를 꺼내 mb_rol이 'ADMIN'인지 확인합니다.
      */
     private boolean isAdmin(Authentication authentication) {
         if (authentication != null && authentication.getPrincipal() instanceof CustomUser) {

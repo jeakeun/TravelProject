@@ -1,30 +1,41 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-// 🚩 에러 해결: 동일 폴더 내의 FAQDetail.css를 임포트하도록 수정
 import './FAQDetail.css'; 
 
+// 🚩 goToDetail 프롭스가 없어도 동작하도록 기본값을 설정하거나 내부에서 정의합니다.
 const FAQList = ({ posts = [], goToDetail }) => {
     const navigate = useNavigate();
-    const { user } = useOutletContext() || {}; // 상위 컴포넌트에서 유저 정보 주입
+    const { user } = useOutletContext() || {}; 
     const [inputValue, setInputValue] = useState(''); 
     const [appliedSearch, setAppliedSearch] = useState(''); 
     const [searchType, setSearchType] = useState('title'); 
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10; 
 
-    // 🚩 관리자 여부 확인 (ADMIN 체크)
-    const isAdmin = user && user.mbRol === 'ADMIN';
+    // 🚩 추가: 부모로부터 함수를 못 받았을 경우를 대비한 내부 이동 함수
+    const handleGoToDetail = (poNum) => {
+        if (typeof goToDetail === 'function') {
+            goToDetail(poNum); // 부모가 준 함수가 있다면 그것을 사용
+        } else {
+            // 부모가 함수를 안 줬다면 여기서 직접 상세페이지로 이동 (경로 확인 필요)
+            navigate(`/cscenter/faq/posts/${poNum}`); 
+        }
+    };
 
-    // 검색 실행 함수
+    /**
+     * 🚩 관리자 여부 확인
+     */
+    const isAdmin = useMemo(() => {
+        if (!user) return false;
+        const role = user.mb_rol || user.mbRol || user.mbRole || "";
+        return role.toUpperCase() === 'ADMIN';
+    }, [user]);
+
     const handleSearch = () => {
         setAppliedSearch(inputValue);
         setCurrentPage(1);
     };
 
-    /**
-     * 🚩 FAQ 전용 필터링 로직
-     * FAQ 엔티티는 poNum, poTitle, poContent 형식을 사용하므로 해당 필드로 매핑
-     */
     const filteredItems = useMemo(() => {
         const safePosts = Array.isArray(posts) ? posts : [];
         if (!appliedSearch) return safePosts;
@@ -33,7 +44,6 @@ const FAQList = ({ posts = [], goToDetail }) => {
         return safePosts.filter(p => {
             const title = (p.poTitle || "").toLowerCase();
             const content = (p.poContent || "").toLowerCase();
-            // FAQ의 경우 작성자는 보통 '관리자'로 표시되므로 검색 대상에서 고정값 처리 가능
             const author = "관리자".toLowerCase();
 
             switch (searchType) {
@@ -46,11 +56,9 @@ const FAQList = ({ posts = [], goToDetail }) => {
         });
     }, [posts, appliedSearch, searchType]);
     
-    // 페이징 계산
     const totalPages = Math.ceil(filteredItems.length / itemsPerPage) || 1;
     const currentItems = filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-    // 날짜 포맷 함수
     const formatDateTime = (dateString) => {
         if (!dateString) return "-";
         const date = new Date(dateString);
@@ -79,7 +87,8 @@ const FAQList = ({ posts = [], goToDetail }) => {
                 <tbody>
                     {currentItems.length > 0 ? (
                         currentItems.map((post) => (
-                            <tr key={post.poNum} onClick={() => goToDetail(post.poNum)} style={{cursor: 'pointer'}}>
+                            /* 🚩 여기 onClick에서 직접 handleGoToDetail을 호출하도록 수정했습니다. */
+                            <tr key={post.poNum} onClick={() => handleGoToDetail(post.poNum)} style={{cursor: 'pointer'}}>
                                 <td className="td-num">{post.poNum}</td>
                                 <td className="td-title">
                                     {post.poTitle}
@@ -95,7 +104,6 @@ const FAQList = ({ posts = [], goToDetail }) => {
                 </tbody>
             </table>
 
-            {/* 🚩 하단 레이아웃 영역: 공지사항과 완벽 통일 */}
             <div className="list-pagination-area">
                 <div className="page-buttons">
                     <button 
@@ -146,7 +154,6 @@ const FAQList = ({ posts = [], goToDetail }) => {
                         </div>
                     </div>
 
-                    {/* 🚩 관리자(ADMIN) 계정일 때만 글쓰기 버튼 노출 */}
                     {isAdmin && (
                         <button 
                             className="btn-write-footer" 

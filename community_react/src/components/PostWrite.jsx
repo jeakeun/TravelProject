@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 
-// 🚩 [수정] 8080 포트 차단을 피하기 위해 상대 경로("")로 변경합니다.
-// 이렇게 하면 현재 접속 중인 80포트를 통해 백엔드로 요청이 전달됩니다.
+// 🚩 [유지] 상대 경로 설정을 통한 포트 차단 방지
 const API_BASE_URL = "";
 
 function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }) {
@@ -75,10 +74,12 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
 
     const formData = new FormData();
     const authorNum = currentUser?.mbNum || currentUser?.mb_num || currentUser?.id || 1;
+    const authorNick = currentUser?.mbNickname || currentUser?.mb_nickname || currentUser?.nickname || "익명 사용자";
 
     formData.append('poTitle', title);
     formData.append('poContent', htmlContent);
     formData.append('poMbNum', String(authorNum));
+    formData.append('mbNickname', authorNick);
 
     if (imageFiles.length > 0) {
       imageFiles.forEach((file) => {
@@ -91,7 +92,9 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
       '여행 후기 게시판': 'reviewboard',
       '자유 게시판': 'freeboard',
       '이벤트': 'event',
-      '뉴스레터': 'newsletter'
+      '이벤트 게시판': 'event',
+      '뉴스레터': 'newsletter',
+      '자주 묻는 질문': 'faq'
     };
     
     const path = location.pathname;
@@ -100,13 +103,16 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
     else if (path.includes('/event')) urlDerivedBoard = 'event';
     else if (path.includes('/recommend')) urlDerivedBoard = 'recommend';
     else if (path.includes('/freeboard')) urlDerivedBoard = 'freeboard';
+    else if (path.includes('/faq')) urlDerivedBoard = 'faq';
 
     let categoryPath = propsBoardType || stateBoardType || urlDerivedBoard || boardParam || apiMap[activeMenu] || 'freeboard';
 
+    // 최종 경로 보정
     if (categoryPath === '이벤트' || categoryPath === '이벤트 게시판') categoryPath = 'event';
     if (categoryPath === '뉴스레터') categoryPath = 'newsletter';
     if (categoryPath === '여행 추천 게시판') categoryPath = 'recommend';
     if (categoryPath === '자유 게시판') categoryPath = 'freeboard';
+    if (categoryPath === '자주 묻는 질문') categoryPath = 'faq';
 
     const apiUrl = isEdit 
       ? `${API_BASE_URL}/api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.po_num || existingPost?.id}`
@@ -120,7 +126,7 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
         url: apiUrl,
         data: formData,
         headers: { 
-          'Content-Type': 'multipart/form-data',
+          // 🚩 [수정] Content-Type을 명시하지 않아야 브라우저가 boundary를 포함한 형식을 자동으로 지정합니다.
           ...(token && { 'Authorization': `Bearer ${token}` })
         },
         withCredentials: true
@@ -159,7 +165,7 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
   return (
     <div className="post-write-wrapper" style={{ padding: '0 20px' }}>
       <h2 style={{ marginBottom: '20px', color: '#2c3e50', fontSize: '1.2rem', fontWeight: '800' }}>
-        {activeMenu || (location.pathname.includes('newsletter') ? '뉴스레터' : location.pathname.includes('event') ? '이벤트 게시판' : boardParam)} {isEdit ? '수정하기' : '글쓰기'}
+        {activeMenu || (location.pathname.includes('newsletter') ? '뉴스레터' : location.pathname.includes('event') ? '이벤트 게시판' : location.pathname.includes('faq') ? '자주 묻는 질문' : boardParam)} {isEdit ? '수정하기' : '글쓰기'}
       </h2>
 
       <div style={{ background: '#fff', padding: '40px', borderRadius: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>

@@ -87,7 +87,12 @@ public class FreePostService {
         post.setPoDate(LocalDateTime.now());
         post.setPoView(0);
         post.setPoUp(0);
-        post.setPoDel("N");
+        post.setPoDel("N"); 
+        
+        if (post.getPoMbNum() == null) {
+            post.setPoMbNum(1); 
+        }
+
         handleImages(post, images);
         postRepository.save(post);
     }
@@ -106,7 +111,10 @@ public class FreePostService {
 
     @Transactional
     public void deletePost(Integer id) {
-        postRepository.findByPoNumAndPoDel(id, "N").ifPresent(p -> p.setPoDel("Y"));
+        postRepository.findByPoNumAndPoDel(id, "N").ifPresent(p -> {
+            p.setPoDel("Y");
+            postRepository.save(p); 
+        });
     }
 
     @Transactional
@@ -141,6 +149,8 @@ public class FreePostService {
         for (MultipartFile file : images) {
             if (!file.isEmpty()) {
                 String originalFileName = file.getOriginalFilename();
+                if (originalFileName == null || !originalFileName.contains(".")) continue;
+                
                 String extension = originalFileName.substring(originalFileName.lastIndexOf("."));
                 String fileName = UUID.randomUUID().toString() + extension;
 
@@ -149,7 +159,9 @@ public class FreePostService {
                 savedNames.add(fileName);
             }
         }
-        if (!savedNames.isEmpty()) post.setFileUrl(String.join(",", savedNames));
+        if (!savedNames.isEmpty()) {
+            post.setFileUrl(String.join(",", savedNames));
+        }
     }
 
     private Map<String, Object> convertToMap(FreePost p) {
@@ -163,23 +175,30 @@ public class FreePostService {
         map.put("poMbNum", p.getPoMbNum());
         map.put("commentCount", commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getPoNum(), "FREE", "N"));
         
-        // 🚩 [최종 해결] 
-        // 람다식 내부의 형변환에서 에러가 날 경우, Optional을 직접 꺼내서 타입 추론을 피합니다.
+        // 🚩 [수정] 엔티티의 연관 관계를 통해 직접 닉네임을 추출합니다.
         String nickname = "알 수 없는 사용자";
-        try {
-            // memberRepository가 Generic 타입 문제로 MemberVO를 못 찾을 때를 대비해
-            // 결과물을 Object로 받은 뒤 런타임에 처리합니다.
-            Object result = memberRepository.findById(p.getPoMbNum()).orElse(null);
-            if (result instanceof MemberVO) {
-                nickname = ((MemberVO) result).getMb_nickname();
-            }
-        } catch (Exception e) {
-            // 에러 시 기본값 유지
+        if (p.getMember() != null) {
+            nickname = p.getMember().getMbNickname(); 
+        } else {
+            // member가 null일 경우 대비하여 직접 조회 시도 (필요 시)
+            try {
+                memberRepository.findById(p.getPoMbNum()).ifPresent(m -> {
+                    // Member 엔티티의 닉네임 필드명에 맞춰 호출
+                    // 만약 엔티티 필드가 mbNickname이라면 getMbNickname() 사용
+                    map.put("mbNickname", m.getMbNickname());
+                });
+                if(map.get("mbNickname") != null) nickname = (String) map.get("mbNickname");
+            } catch (Exception e) {}
         }
+        
         map.put("mbNickname", nickname);
         
-        if (p.getFileUrl() != null && !p.getFileUrl().trim().isEmpty()) {
-            String firstImg = p.getFileUrl().split(",")[0].trim();
+        // 🚩 [추가] 리액트에서 post.member.mbNickname으로 접근할 수 있도록 객체 전달
+        map.put("member", p.getMember());
+        
+        String imgPath = p.getFileUrl();
+        if (imgPath != null && !imgPath.trim().isEmpty()) {
+            String firstImg = imgPath.split(",")[0].trim();
             map.put("fileUrl", SERVER_URL + firstImg);
             map.put("poImg", SERVER_URL + firstImg); 
         } else {

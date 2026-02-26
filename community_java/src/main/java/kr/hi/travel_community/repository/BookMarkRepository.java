@@ -1,6 +1,6 @@
 package kr.hi.travel_community.repository;
 
-import kr.hi.travel_community.entity.BookMark; // 엔티티 클래스명이 BookMark인지 확인
+import kr.hi.travel_community.entity.BookMark; 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -16,6 +16,12 @@ public interface BookMarkRepository extends JpaRepository<BookMark, Integer> {
     // 2. 토글용 존재 확인
     Optional<BookMark> findByBmMbNumAndBmPoNumAndBmPoType(Integer bmMbNum, Integer bmPoNum, String bmPoType);
 
-    // 3. 존재 여부 확인 (필요시 사용)
+    // 3. 존재 여부 확인
     boolean existsByBmMbNumAndBmPoNumAndBmPoType(Integer bmMbNum, Integer bmPoNum, String bmPoType);
+
+    /**
+     * 🚩 [추가] 점수 계산을 위한 특정 게시글의 즐겨찾기 총 개수 조회
+     * 서비스 레이어의 빨간 줄을 해결하기 위해 반드시 필요합니다.
+     */
+    long countByBmPoNumAndBmPoType(Integer bmPoNum, String bmPoType);
 }

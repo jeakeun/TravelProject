@@ -1,11 +1,22 @@
 package kr.hi.travel_community.entity;
 
-import jakarta.persistence.*;
-import lombok.Data;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Table(name = "free_post")
@@ -13,6 +24,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(exclude = "member") // 🚩 중요: 무한 루프 에러 방지
 public class FreePost {
 
     @Id
@@ -29,38 +41,42 @@ public class FreePost {
     @Column(name = "po_date", nullable = false, updatable = false)
     private LocalDateTime poDate;
 
-    // 초기값 0을 필드 선언 시 할당하여 DB/JPA 양쪽에서 안전하게 관리합니다.
+    @Builder.Default
     @Column(name = "po_view", nullable = false)
     private Integer poView = 0;
 
+    @Builder.Default
     @Column(name = "po_up", nullable = false)
     private Integer poUp = 0;
 
+    @Builder.Default
     @Column(name = "po_down", nullable = false)
     private Integer poDown = 0;
 
+    @Builder.Default
     @Column(name = "po_report", nullable = false)
     private Integer poReport = 0;
 
+    @Builder.Default
     @Column(name = "po_del", nullable = false, length = 1)
     private String poDel = "N";
 
     /**
-     * MemberVO의 mb_num이 int 타입이므로 Integer로 선언하여
-     * null 체크와 MyBatis 연동 시 타입 불일치 에러를 방지합니다.
+     * 🚩 JoinColumn과 충돌하지 않도록 설정 추가
      */
-    @Column(name = "po_mb_num", nullable = false)
+    @Column(name = "po_mb_num", insertable = false, updatable = false)
     private Integer poMbNum;
 
     /**
-     * [유지] DB 컬럼명은 po_img, 자바 필드명은 서비스와 호환되는 fileUrl
+     * 작성자 정보 조인
      */
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "po_mb_num")
+    private Member member; 
+
     @Column(name = "po_img", length = 1000)
     private String fileUrl;
 
-    /**
-     * 저장 전 null 방지 로직 유지
-     */
     @PrePersist
     public void prePersist() {
         if (this.poDate == null) this.poDate = LocalDateTime.now();

@@ -42,6 +42,9 @@ import ChangePassword from './auth/ChangePassword';
 
 axios.defaults.withCredentials = true;
 
+// 🚩 API 기본 URL 설정 (환경 변수 혹은 공백)
+const API_BASE_URL = process.env.REACT_APP_API_URL || "";
+
 function OpenLoginModal({ openLogin }) {
   const navigate = useNavigate();
   useEffect(() => {
@@ -163,13 +166,11 @@ function CommunityContainer({ posts, loadPosts, loading }) {
       <main className="main-content">
         <Routes>
           {isDestinationGroup && (
-            <>
-              <Route path="/" element={
-                location.pathname.startsWith('/domestic') 
-                ? <MainList photos={[]} activeMenu="국내여행" goToDetail={(id) => navigate(`/community/domestic/${id}`)} />
-                : <Main /> 
-              } />
-            </>
+            <Route path="/" element={
+              location.pathname.startsWith('/domestic') 
+              ? <MainList photos={posts} activeMenu="국내여행" goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />
+              : <Main /> 
+            } />
           )}
 
           {isCommunityGroup && (
@@ -187,7 +188,7 @@ function CommunityContainer({ posts, loadPosts, loading }) {
               <Route path="/" element={<Navigate to="freeboard" replace />} />
             </>
           )}
-        </Routes>
+        </Routes> community/recommend/
       </main>
     </div>
   );
@@ -218,11 +219,13 @@ function App() {
 
   const loadPosts = useCallback(async () => {
     const path = location.pathname;
-    const pathParts = path.split('/');
+    const pathParts = path.split('/').filter(Boolean);
     const lastPart = pathParts[pathParts.length - 1];
+    
     const isActionPage = ['write', 'edit', 'login', 'signup'].includes(lastPart) || (lastPart && !isNaN(lastPart));
     
-    if (isActionPage || path === '/') {
+    // 🚩 수정됨: 메인 경로('/')일 때 함수를 종료하지 않고 데이터를 불러오도록 처리
+    if (isActionPage) {
         setLoading(false);
         return;
     }
@@ -230,11 +233,16 @@ function App() {
     try {
       setLoading(true);
       let endpoint = ''; 
-      if (path.includes('freeboard')) endpoint = 'freeboard';
+      
+      // 🚩 추가됨: 메인 경로('/')일 때 기본적으로 recommend 데이터를 가져옵니다.
+      if (path === '/') endpoint = 'recommend';
+      else if (path.includes('freeboard')) endpoint = 'freeboard';
       else if (path.includes('event')) endpoint = 'event';
       else if (path.includes('newsletter')) endpoint = 'newsletter';
       else if (path.includes('recommend')) endpoint = 'recommend';
-      else if (path.includes('faq')) endpoint = 'faq'; // 🚩 FAQ 엔드포인트 추가
+      else if (path.includes('faq')) endpoint = 'faq';
+      else if (path.includes('domestic')) endpoint = 'freeboard'; 
+      else if (path.includes('notice')) endpoint = 'notice';
 
       if (!endpoint) {
         setLoading(false);
@@ -242,10 +250,11 @@ function App() {
       }
 
       const apiUrl = endpoint === 'recommend' 
-        ? `/api/recommend/posts/all`
-        : `/api/${endpoint}/posts`;
+        ? `${API_BASE_URL}/api/recommend/posts/all`
+        : `${API_BASE_URL}/api/${endpoint}/posts`;
 
       const response = await axios.get(apiUrl);
+      
       if (response.data && Array.isArray(response.data)) {
         const storageChange = localStorage.getItem('bookmark_changed');
         let syncData = null;
@@ -265,6 +274,8 @@ function App() {
             ...post,
             id: pId,
             isBookmarked: isBookmarked,
+            // 🚩 Main.jsx에서 recommend 게시글만 골라내기 위해 타입 명시
+            poBoardType: endpoint,
             authorNick: post.mbNickname || post.mb_nickname || post.mb_nick || post.mbNick || post.member?.mbNickname || post.member?.mb_nickname || `User ${post.poMbNum || post.po_mb_num}`
           };
         });
@@ -286,14 +297,16 @@ function App() {
 
   useEffect(() => {
     const handleSync = (e) => {
-      if (e.key === 'bookmark_changed') {
-        const data = JSON.parse(e.newValue);
-        setPosts(prev => prev.map(p => {
-          if (Number(p.id) === Number(data.id)) {
-            return { ...p, isBookmarked: data.state ? 'Y' : 'N' };
-          }
-          return p;
-        }));
+      if (e.key === 'bookmark_changed' && e.newValue) {
+        try {
+          const data = JSON.parse(e.newValue);
+          setPosts(prev => prev.map(p => {
+            if (Number(p.id) === Number(data.id)) {
+              return { ...p, isBookmarked: data.state ? 'Y' : 'N' };
+            }
+            return p;
+          }));
+        } catch(e) {}
       }
     };
     window.addEventListener('storage', handleSync);
@@ -303,12 +316,9 @@ function App() {
   useEffect(() => {
     const saved = localStorage.getItem('user');
     if (saved) return; 
-    fetch("/auth/refresh", { method: "POST", credentials: "include" })
+    axios.post(`${API_BASE_URL}/auth/refresh`, {}, { credentials: "include" })
       .then((res) => {
-        if (!res.ok) return;
-        return res.json();
-      })
-      .then((data) => {
+        const data = res.data;
         if (!data?.member && !data?.accessToken) return;
         const member = data.member;
         if (member) {
@@ -333,7 +343,7 @@ function App() {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('accessToken');
-    fetch("/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
+    axios.post(`${API_BASE_URL}/auth/logout`, {}, { credentials: "include" }).catch(() => {});
   }, []);
 
   const openLogin = useCallback(() => {
@@ -373,8 +383,8 @@ function App() {
       }>
         <Route path="/" element={<Main />} />
         
-        <Route path="/domestic" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
-        <Route path="/foreigncountry" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
+        <Route path="/domestic/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
+        <Route path="/foreigncountry/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
         <Route path="/Domestic" element={<Navigate to="/domestic" replace />} />
 
         <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
@@ -387,9 +397,10 @@ function App() {
         <Route path="/news/newsletter/write" element={<PostWrite activeMenu="뉴스레터" boardType="newsletter" refreshPosts={loadPosts} />} />
         <Route path="/news/newsletter/:poNum" element={<NewsLetterDetail />} />
 
-        {/* 🚩 FAQ(자주 묻는 질문) 라우트 추가 */}
         <Route path="/cscenter/faq" element={<FAQList posts={posts} />} />
-        <Route path="/cscenter/faq/:poNum" element={<FAQDetail />} />
+        <Route path="/cscenter/faq/write" element={<PostWrite activeMenu="자주 묻는 질문" boardType="faq" refreshPosts={loadPosts} />} />
+        <Route path="/cscenter/faq/posts/:id" element={<FAQDetail />} />
+        <Route path="/cscenter/faq/edit/:id" element={<PostWrite activeMenu="자주 묻는 질문" boardType="faq" refreshPosts={loadPosts} isEdit={true} />} />
 
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/admin" element={<AdminPage />} />
