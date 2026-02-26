@@ -88,7 +88,7 @@ const RecommendPostDetail = () => {
                 boardType: 'recommend', 
                 poNum: Number(id), 
                 poTitle: postRes.data?.poTitle || postRes.data?.po_title 
-            });
+            }, currentUserNum);
 
             const commentRes = await axios.get(`${SERVER_URL}/api/comment/list/${id}`);
             setComments(commentRes.data || []);

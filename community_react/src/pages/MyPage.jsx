@@ -75,7 +75,11 @@ function MyPage() {
   }, [loadMyPosts]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setBookmarks([]);
+      return;
+    }
+    setBookmarks([]);
     const fetchBookmarks = async () => {
       try {
         const res = await api.get("/api/mypage/bookmarks");
@@ -85,7 +89,7 @@ function MyPage() {
       }
     };
     fetchBookmarks();
-  }, [user]);
+  }, [user?.mb_num ?? user?.mbNum]);
 
   useEffect(() => {
     if (!user) return;
@@ -124,7 +128,7 @@ function MyPage() {
     navigate(`/community/${post.boardType}/${post.poNum || post.id}`);
   };
 
-  const recentViews = getRecentViews(5);
+  const recentViews = getRecentViews(5, user?.mb_num ?? user?.mbNum);
   const handleRemoveBookmark = async (e, bmNum) => {
     e.stopPropagation();
     e.preventDefault();

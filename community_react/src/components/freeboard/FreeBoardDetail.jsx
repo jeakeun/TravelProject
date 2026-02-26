@@ -42,7 +42,7 @@ const FreeBoardDetail = () => {
             // 🚩 고정된 SERVER_URL을 사용하여 게시글 상세 정보 호출
             const res = await axios.get(`${SERVER_URL}/api/freeboard/posts/${id}`);
             setPost(res.data);
-            addRecentView({ boardType: 'freeboard', poNum: Number(id), poTitle: res.data?.poTitle });
+            addRecentView({ boardType: 'freeboard', poNum: Number(id), poTitle: res.data?.poTitle }, currentUserNum);
         } catch (err) {
             console.error("상세보기 로딩 에러:", err);
             alert("게시글을 불러올 수 없습니다.");
