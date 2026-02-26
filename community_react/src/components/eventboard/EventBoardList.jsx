@@ -14,7 +14,7 @@ const EventBoardList = ({ posts = [] }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const postsPerPage = 6; 
 
-    const SERVER_URL = "http://localhost:8080";
+    const SERVER_URL = "http://";
     const fallbackImage = "https://placehold.co/300x200?text=No+Image";
 
     // 관리자 여부 확인

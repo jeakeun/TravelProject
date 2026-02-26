@@ -19,7 +19,7 @@ const NoticeDetail = () => {
         
         try {
             setLoading(true);
-            const res = await axios.get(`http://localhost:8080/api/notice/posts/${id}`, { withCredentials: true });
+            const res = await axios.get(`http:///api/notice/posts/${id}`, { withCredentials: true });
             setPost(res.data);
         } catch (err) {
             alert("게시글을 불러올 수 없습니다.");
@@ -34,7 +34,7 @@ const NoticeDetail = () => {
     const handleDelete = async () => {
         if (!window.confirm("삭제하시겠습니까?")) return;
         try {
-            await axios.delete(`http://localhost:8080/api/news/notice/posts/${id}`);
+            await axios.delete(`http:///api/news/notice/posts/${id}`);
             alert("삭제되었습니다.");
             navigate('/news/notice');
         } catch (err) {

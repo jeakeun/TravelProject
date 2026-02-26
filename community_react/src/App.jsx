@@ -237,8 +237,8 @@ function App() {
       }
 
       const apiUrl = endpoint === 'recommend' 
-        ? `http://localhost:8080/api/recommend/posts/all`
-        : `http://localhost:8080/api/${endpoint}/posts`;
+        ? `http:///api/recommend/posts/all`
+        : `http:///api/${endpoint}/posts`;
 
       const response = await axios.get(apiUrl);
       if (response.data && Array.isArray(response.data)) {
@@ -299,7 +299,7 @@ function App() {
   useEffect(() => {
     const saved = localStorage.getItem('user');
     if (saved) return; 
-    fetch("http://localhost:8080/auth/refresh", { method: "POST", credentials: "include" })
+    fetch("http:///auth/refresh", { method: "POST", credentials: "include" })
       .then((res) => {
         if (!res.ok) return;
         return res.json();
@@ -329,7 +329,7 @@ function App() {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('accessToken');
-    fetch("http://localhost:8080/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
+    fetch("http:///auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
   }, []);
 
   const openLogin = useCallback(() => {

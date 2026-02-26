@@ -16,7 +16,7 @@ function Login({ onClose, onLogin, onOpenSignup, onOpenFindPw }) {
     if (!cleanedPw) return alert("비밀번호를 입력하세요.");
 
     try {
-      const response = await fetch("http://localhost:8080/login", {
+      const response = await fetch("http:///login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // ✅ refreshToken 쿠키 받기/보내기

@@ -27,7 +27,7 @@ function ChangePassword({ onClose, userId }) {
     }
 
     try {
-      const res = await fetch("http://localhost:8080/auth/change-password", {
+      const res = await fetch("http:///auth/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

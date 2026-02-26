@@ -35,7 +35,7 @@ const RecommendPostDetail = () => {
     const isAdmin = user ? (Number(user.mbLevel ?? user.mb_score ?? 0) >= 10 || user.mb_rol === 'ADMIN') : false; 
 
     const isNumericId = id && !isNaN(Number(id)) && id !== "write";
-    const SERVER_URL = "http://localhost:8080";
+    const SERVER_URL = "http://";
 
     const fixImagePaths = (content) => {
         if (!content) return "";

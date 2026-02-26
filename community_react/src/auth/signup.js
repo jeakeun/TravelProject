@@ -43,7 +43,7 @@ function Signup({ onClose }) {
     }
 
     try {
-      const response = await fetch("http://localhost:8080/signup", {
+      const response = await fetch("http:///signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, pw, email, agree }),

@@ -29,7 +29,7 @@ const NewsNotice = ({ goToDetail }) => {
         const fetchLatestPosts = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get('http://localhost:8080/api/posts');
+                const response = await axios.get('http:///api/posts');
                 const noticeData = response.data
                     .filter(p => p.category?.trim() === "공지사항")
                     .sort((a, b) => b.postId - a.postId);

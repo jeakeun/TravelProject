@@ -38,7 +38,7 @@ function Main() {
   const { currentLang, posts = [] } = outletContext;
 
   const t = carouselTranslations[currentLang] || carouselTranslations["KR"];
-  const SERVER_URL = "http://localhost:8080";
+  const SERVER_URL = "http://";
 
   // 🚩 [데이터 로직] 추천 게시판 1,2,3위 추출 (조회수 기준 정렬)
   const topThree = useMemo(() => {
