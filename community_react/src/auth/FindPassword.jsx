@@ -6,7 +6,7 @@ function FindPassword({ onClose, onBackToLogin, onGoResetPassword }) {
   const [email, setEmail] = useState("");
 
   // 🚩 [수정] 배포 서버 주소 설정
-  const API_BASE_URL = "http://3.37.160.108:8080";
+  const API_BASE_URL = "http://localhost:8080";
 
   const submitHandler = async (e) => {
     e.preventDefault();

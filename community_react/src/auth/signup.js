@@ -10,7 +10,7 @@ function Signup({ onClose }) {
   const [showTerms, setShowTerms] = useState(false);
 
   // 🚩 [수정] 배포 서버 주소 설정
-  const API_BASE_URL = "http://3.37.160.108:8080";
+  const API_BASE_URL = "http://localhost:8080";
 
   // 노란 줄(Warning) 해결: 이 함수를 아래 버튼에서 호출하도록 연결함
   const fillRandom = () => {

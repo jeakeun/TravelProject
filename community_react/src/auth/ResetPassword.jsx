@@ -6,7 +6,7 @@ function ResetPassword({ onClose, onBackToFindPw, userId }) {
   const [newPw2, setNewPw2] = useState("");
 
   // 🚩 [수정] 배포 서버 주소 설정
-  const API_BASE_URL = "http://3.37.160.108:8080";
+  const API_BASE_URL = "http://localhost:8080";
 
   const submitHandler = async (e) => {
     e.preventDefault();

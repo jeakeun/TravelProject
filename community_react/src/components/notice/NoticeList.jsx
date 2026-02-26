@@ -16,7 +16,7 @@ const NoticeList = ({ posts = [], goToDetail }) => {
     const isAdmin = user && user.mbRol === 'ADMIN';
 
     // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정
-    const SERVER_URL = "http://3.37.160.108:8080";
+    const SERVER_URL = "http://localhost:8080";
 
     // 검색 실행 함수
     const handleSearch = () => {

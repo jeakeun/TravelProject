@@ -42,7 +42,7 @@ import ResetPassword from './auth/ResetPassword';
 import ChangePassword from './auth/ChangePassword';
 
 // API BASE URL 설정
-const API_BASE_URL = "http://3.37.160.108:8080"; 
+const API_BASE_URL = "http://localhost:8080"; 
 
 axios.defaults.withCredentials = true;
 

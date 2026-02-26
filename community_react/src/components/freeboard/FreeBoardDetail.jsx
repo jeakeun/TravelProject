@@ -18,7 +18,7 @@ const FreeBoardDetail = () => {
     const currentUserNum = getMemberNum(user);
 
     // 🚩 [수정] 자동 배포 환경을 위해 배포 서버 IP로 고정 설정
-    const SERVER_URL = "http://3.37.160.108:8080";
+    const SERVER_URL = "http://localhost:8080";
 
     /**
      * 🚩 본문 내 이미지 경로를 영구 저장소 경로로 변환

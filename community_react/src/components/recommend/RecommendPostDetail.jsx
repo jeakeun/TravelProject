@@ -8,7 +8,7 @@ import ReportModal from '../ReportModal';
 import './RecommendPostDetail.css';
 
 // 🚩 [수정] App.js와 동일하게 배포 서버 및 포트 8080 설정 유지
-const API_BASE_URL = "http://3.37.160.108:8080";
+const API_BASE_URL = "http://localhost:8080";
 const SERVER_URL = API_BASE_URL;
 
 const RecommendPostDetail = () => {

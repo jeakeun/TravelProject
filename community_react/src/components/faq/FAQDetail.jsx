@@ -22,7 +22,7 @@ const FAQDetail = () => {
     const isAdmin = isLoggedIn && user.mbRol === 'ADMIN';
 
     // 🚩 AWS 자동 배포 환경 서버 URL 유지
-    const SERVER_URL = "http://3.37.160.108:8080";
+    const SERVER_URL = "http://localhost:8080";
 
     const formatContent = (content) => {
         if (!content) return "";

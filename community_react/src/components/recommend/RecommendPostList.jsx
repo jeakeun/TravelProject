@@ -5,7 +5,7 @@ import api from '../../api/axios';
 import './Recommend.css'; 
 
 // 🚩 [수정] 배포 서버 주소 설정 (포트 8080 유지)
-const API_BASE_URL = "http://3.37.160.108:8080";
+const API_BASE_URL = "http://localhost:8080";
 const SERVER_URL = `${API_BASE_URL}/pic/`;
 
 const RecommendPostList = () => {

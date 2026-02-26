@@ -23,7 +23,7 @@ const NewsLetterDetail = () => {
     const isAdmin = user ? (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN' || user.mbLevel >= 10) : false; 
 
     // 서버 설정 (이벤트 게시판과 동일하게 유지)
-    const SERVER_URL = "http://3.37.160.108:8080";
+    const SERVER_URL = "http://localhost:8080";
 
     // poNum이 숫자인지 확인
     const isNumericId = poNum && !isNaN(Number(poNum));

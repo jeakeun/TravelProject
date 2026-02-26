@@ -1,6 +1,6 @@
 export async function authFetch(url, options = {}) {
   // 🚩 [수정] 배포 서버 주소 설정
-  const API_BASE_URL = "http://3.37.160.108:8080";
+  const API_BASE_URL = "http://localhost:8080";
 
   let res = await fetch(url, {
     ...options,

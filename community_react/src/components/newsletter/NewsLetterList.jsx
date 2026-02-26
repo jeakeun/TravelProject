@@ -17,7 +17,7 @@ const NewsLetterList = ({ posts = [] }) => {
     const postsPerPage = 6; 
 
     // 서버 및 이미지 설정 (이벤트 게시판과 동일)
-    const SERVER_URL = "http://3.37.160.108:8080";
+    const SERVER_URL = "http://localhost:8080";
     const fallbackImage = "https://placehold.co/300x200?text=No+Image";
 
     // 관리자 여부 확인

@@ -11,7 +11,7 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
     const itemsPerPage = 10; 
 
     // 🚩 [수정] 자동 배포 환경을 위해 배포 서버 IP로 고정 설정
-    const SERVER_URL = "http://3.37.160.108:8080";
+    const SERVER_URL = "http://localhost:8080";
 
     // 검색 실행 함수
     const handleSearch = () => {
