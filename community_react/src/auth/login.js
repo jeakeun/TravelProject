@@ -7,7 +7,8 @@ function Login({ onClose, onLogin, onOpenSignup, onOpenFindPw }) {
   const [rememberMe, setRememberMe] = useState(false);
 
   // 🚩 [확인] 모든 로그인 요청은 배포된 서버 IP인 3.37.160.108을 향하도록 고정합니다.
-  const API_BASE_URL = "http://3.37.160.108:8080";
+  //const API_BASE_URL = "http://3.37.160.108:8080";
+  const API_BASE_URL = "http://localhost:8080";
 
   const submitHandler = async (e) => {
     e.preventDefault();
