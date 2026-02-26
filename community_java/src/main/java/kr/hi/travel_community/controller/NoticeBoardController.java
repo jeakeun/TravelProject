@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import kr.hi.travel_community.entity.Notice;
+import kr.hi.travel_community.entity.NoticePost; // 🚩 NoticePost로 임포트 확인
 import kr.hi.travel_community.model.util.CustomUser;
 import kr.hi.travel_community.model.vo.MemberVO;
 import kr.hi.travel_community.service.NoticeBoardService;
@@ -42,8 +42,9 @@ public class NoticeBoardController {
     }
 
     // 🚩 공지사항 저장 (관리자만 가능)
+    // 🚩 [수정] Notice 타입을 NoticePost로 변경
     @PostMapping("/posts")
-    public ResponseEntity<String> savePost(Authentication authentication, @RequestBody Notice post) {
+    public ResponseEntity<String> savePost(Authentication authentication, @RequestBody NoticePost post) {
         try {
             // ✅ 관리자 권한 체크
             if (!isAdmin(authentication)) {

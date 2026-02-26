@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import kr.hi.travel_community.entity.Notice;
+import kr.hi.travel_community.entity.NoticePost; // 🚩 NoticePost로 임포트 변경
 import kr.hi.travel_community.mapper.LikeMapper;
 import kr.hi.travel_community.model.vo.MemberVO;
 import kr.hi.travel_community.repository.MemberRepository;
@@ -70,7 +70,7 @@ public class NoticeBoardService {
     }
 
     @Transactional
-    public void savePost(Notice post) {
+    public void savePost(NoticePost post) { // 🚩 타입 변경
         post.setNnDate(LocalDateTime.now());
         post.setNnView(0);
         post.setNnUp(0);
@@ -83,7 +83,7 @@ public class NoticeBoardService {
 
     @Transactional
     public void updatePost(Integer id, String title, String content) {
-        Notice post = postRepository.findByNnNumAndNnDel(id, "N")
+        NoticePost post = postRepository.findByNnNumAndNnDel(id, "N") // 🚩 타입 변경
                 .orElseThrow(() -> new RuntimeException("게시글 없음"));
         post.setNnTitle(title);
         post.setNnContent(content);
@@ -101,7 +101,7 @@ public class NoticeBoardService {
     @Transactional
     public String toggleLikeStatus(Integer nnNum, Integer mbNum) {
         int count = likeMapper.checkLikeStatus(nnNum, mbNum);
-        Notice post = postRepository.findByNnNumAndNnDel(nnNum, "N")
+        NoticePost post = postRepository.findByNnNumAndNnDel(nnNum, "N") // 🚩 타입 변경
                 .orElseThrow(() -> new RuntimeException("공지사항 없음"));
 
         if (count == 0) {
@@ -130,7 +130,7 @@ public class NoticeBoardService {
         }
     }
 
-    private Map<String, Object> convertToMap(Notice p) {
+    private Map<String, Object> convertToMap(NoticePost p) { // 🚩 타입 변경
         Map<String, Object> map = new HashMap<>();
         map.put("nnNum", p.getNnNum());
         map.put("nnTitle", p.getNnTitle());

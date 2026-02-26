@@ -24,13 +24,20 @@ public class NoticePostService {
     private final NoticeRepository postRepository;
     private final CommentRepository commentRepository;
 
+    /**
+     * 🚩 삭제되지 않은 공지사항 전체 목록 조회
+     */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getRealAllPosts() {
         // nn_del = 'N' 데이터만 조회
         return postRepository.findByNnDelOrderByNnNumDesc("N").stream()
-                .map(this::convertToMap).collect(Collectors.toList());
+                .map(this::convertToMap)
+                .collect(Collectors.toList());
     }
 
+    /**
+     * 🚩 조회수 증가 (쿠키 이용)
+     */
     @Transactional
     public void increaseViewCount(Integer id, HttpServletRequest request, HttpServletResponse response) {
         Cookie[] cookies = request.getCookies();
@@ -51,6 +58,9 @@ public class NoticePostService {
         }
     }
 
+    /**
+     * 🚩 공지사항 상세 조회
+     */
     @Transactional(readOnly = true)
     public Map<String, Object> getPostDetail(Integer id, Integer mbNum) {
         return postRepository.findByNnNumAndNnDel(id, "N").map(p -> {
@@ -61,6 +71,9 @@ public class NoticePostService {
         }).orElse(null);
     }
 
+    /**
+     * 🚩 게시글 저장
+     */
     @Transactional
     public void savePost(NoticePost post) {
         post.setNnDate(LocalDateTime.now());
@@ -70,23 +83,35 @@ public class NoticePostService {
         postRepository.save(post);
     }
 
+    /**
+     * 🚩 게시글 수정
+     */
     @Transactional
     public void updatePost(Integer id, String title, String content) {
         NoticePost post = postRepository.findByNnNumAndNnDel(id, "N")
                 .orElseThrow(() -> new RuntimeException("게시글 없음"));
         post.setNnTitle(title);
         post.setNnContent(content);
+        // JPA 영속성 컨텍스트에 의해 save를 호출하지 않아도 변경 감지(Dirty Checking)로 업데이트되지만, 명시적으로 추가 가능
         postRepository.save(post);
     }
 
+    /**
+     * 🚩 게시글 논리 삭제
+     */
     @Transactional
     public void deletePost(Integer id) {
-        postRepository.findByNnNumAndNnDel(id, "N").ifPresent(p -> p.setNnDel("Y"));
+        postRepository.findByNnNumAndNnDel(id, "N").ifPresent(p -> {
+            p.setNnDel("Y");
+            postRepository.save(p);
+        });
     }
 
+    /**
+     * 🚩 엔티티를 프론트엔드용 Map으로 변환
+     */
     private Map<String, Object> convertToMap(NoticePost p) {
         Map<String, Object> map = new HashMap<>();
-        // DDL 규격 nn_ 접두어 필드 매핑
         map.put("nnNum", p.getNnNum());
         map.put("nnTitle", p.getNnTitle());
         map.put("nnContent", p.getNnContent());
