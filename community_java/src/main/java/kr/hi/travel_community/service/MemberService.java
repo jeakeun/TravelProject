@@ -1,5 +1,7 @@
 package kr.hi.travel_community.service;
 
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,9 @@ public class MemberService {
 
     @Autowired
     private BCryptPasswordEncoder encoder;
+
+    @Autowired
+    private KakaoAuthService kakaoAuthService;
 
     /**
      * 회원가입 로직: 아이디, 비밀번호, 이메일 삽입 (비밀번호 확인은 프론트에서 검증)
@@ -110,6 +115,7 @@ public class MemberService {
 
     /**
      * ✅ 로그인 사용자 비밀번호 변경: 현재 비밀번호 확인 후 새 비밀번호로 변경
+     * 카카오 로그인 사용자는 비밀번호 변경 불가
      */
     public boolean changePassword(String id, String currentPw, String newPw) {
         try {
@@ -119,6 +125,7 @@ public class MemberService {
 
             MemberVO member = memberDAO.selectMemberById(id.trim());
             if (member == null) return false;
+            if ("kakao".equalsIgnoreCase(member.getMb_provider())) return false;
             if (!encoder.matches(currentPw.trim(), member.getMb_pw())) return false;
 
             String encodedPw = encoder.encode(newPw.trim());
@@ -156,6 +163,7 @@ public class MemberService {
 
     /**
      * ✅ 이메일 변경: 로그인 사용자 본인만 가능. 새 이메일 중복 시 실패.
+     * 카카오 로그인 사용자는 이메일 수정 불가 (카카오 API 데이터 보호)
      */
     @Transactional
     public boolean updateEmail(String id, String newEmail) {
@@ -165,6 +173,7 @@ public class MemberService {
 
             MemberVO member = memberDAO.selectMemberById(id.trim());
             if (member == null) return false;
+            if ("kakao".equalsIgnoreCase(member.getMb_provider())) return false;
 
             String emailTrim = newEmail.trim();
             // 다른 회원이 이미 사용 중인 이메일이면 실패
@@ -236,16 +245,24 @@ public class MemberService {
     }
 
     /**
-     * ✅ 회원 탈퇴: 비밀번호 확인 후 계정 삭제
+     * ✅ 회원 탈퇴: 비밀번호 확인 후 계정 삭제.
+     * 카카오 로그인 사용자는 비밀번호 없이 확인만으로 탈퇴 가능.
      */
     @Transactional
     public boolean withdraw(String id, String password) {
         try {
             if (id == null || id.trim().isEmpty()) return false;
-            if (password == null || password.trim().isEmpty()) return false;
 
             MemberVO member = memberDAO.selectMemberById(id.trim());
             if (member == null) return false;
+
+            if ("kakao".equalsIgnoreCase(member.getMb_provider())) {
+                // 카카오 회원: 비밀번호 검증 없이 탈퇴
+                int deleted = memberDAO.deleteMemberById(id.trim());
+                return deleted > 0;
+            }
+
+            if (password == null || password.trim().isEmpty()) return false;
             if (!encoder.matches(password.trim(), member.getMb_pw())) return false;
 
             int deleted = memberDAO.deleteMemberById(id.trim());
@@ -253,6 +270,42 @@ public class MemberService {
         } catch (Exception e) {
             e.printStackTrace();
             return false;
+        }
+    }
+
+    /**
+     * 카카오 인증 코드로 로그인 또는 자동 회원가입
+     * @return 로그인된 회원 정보 (없으면 null)
+     */
+    @Transactional
+    public MemberVO kakaoLoginOrSignup(String code) {
+        try {
+            if (code == null || code.trim().isEmpty()) return null;
+            String accessToken = kakaoAuthService.exchangeCodeForToken(code.trim());
+            Map<String, Object> kakaoUser = kakaoAuthService.getUserInfo(accessToken);
+
+            long kakaoId = ((Number) kakaoUser.get("id")).longValue();
+            String nickname = (String) kakaoUser.get("nickname");
+            String email = (String) kakaoUser.get("email");
+
+            String kakaoUid = "kakao_" + kakaoId;
+            MemberVO existing = memberDAO.selectMemberByKakaoId(kakaoUid);
+            if (existing != null) {
+                existing.setMb_pw(null);
+                return existing;
+            }
+
+            // 신규 가입: placeholder 비밀번호 (사용 안 함)
+            String placeholderPw = encoder.encode(java.util.UUID.randomUUID().toString());
+            boolean inserted = memberDAO.insertMemberKakao(kakaoUid, nickname, placeholderPw, email);
+            if (!inserted) return null;
+
+            MemberVO created = memberDAO.selectMemberByKakaoId(kakaoUid);
+            if (created != null) created.setMb_pw(null);
+            return created;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }
