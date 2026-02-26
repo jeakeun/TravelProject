@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "./Main.css";
 import { useOutletContext, useNavigate } from "react-router-dom";
+import NavigationBar from "./NavigationBar";
 
 const carouselTranslations = {
   KR: {
@@ -109,6 +110,7 @@ function Main() {
 
   return (
     <div className="main-container">
+      <NavigationBar />
       {/* ===== 메인 비디오 ===== */}
       <section id="main-video">
         <iframe 
