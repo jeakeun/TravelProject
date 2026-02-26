@@ -18,7 +18,7 @@ function ResetPassword({ onClose, onBackToFindPw, userId }) {
     }
 
     try {
-      const res = await fetch("http:///auth/reset-password", {
+      const res = await fetch("/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: userId, newPw }),

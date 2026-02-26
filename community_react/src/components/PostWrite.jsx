@@ -112,8 +112,8 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
     if (categoryPath === '자유 게시판') categoryPath = 'freeboard';
 
     const apiUrl = isEdit 
-      ? `http:///api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.po_num || existingPost?.id}`
-      : `http:///api/${categoryPath}/posts`;
+      ? `/api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.po_num || existingPost?.id}`
+      : `/api/${categoryPath}/posts`;
 
     const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
 

@@ -23,7 +23,7 @@ function FindPassword({ onClose, onBackToLogin, onGoResetPassword }) {
     const payload = { id: trimmedId, email: trimmedEmail };
 
     try {
-      const res = await fetch("http:///auth/verify-user", {
+      const res = await fetch("/auth/verify-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

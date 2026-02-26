@@ -49,7 +49,7 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
         return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
-    const SERVER_URL = "http://";
+    const SERVER_URL = "";
 
     const goToDetail = (id) => {
         if (!id) return;

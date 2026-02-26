@@ -17,7 +17,7 @@ const EventBoardDetail = () => {
     const [isLiked, setIsLiked] = useState(false);
 
     const isLoggedIn = !!user; 
-    const SERVER_URL = "http://";
+    const SERVER_URL = "";
 
     // 유저 번호 추출 (mb_num 또는 mbNum 대응)
     const currentUserNum = user ? (user.mb_num || user.mbNum) : null; 

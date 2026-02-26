@@ -7,7 +7,7 @@ function PhotoDetail() {
   const [photo, setPhoto] = useState(null);
 
   useEffect(() => {
-    api.get(`http:///api/photos/${id}`)
+    api.get(`/api/photos/${id}`)
       .then(res => setPhoto(res.data))
       .catch(err => console.log(err));
   }, [id]);

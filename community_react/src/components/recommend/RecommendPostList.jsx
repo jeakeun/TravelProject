@@ -15,13 +15,13 @@ const RecommendPostList = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const postsPerPage = 10;
 
-    const SERVER_URL = "http:///pic/";
+    const SERVER_URL = "/pic/";
 
     // 데이터 패칭 함수
     const fetchPosts = useCallback(async (type = "", keyword = "") => {
         setLoading(true);
         try {
-            let url = 'http:///api/recommend/posts/all';
+            let url = '/api/recommend/posts/all';
             if (keyword) {
                 url += `?type=${type}&keyword=${encodeURIComponent(keyword)}`;
             }

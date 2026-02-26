@@ -20,7 +20,7 @@ const NewsLetterDetail = () => {
     const currentUserNum = user ? (user.mb_num || user.mbNum) : null; 
     const isAdmin = user ? (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN' || user.mbLevel >= 10) : false; 
 
-    const SERVER_URL = "http://";
+    const SERVER_URL = "";
 
     // poNum이 숫자인지 확인
     const isNumericId = poNum && !isNaN(Number(poNum));

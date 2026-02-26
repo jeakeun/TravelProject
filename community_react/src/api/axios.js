@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: 'http://', // localhost를 실제 IP로 변경!
+  baseURL: '', // localhost를 실제 IP로 변경!
   withCredentials: true, // ✅ refreshToken 쿠키 포함
   headers: {
     "Content-Type": "application/json",
@@ -65,14 +65,14 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshRes = await fetch("http:///auth/refresh", {
+        const refreshRes = await fetch("/auth/refresh", {
           method: "POST",
           credentials: "include",
         });
 
         if (!refreshRes.ok) {
           // refresh 실패 → 서버 쿠키 삭제 + 로컬 정리
-          await fetch("http:///auth/logout", {
+          await fetch("/auth/logout", {
             method: "POST",
             credentials: "include",
           }).catch(() => {});

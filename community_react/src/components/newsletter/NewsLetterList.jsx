@@ -14,7 +14,7 @@ const NewsLetterList = ({ posts = [] }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const postsPerPage = 6; 
 
-    const SERVER_URL = "http://";
+    const SERVER_URL = "";
     const fallbackImage = "https://placehold.co/300x200?text=No+Image";
 
     // 관리자 여부 확인

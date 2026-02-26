@@ -194,7 +194,7 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
                 // 🚩 데이터 필드 호환성 유지
                 const postId = photo.poNum || photo.po_num || photo.postId;
                 const displayTitle = photo.poTitle || photo.po_title || photo.title;
-                const displayImg = photo.fileUrl || (photo.poImg ? `http:///pic/${photo.poImg.split(',')[0]}` : FALLBACK_IMAGE);
+                const displayImg = photo.fileUrl || (photo.poImg ? `/pic/${photo.poImg.split(',')[0]}` : FALLBACK_IMAGE);
 
                 return (
                   <div key={postId || idx} className="photo-card" onClick={() => goToDetail(postId)} style={{ position: 'relative' }}>

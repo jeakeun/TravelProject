@@ -16,7 +16,7 @@ const FreeBoardDetail = () => {
 
     const isLoggedIn = !!user;
     const currentUserNum = getMemberNum(user);
-    const SERVER_URL = "http://";
+    const SERVER_URL = "";
 
     /**
      * 🚩 본문 내 이미지 경로를 영구 저장소 경로로 변환
