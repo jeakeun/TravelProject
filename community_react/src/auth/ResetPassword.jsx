@@ -38,7 +38,7 @@ function ResetPassword({ onClose, onBackToFindPw, userId }) {
   };
 
   return (
-    <div className="modalStyle" onClick={onClose}>
+    <div className="modalStyle">
       <div className="modalContentStyle" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="modal-close-btn" onClick={onClose}>
           &times;
