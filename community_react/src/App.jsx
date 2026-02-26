@@ -299,7 +299,7 @@ function App() {
   useEffect(() => {
     const saved = localStorage.getItem('user');
     if (saved) return; 
-    fetch("/auth/refresh", { method: "POST", credentials: "include" })
+    fetch("http://3.37.160.108:8080/auth/refresh", { method: "POST", credentials: "include" })
       .then((res) => {
         if (!res.ok) return;
         return res.json();
