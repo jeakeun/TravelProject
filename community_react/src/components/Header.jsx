@@ -56,7 +56,8 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
                 <li className="nav-item"><Link to="/">{t.nav_news}</Link></li>
                 <li className="nav-item"><span className="nav-item-trigger">{t.nav_dest}</span></li>
                 <li className="nav-item"><Link to="/community/recommend">{t.nav_board}</Link></li>
-                <li className="nav-item"><Link to="/">{t.nav_cs}</Link></li>
+                {/* 🚩 고객센터 메인 메뉴 클릭 시 FAQ로 연결 */}
+                <li className="nav-item"><Link to="/cscenter/faq">{t.nav_cs}</Link></li>
               </ul>
             </nav>
             <div className="mega-menu-content">
@@ -89,9 +90,11 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
               </div>
               <div className="menu-column">
                 <ul>
-                  <li><Link to="/">{t.cs_faq}</Link></li>
+                  {/* 🚩 자주 묻는 질문(FAQ) 메뉴 연결 */}
+                  <li><Link to="/cscenter/faq">{t.cs_faq}</Link></li>
                   <li><Link to="/inquiry">{t.cs_inquiry}</Link></li>
-                  <li><Link to="/">{t.cs_guide}</Link></li>
+                  {/* 🚩 이용 가이드 메뉴를 /cscenter/userguide 경로로 연결 */}
+                  <li><Link to="/cscenter/userguide">{t.cs_guide}</Link></li>
                 </ul>
               </div>
             </div>

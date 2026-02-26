@@ -25,6 +25,11 @@ import NewsLetterDetail from './components/newsletter/NewsLetterDetail';
 
 import NoticeList from './components/notice/NoticeList';
 import NoticeDetail from './components/notice/NoticeDetail';
+
+// FAQ 컴포넌트 임포트
+import FAQList from './components/faq/FAQList';
+import FAQDetail from './components/faq/FAQDetail';
+
 import MyPage from './pages/MyPage';
 import AdminPage from './pages/AdminPage';
 import InquiryPage from './pages/InquiryPage';
@@ -36,7 +41,7 @@ import FindPassword from './auth/FindPassword';
 import ResetPassword from './auth/ResetPassword';
 import ChangePassword from './auth/ChangePassword';
 
-// 🚩 API BASE URL 설정
+// API BASE URL 설정
 const API_BASE_URL = "http://3.37.160.108:8080"; 
 
 axios.defaults.withCredentials = true;
@@ -123,23 +128,30 @@ function CommunityContainer({ posts, loadPosts, loading }) {
     '자유 게시판': '/community/freeboard'
   }), []);
 
-  // 🚩 새소식 메뉴 추가
   const newsMenu = useMemo(() => ({
     '공지사항': '/news/notice',
     '이벤트': '/news/event',
     '뉴스레터': '/news/newsletter'
   }), []);
 
+  const cscenterMenu = useMemo(() => ({
+    '자주 묻는 질문': '/cscenter/faq',
+    '1:1 문의': '/inquiry',
+    '이용 가이드': '/cscenter/userguide'
+  }), []);
+
   const isDestinationGroup = location.pathname.startsWith('/domestic') || location.pathname.startsWith('/foreigncountry');
   const isCommunityGroup = location.pathname.startsWith('/community');
-  const isNewsGroup = location.pathname.startsWith('/news'); // 🚩 뉴스 그룹 판별 추가
+  const isNewsGroup = location.pathname.startsWith('/news');
+  const isCSGroup = location.pathname.startsWith('/cscenter');
 
   const currentGroup = useMemo(() => {
     if (isDestinationGroup) return destinationMenu;
     if (isCommunityGroup) return communityMenu;
-    if (isNewsGroup) return newsMenu; // 🚩 뉴스 그룹일 때 newsMenu 반환
+    if (isNewsGroup) return newsMenu;
+    if (isCSGroup) return cscenterMenu; 
     return null;
-  }, [isDestinationGroup, isCommunityGroup, isNewsGroup, destinationMenu, communityMenu, newsMenu]);
+  }, [isDestinationGroup, isCommunityGroup, isNewsGroup, isCSGroup, destinationMenu, communityMenu, newsMenu, cscenterMenu]);
 
   useEffect(() => {
     if (currentGroup) {
@@ -175,6 +187,9 @@ function CommunityContainer({ posts, loadPosts, loading }) {
             <Route path="/" element={
               location.pathname.startsWith('/domestic') 
               ? <MainList photos={[]} activeMenu="국내여행" goToDetail={(id) => navigate(`/community/domestic/${id}`)} />
+              /* 🚩 [수정됨] 해외여행 경로일 때 MainList를 렌더링하도록 조건 추가 */
+              : location.pathname.startsWith('/foreigncountry')
+              ? <MainList photos={[]} activeMenu="해외여행" goToDetail={(id) => navigate(`/community/foreigncountry/${id}`)} />
               : <Main /> 
             } />
           )}
@@ -194,7 +209,6 @@ function CommunityContainer({ posts, loadPosts, loading }) {
             </>
           )}
 
-          {/* 🚩 뉴스 그룹 라우팅 추가 */}
           {isNewsGroup && (
             <>
               <Route path="notice" element={<NoticeList posts={posts} goToDetail={(id) => navigate(`/news/notice/${id}`)} />} />
@@ -206,6 +220,16 @@ function CommunityContainer({ posts, loadPosts, loading }) {
               <Route path="newsletter/write" element={<PostWrite activeMenu="뉴스레터" boardType="newsletter" refreshPosts={loadPosts} />} />
               <Route path="newsletter/:poNum" element={<NewsLetterDetail />} />
               <Route path="/" element={<Navigate to="notice" replace />} />
+            </>
+          )}
+
+          {isCSGroup && (
+            <>
+              <Route path="faq" element={<FAQList posts={posts} goToDetail={(id) => navigate(`/cscenter/faq/${id}`)} />} />
+              <Route path="faq/:id" element={<FAQDetail />} />
+              <Route path="faq/write" element={<PostWrite activeMenu="자주 묻는 질문" boardType="faq" refreshPosts={loadPosts} />} />
+              <Route path="userguide" element={<div className="user-guide-content" style={{padding: '20px'}}><h2>이용 가이드</h2><p>초등학생도 쓸 수 있게 만들어 놓은 페이지인데 이딴 메뉴가 필요한교?</p></div>} />
+              <Route path="/" element={<Navigate to="faq" replace />} />
             </>
           )}
         </Routes>
@@ -255,6 +279,8 @@ function App() {
     else if (path.includes('newsletter')) endpoint = 'newsletter';
     else if (path.includes('recommend')) endpoint = 'recommend';
     else if (path.includes('notice')) endpoint = 'notice';
+    else if (path.includes('faq')) endpoint = 'faq';
+    
 
     if (!endpoint) {
       setLoading(false);
@@ -400,9 +426,11 @@ function App() {
         <Route path="/foreigncountry" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
         <Route path="/Domestic" element={<Navigate to="/domestic" replace />} />
         
-        {/* 🚩 커뮤니티와 뉴스 그룹을 CommunityContainer로 통합 처리 */}
         <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
         <Route path="/news/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
+
+        {/* 🚩 고객센터(cscenter) 그룹 CommunityContainer 연결 */}
+        <Route path="/cscenter/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
 
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/admin" element={<AdminPage />} />

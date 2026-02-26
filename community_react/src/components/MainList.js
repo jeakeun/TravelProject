@@ -196,10 +196,8 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
             {currentItems.length > 0 ? (
               currentItems.map((photo, idx) => {
                 const virtualNum = filteredItems.length - ((currentPage - 1) * itemsPerPage + idx);
-                // 🚩 데이터 필드 호환성 유지
                 const postId = photo.poNum || photo.po_num || photo.postId;
                 const displayTitle = photo.poTitle || photo.po_title || photo.title;
-                // 🚩 SERVER_URL을 동적으로 결합하여 배포 환경 대응
                 const displayImg = photo.fileUrl || (photo.poImg ? `${SERVER_URL}/pic/${photo.poImg.split(',')[0]}` : FALLBACK_IMAGE);
 
                 return (
@@ -235,7 +233,10 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
                 );
               })
             ) : (
-              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '100px 0', color: '#888' }}>등록된 게시글이 없습니다.</div>
+              
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '100px 0', color: '#888', fontSize: '18px', fontWeight: 'bold' }}>
+                {activeMenu.trim() === '해외여행' ? "돈 많아요? 국내에도 갈데 많은데 뭐하러 해외까지 알아보시나요?." : "등록된 게시글이 없습니다."}
+              </div>
             )}
           </div>
 

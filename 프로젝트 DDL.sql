@@ -46,7 +46,7 @@ CREATE TABLE `travel` (
     FOREIGN KEY (`tv_cg_num`) REFERENCES `category` (`cg_num`)
 );
 
--- 2. 게시판 테이블
+-- 2. 게시판 테이블 (기존)
 CREATE TABLE `recommend_post` (
     `po_num` int PRIMARY KEY AUTO_INCREMENT,
     `po_title` varchar(100) NOT NULL,
@@ -122,7 +122,23 @@ CREATE TABLE `newsletter_post` (
     FOREIGN KEY (`po_mb_num`) REFERENCES `member` (`mb_num`)
 );
 
--- 🚩 [추가] 공지사항 테이블 (Notice 엔티티 연동)
+-- 🚩 [추가] 자주 묻는 질문(FAQ) 테이블
+CREATE TABLE `faq_post` (
+    `po_num` int PRIMARY KEY AUTO_INCREMENT,
+    `po_title` varchar(100) NOT NULL,
+    `po_content` LONGTEXT NOT NULL,
+    `po_img` varchar(1000) NULL,
+    `po_date` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    `po_view` int NOT NULL DEFAULT 0,
+    `po_up` int NOT NULL DEFAULT 0,
+    `po_down` int NOT NULL DEFAULT 0,
+    `po_report` int NOT NULL DEFAULT 0,
+    `po_del` char(1) NOT NULL DEFAULT 'N',
+    `po_mb_num` int NOT NULL,
+    FOREIGN KEY (`po_mb_num`) REFERENCES `member` (`mb_num`)
+);
+
+-- 🚩 [유지] 공지사항 테이블
 CREATE TABLE `notice_post` (
     `nn_num` int PRIMARY KEY AUTO_INCREMENT,
     `nn_title` varchar(100) NOT NULL,
@@ -136,15 +152,6 @@ CREATE TABLE `notice_post` (
     `nn_mb_num` int NOT NULL,
     `file_url` varchar(1000) NULL,
     FOREIGN KEY (`nn_mb_num`) REFERENCES `member` (`mb_num`)
-);
-
-DROP TABLE IF EXISTS `newsletter_photo`;
-CREATE TABLE `newsletter_photo` (
-    `ph_num`    int PRIMARY KEY AUTO_INCREMENT,
-    `ph_ori_name`    varchar(100) NOT NULL,
-    `ph_name`    varchar(100) NOT NULL,
-    `ph_po_num` int    NOT NULL,
-    FOREIGN KEY (`ph_po_num`) REFERENCES `newsletter_post` (`po_num`) ON DELETE CASCADE
 );
 
 -- 3. 사진 및 리뷰 테이블
@@ -170,6 +177,14 @@ CREATE TABLE `free_photo` (
     `ph_name` varchar(255) NOT NULL,
     `ph_po_num` int NOT NULL,
     FOREIGN KEY (`ph_po_num`) REFERENCES `free_post` (`po_num`) ON DELETE CASCADE
+);
+
+CREATE TABLE `newsletter_photo` (
+    `ph_num`    int PRIMARY KEY AUTO_INCREMENT,
+    `ph_ori_name`    varchar(100) NOT NULL,
+    `ph_name`    varchar(100) NOT NULL,
+    `ph_po_num` int    NOT NULL,
+    FOREIGN KEY (`ph_po_num`) REFERENCES `newsletter_post` (`po_num`) ON DELETE CASCADE
 );
 
 CREATE TABLE `review` (
@@ -210,7 +225,6 @@ CREATE TABLE `mark` (
     FOREIGN KEY (`ma_ki_num`) REFERENCES `kind` (`ki_num`) ON DELETE CASCADE
 );
 
--- 🚩 [수정] li_name 길이를 10 -> 20으로 확장 (scrap 등 식별자 저장용)
 CREATE TABLE `likes` (
     `li_num` int PRIMARY KEY AUTO_INCREMENT,
     `li_state` int NOT NULL,
@@ -288,11 +302,13 @@ INSERT INTO `category` (cg_num, cg_kind, cg_display, cg_bo_num) VALUES
 (3, '자유 게시판', 'Y', 1),
 (4, '이벤트 게시판', 'Y', 1),
 (5, '뉴스레터 게시판', 'Y', 1),
-(6, '공지사항 게시판', 'Y', 1); -- 🚩 [추가] 공지사항 카테고리
+(6, '공지사항 게시판', 'Y', 1),
+(7, 'FAQ 게시판', 'Y', 1); -- 🚩 [추가] FAQ 카테고리
 
 INSERT INTO `kind` (ki_num, ki_name) VALUES (1, '추천점수');
 
 INSERT INTO `recommend_post` (po_title, po_content, po_mb_num, po_del) VALUES ('안녕하세요 추천 테스트 게시글입니다', '내용입니다.', 1, 'N');
 INSERT INTO `event_post` (po_title, po_content, po_mb_num, po_del) VALUES ('진행중인 이벤트입니다', '이벤트 내용입니다.', 1, 'N');
 INSERT INTO `newsletter_post` (po_title, po_content, po_mb_num, po_del) VALUES ('2월의 여행 뉴스레터', '뉴스레터 내용입니다.', 1, 'N');
-INSERT INTO `notice_post` (nn_title, nn_content, nn_mb_num, nn_del) VALUES ('여행 커뮤니티 정식 오픈 안내', '안녕하세요. 여행 커뮤니티 서비스가 정식 오픈되었습니다.', 1, 'N'); -- 🚩 [추가] 초기 공지 데이터
+INSERT INTO `notice_post` (nn_title, nn_content, nn_mb_num, nn_del) VALUES ('여행 커뮤니티 정식 오픈 안내', '안녕하세요. 여행 커뮤니티 서비스가 정식 오픈되었습니다.', 1, 'N');
+INSERT INTO `faq_post` (po_title, po_content, po_mb_num, po_del) VALUES ('비밀번호를 분실했어요.', '로그인 화면에서 비밀번호 찾기를 이용해주세요.', 1, 'N'); -- 🚩 [추가] FAQ 초기 데이터
