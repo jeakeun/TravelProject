@@ -3,7 +3,7 @@ name: CI/CD with Docker
 
 on:
   push:
-    branches: [ "master" ] # master 브랜치에 push될 때 실행
+    branches: [ "master-test" ] # master 브랜치에 push될 때 실행
 
 jobs:
   build-and-deploy:
