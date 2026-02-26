@@ -12,21 +12,20 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import kr.hi.travel_community.entity.NoticePost;
-import kr.hi.travel_community.repository.CommentRepository;
+import kr.hi.travel_community.entity.Notice;
+import kr.hi.travel_community.mapper.LikeMapper;
 import kr.hi.travel_community.repository.NoticeRepository;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class NoticePostService {
+public class NoticeBoardService {
 
     private final NoticeRepository postRepository;
-    private final CommentRepository commentRepository;
+    private final LikeMapper likeMapper; 
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getRealAllPosts() {
-        // nn_del = 'N' 데이터만 조회
         return postRepository.findByNnDelOrderByNnNumDesc("N").stream()
                 .map(this::convertToMap).collect(Collectors.toList());
     }
@@ -55,24 +54,32 @@ public class NoticePostService {
     public Map<String, Object> getPostDetail(Integer id, Integer mbNum) {
         return postRepository.findByNnNumAndNnDel(id, "N").map(p -> {
             Map<String, Object> map = convertToMap(p);
-            // 공지사항용 댓글 조회 (type="NOTICE")
-            map.put("comments", commentRepository.findByCoPoNumAndCoPoTypeAndCoDelOrderByCoDateAsc(id, "NOTICE", "N"));
+            
+            int likeCheck = (mbNum != null) ? likeMapper.checkLikeStatus(id, mbNum) : 0;
+            map.put("isLikedByMe", likeCheck > 0);
+
+            int scrapCheck = (mbNum != null) ? likeMapper.checkScrapStatus(id, mbNum) : 0; 
+            map.put("isScrappedByMe", scrapCheck > 0);
+            
             return map;
         }).orElse(null);
     }
 
     @Transactional
-    public void savePost(NoticePost post) {
+    public void savePost(Notice post) {
         post.setNnDate(LocalDateTime.now());
         post.setNnView(0);
         post.setNnUp(0);
         post.setNnDel("N");
+        if (post.getNnMbNum() == null) {
+            post.setNnMbNum(1); 
+        }
         postRepository.save(post);
     }
 
     @Transactional
     public void updatePost(Integer id, String title, String content) {
-        NoticePost post = postRepository.findByNnNumAndNnDel(id, "N")
+        Notice post = postRepository.findByNnNumAndNnDel(id, "N")
                 .orElseThrow(() -> new RuntimeException("게시글 없음"));
         post.setNnTitle(title);
         post.setNnContent(content);
@@ -81,12 +88,46 @@ public class NoticePostService {
 
     @Transactional
     public void deletePost(Integer id) {
-        postRepository.findByNnNumAndNnDel(id, "N").ifPresent(p -> p.setNnDel("Y"));
+        postRepository.findByNnNumAndNnDel(id, "N").ifPresent(p -> {
+            p.setNnDel("Y");
+            postRepository.save(p);
+        });
     }
 
-    private Map<String, Object> convertToMap(NoticePost p) {
+    @Transactional
+    public String toggleLikeStatus(Integer nnNum, Integer mbNum) {
+        int count = likeMapper.checkLikeStatus(nnNum, mbNum);
+        Notice post = postRepository.findByNnNumAndNnDel(nnNum, "N")
+                .orElseThrow(() -> new RuntimeException("공지사항 없음"));
+
+        if (count == 0) {
+            likeMapper.insertLikeLog(nnNum, mbNum);
+            post.setNnUp((post.getNnUp() == null ? 0 : post.getNnUp()) + 1);
+            postRepository.save(post);
+            return "liked";
+        } else {
+            likeMapper.deleteLikeLog(nnNum, mbNum);
+            post.setNnUp(Math.max(0, (post.getNnUp() == null ? 0 : post.getNnUp()) - 1));
+            postRepository.save(post);
+            return "unliked";
+        }
+    }
+
+    @Transactional
+    public String toggleScrapStatus(Integer nnNum, Integer mbNum) {
+        int count = likeMapper.checkScrapStatus(nnNum, mbNum);
+        
+        if (count == 0) {
+            likeMapper.insertScrapLog(nnNum, mbNum);
+            return "scrapped";
+        } else {
+            likeMapper.deleteScrapLog(nnNum, mbNum);
+            return "unscrapped";
+        }
+    }
+
+    private Map<String, Object> convertToMap(Notice p) {
         Map<String, Object> map = new HashMap<>();
-        // DDL 규격 nn_ 접두어 필드 매핑
         map.put("nnNum", p.getNnNum());
         map.put("nnTitle", p.getNnTitle());
         map.put("nnContent", p.getNnContent());
@@ -94,7 +135,6 @@ public class NoticePostService {
         map.put("nnView", p.getNnView() != null ? p.getNnView() : 0);
         map.put("nnUp", p.getNnUp() != null ? p.getNnUp() : 0);
         map.put("nnMbNum", p.getNnMbNum());
-        map.put("commentCount", commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getNnNum(), "NOTICE", "N"));
         return map;
     }
 }

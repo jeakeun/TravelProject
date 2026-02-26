@@ -21,4 +21,23 @@
           AND li_name = 'post'
     </delete>
 
+    <select id="checkScrapStatus" resultType="int">
+        SELECT COUNT(*) FROM likes 
+        WHERE li_id = #{poNum} 
+          AND li_mb_num = #{mbNum} 
+          AND li_name = 'scrap'
+    </select>
+
+    <insert id="insertScrapLog">
+        INSERT INTO likes (li_state, li_id, li_name, li_mb_num, li_time) 
+        VALUES (1, #{poNum}, 'scrap', #{mbNum}, NOW())
+    </insert>
+
+    <delete id="deleteScrapLog">
+        DELETE FROM likes 
+        WHERE li_id = #{poNum} 
+          AND li_mb_num = #{mbNum} 
+          AND li_name = 'scrap'
+    </delete>
+
 </mapper>

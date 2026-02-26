@@ -1,27 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-import { getMemberNum } from '../../utils/user'; 
-// 🚩 자유게시판과 동일한 디자인 적용을 위해 CSS 및 구조 유지
-import './NoticeDetail.css'; 
+import { getMemberNum } from '../../utils/user';
+// 🚩 디자인 통일을 위해 기존 CSS 유지
+import './NoticeDetail.css';
 
 const NoticeDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { user } = useOutletContext() || {}; 
+    const { user } = useOutletContext() || {};
     const [post, setPost] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    // 추천 및 즐겨찾기 상태 관리를 위한 state
+    const [isLiked, setIsLiked] = useState(false);
+    const [isScrapped, setIsScrapped] = useState(false);
+
     const isLoggedIn = !!user;
     const currentUserNum = getMemberNum(user);
+    // 🚩 관리자 여부 확인 (mb_rol이 'ADMIN'인지 체크)
+    const isAdmin = isLoggedIn && user.mbRol === 'ADMIN';
 
-    // 🚩 [수정] 자동 배포 환경을 위해 배포 서버 IP로 고정 설정
     const SERVER_URL = "http://3.37.160.108:8080";
 
-    /**
-     * 🚩 본문 내 이미지 경로를 영구 저장소 경로로 변환 (FreeBoardDetail과 동일 기능)
-     * 에디터에서 삽입된 상대 경로(/pic/...)를 서버의 전체 URL로 변환
-     */
     const formatContent = (content) => {
         if (!content) return "";
         return content.replace(/src="\/pic\//g, `src="${SERVER_URL}/pic/`);
@@ -32,9 +33,12 @@ const NoticeDetail = () => {
         
         try {
             setLoading(true);
-            // 🚩 고정된 SERVER_URL 사용 및 공지사항 엔드포인트 호출
-            const res = await axios.get(`${SERVER_URL}/api/notice/posts/${id}`, { withCredentials: true });
+            // 🚩 mbNum을 쿼리 스트링으로 전달하여 본인의 추천/스크랩 여부 확인
+            const res = await axios.get(`${SERVER_URL}/api/notice/posts/${id}?mbNum=${currentUserNum || 0}`, { withCredentials: true });
             setPost(res.data);
+            // 서버 응답에서 본인의 추천/스크랩 상태를 받아와 설정
+            setIsLiked(res.data.isLikedByMe);
+            setIsScrapped(res.data.isScrappedByMe);
         } catch (err) {
             console.error("공지사항 로딩 에러:", err);
             alert("게시글을 불러올 수 없습니다.");
@@ -42,14 +46,38 @@ const NoticeDetail = () => {
         } finally {
             setLoading(false);
         }
-    }, [id, navigate, SERVER_URL]);
+    }, [id, navigate, SERVER_URL, currentUserNum]);
 
     useEffect(() => { fetchDetail(); }, [fetchDetail]);
+
+    // 추천 토글 함수
+    const handleLike = async () => {
+        if (!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
+        try {
+            const res = await axios.post(`${SERVER_URL}/api/notice/posts/${id}/like`, { mbNum: currentUserNum });
+            setIsLiked(res.data.status === 'liked');
+            // 실시간 추천 수 업데이트를 위해 상세 정보 재호출 또는 로컬 카운트 업데이트
+            setPost(prev => ({ ...prev, nnUp: res.data.status === 'liked' ? prev.nnUp + 1 : prev.nnUp - 1 }));
+        } catch (err) {
+            alert("추천 처리 중 오류가 발생했습니다.");
+        }
+    };
+
+    // 즐겨찾기(스크랩) 토글 함수
+    const handleScrap = async () => {
+        if (!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
+        try {
+            const res = await axios.post(`${SERVER_URL}/api/notice/posts/${id}/scrap`, { mbNum: currentUserNum });
+            setIsScrapped(res.data.status === 'scrapped');
+            alert(res.data.status === 'scrapped' ? "즐겨찾기에 추가되었습니다." : "즐겨찾기가 해ve되었습니다.");
+        } catch (err) {
+            alert("즐겨찾기 처리 중 오류가 발생했습니다.");
+        }
+    };
 
     const handleDelete = async () => {
         if (!window.confirm("삭제하시겠습니까?")) return;
         try {
-            // 🚩 삭제 경로 배포 서버 주소로 수정
             await axios.delete(`${SERVER_URL}/api/notice/posts/${id}`);
             alert("삭제되었습니다.");
             navigate('/news/notice');
@@ -61,34 +89,54 @@ const NoticeDetail = () => {
     if (loading) return <div className="loading-box" style={{textAlign: 'center', padding: '100px'}}>데이터 로딩 중...</div>;
     if (!post) return null;
 
-    // 공지사항 필드명(nnMbNum)에 맞춰 소유권 확인
-    const isOwner = isLoggedIn && Number(post.nnMbNum) === Number(currentUserNum);
-
     return (
         <div className="review-detail-wrapper">
             <div className="detail-container">
                 
-                {/* 헤더 섹션: FreeBoardDetail과 디자인 통일 */}
+                {/* 헤더 섹션: 디자인 완벽 통일 */}
                 <div className="detail-header-section">
                     <h1 className="detail-main-title">{post.nnTitle}</h1>
                     <div className="detail-sub-info">
-                        <span>작성자: User {post.nnMbNum}</span> 
+                        <span>작성자: 관리자</span> 
                         <span className="info-divider">|</span>
                         <span>조회 {post.nnView}</span> 
+                        <span className="info-divider">|</span>
+                        <span>추천 {post.nnUp}</span>
                         <span className="info-divider">|</span>
                         <span>작성일 {new Date(post.nnDate).toLocaleString()}</span>
                     </div>
                 </div>
 
-                {/* 본문 섹션: 이미지 경로 치환 로직 적용 및 디자인 통일 */}
+                {/* 본문 섹션 */}
                 <div className="detail-body-text">
                     <div dangerouslySetInnerHTML={{ __html: formatContent(post.nnContent) }} />
                 </div>
                 
-                {/* 하단 버튼 영역: FreeBoardDetail과 레이아웃 및 클래스 완벽 통일 */}
+                {/* 하단 버튼 영역 */}
                 <div className="detail-bottom-actions">
                     <div className="left-group">
-                        {isOwner && (
+                        {/* 🚩 로그인한 모든 유저에게 추천/즐겨찾기 버튼 노출 */}
+                        {isLoggedIn && (
+                            <>
+                                <button 
+                                    className="btn-bookmark-action" 
+                                    onClick={handleLike} 
+                                    style={{ backgroundColor: isLiked ? '#ff4757' : '#f1f2f6', color: isLiked ? 'white' : 'black', marginRight: 8 }}
+                                >
+                                    {isLiked ? '❤️ 추천됨' : '🤍 추천하기'}
+                                </button>
+                                <button 
+                                    className="btn-bookmark-action" 
+                                    onClick={handleScrap}
+                                    style={{ backgroundColor: isScrapped ? '#ffa502' : '#f1f2f6', color: isScrapped ? 'white' : 'black', marginRight: 8 }}
+                                >
+                                    {isScrapped ? '★ 즐겨찾기됨' : '☆ 즐겨찾기'}
+                                </button>
+                            </>
+                        )}
+
+                        {/* 🚩 오직 관리자(ADMIN)만 수정/삭제 가능 */}
+                        {isAdmin && (
                             <>
                                 <button 
                                     className="btn-edit-action" 
@@ -106,7 +154,7 @@ const NoticeDetail = () => {
                         )}
                     </div>
                     
-                    {/* 우측 끝 '목록으로' 버튼 */}
+                    {/* 우측 목록으로 버튼 */}
                     <button className="btn-list-return" onClick={() => navigate('/news/notice')}>
                         목록으로
                     </button>

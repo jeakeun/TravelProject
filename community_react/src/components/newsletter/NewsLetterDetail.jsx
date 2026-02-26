@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-// 🚩 디자인 및 기능을 유지하면서 참조 파일만 NewsLetterDetail.css로 확정
+/** * 🚩 경로 확인 완료: src/components/newsletter/NewsLetterDetail.css 사용
+ * EventBoardDetail과 동일한 디자인 규격을 적용합니다.
+ */
 import './NewsLetterDetail.css'; 
 
 const NewsLetterDetail = () => {
-    // App.js 라우트 설정(<Route path="/news/newsletter/:poNum">)에 맞춰 poNum 수신
+    // App.js 라우트 설정에 맞춰 poNum 수신
     const { poNum } = useParams(); 
     const navigate = useNavigate();
     
@@ -20,20 +22,17 @@ const NewsLetterDetail = () => {
     const currentUserNum = user ? (user.mb_num || user.mbNum) : null; 
     const isAdmin = user ? (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN' || user.mbLevel >= 10) : false; 
 
-    // 🚩 [수정] 자동 배포 환경을 위해 배포 서버 IP로 고정 설정
+    // 서버 설정 (이벤트 게시판과 동일하게 유지)
     const SERVER_URL = "http://3.37.160.108:8080";
 
     // poNum이 숫자인지 확인
     const isNumericId = poNum && !isNaN(Number(poNum));
 
     /**
-     * 🚩 본문 내 이미지 경로를 영구 저장소 경로로 변환
-     * 에디터에서 삽입된 상대 경로(/pic/...)를 서버의 전체 URL로 변환하여 영구 보존 대응
+     * 🚩 본문 내 이미지 경로 가공 (EventBoardDetail 로직과 동기화)
      */
     const formatContent = (content) => {
         if (!content) return "";
-        // /pic/ 경로로 시작하는 이미지 src를 서버 주소와 결합
-        // 🚩 SERVER_URL을 참조하여 배포 환경에서도 이미지가 깨지지 않게 함
         return content.replace(/src="\/pic\//g, `src="${SERVER_URL}/pic/`);
     };
 
@@ -41,36 +40,40 @@ const NewsLetterDetail = () => {
         if (!isNumericId) return;
         try {
             setLoading(true);
-            // 🚩 뉴스레터 전용 API 엔드포인트 호출 (SERVER_URL 적용)
+            // 뉴스레터 전용 API 호출
             const postRes = await axios.get(`${SERVER_URL}/api/newsletter/posts/${poNum}?mbNum=${currentUserNum || ''}`);
-            setPost(postRes.data);
+            const data = postRes.data;
             
-            // 좋아요 여부 설정 (백엔드 필드 대응)
-            setIsLiked(postRes.data.isLikedByMe || postRes.data.liked || false);
-            setLoading(false);
+            // 데이터 필드 정규화 (이벤트 게시판의 normalizedData 방식 적용)
+            const normalizedData = {
+                ...data,
+                po_title: data.po_title || data.poTitle || "제목 없음",
+                po_content: data.po_content || data.poContent || "",
+                po_view: data.po_view || data.poView || 0,
+                po_up: data.po_up || data.poUp || 0,
+                po_date: data.po_date || data.poDate
+            };
+            
+            setPost(normalizedData);
+            setIsLiked(data.isLikedByMe || data.liked || false);
         } catch (err) {
-            console.error("뉴스레터 로딩 에러:", err);
-            if (err.response?.status === 404) {
-                alert("뉴스레터를 찾을 수 없습니다.");
-                navigate(`/news/newsletter`);
-            }
+            console.error("뉴스레터 로딩 실패:", err);
+            navigate(`/news/newsletter`); 
+        } finally {
             setLoading(false);
         }
     }, [poNum, navigate, isNumericId, currentUserNum, SERVER_URL]);
 
     useEffect(() => { 
-        if(isNumericId) {
-            fetchPostData();       
-        }
+        if(isNumericId) fetchPostData();
     }, [isNumericId, fetchPostData]);
 
     const handleDeletePost = async () => {
         if (!window.confirm("정말 뉴스레터를 삭제하시겠습니까?")) return;
         try {
-            // 🚩 뉴스레터 전용 삭제 API 호출 (SERVER_URL 적용)
             await axios.delete(`${SERVER_URL}/api/newsletter/posts/${poNum}`);
             alert("뉴스레터가 삭제되었습니다.");
-            if (loadPosts) loadPosts(); // 리스트 갱신 함수 호출
+            if (loadPosts) loadPosts(); 
             navigate(`/news/newsletter`); 
         } catch (err) {
             alert("뉴스레터 삭제 중 오류가 발생했습니다.");
@@ -80,71 +83,80 @@ const NewsLetterDetail = () => {
     const handleLikeToggle = async () => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
-            // 🚩 뉴스레터 전용 추천 API 호출 (SERVER_URL 적용)
             const res = await axios.post(`${SERVER_URL}/api/newsletter/posts/${poNum}/like`, { mbNum: currentUserNum });
-            
-            // 응답 데이터 포맷에 맞춰 처리
             if (res.data.status === "liked" || res.data === "liked") {
                 setIsLiked(true);
-                setPost(prev => ({ 
-                    ...prev, 
-                    po_up: (prev.po_up || prev.poUp || 0) + 1,
-                    poUp: (prev.poUp || prev.po_up || 0) + 1 
-                }));
-            } else if (res.data.status === "unliked" || res.data === "unliked") {
+                setPost(prev => ({ ...prev, po_up: (prev.po_up || 0) + 1 }));
+            } else {
                 setIsLiked(false);
-                setPost(prev => ({ 
-                    ...prev, 
-                    po_up: Math.max(0, (prev.po_up || prev.poUp || 1) - 1),
-                    poUp: Math.max(0, (prev.poUp || prev.po_up || 1) - 1) 
-                }));
+                setPost(prev => ({ ...prev, po_up: Math.max(0, (prev.po_up || 1) - 1) }));
             }
         } catch (err) { 
             alert("추천 처리 중 오류 발생"); 
         }
     };
 
-    if (loading) return <div className="loading-box" style={{textAlign: 'center', padding: '100px'}}>데이터 로딩 중...</div>;
-    if (!post) return <div className="loading-box" style={{textAlign: 'center', padding: '100px'}}>뉴스레터를 찾을 수 없습니다.</div>;
+    if (loading) return <div style={{textAlign: 'center', padding: '100px'}}>데이터 로딩 중...</div>;
+    if (!post) return null;
 
     return (
-        <div className="event-detail-wrapper">
+        /* 🚩 EventBoardDetail과 완벽하게 동일한 래퍼 및 컨테이너 클래스 구조 적용 */
+        <div className="review-detail-wrapper">
             <div className="detail-container">
+                
+                {/* 🚩 헤더 섹션: 구조 및 클래스명 일치 */}
                 <div className="detail-header-section">
-                    <h1 className="detail-main-title">{post.po_title || post.poTitle || "제목 없음"}</h1>
+                    <h1 className="detail-main-title">{post.po_title}</h1>
                     <div className="detail-sub-info">
                         <span>작성자: 관리자</span> 
                         <span className="info-divider">|</span>
-                        <span>조회 {post.po_view || post.poView || 0}</span> 
+                        <span>조회 {post.po_view}</span> 
                         <span className="info-divider">|</span>
-                        <span>추천 {post.po_up || post.poUp || 0}</span> 
+                        <span>추천 {post.po_up}</span> 
                         <span className="info-divider">|</span>
-                        <span>작성일 {new Date(post.po_date || post.poDate).toLocaleDateString()}</span>
+                        <span>작성일 {post.po_date ? new Date(post.po_date).toLocaleString() : ''}</span>
                     </div>
                 </div>
                 
+                {/* 🚩 본문 섹션: 클래스명 일치 */}
                 <div className="detail-body-text">
-                    {/* 🚩 가공된 content를 적용하여 이미지 경로 유실 방지 */}
-                    <div dangerouslySetInnerHTML={{ __html: formatContent(post.po_content || post.poContent) }} />
+                    <div dangerouslySetInnerHTML={{ __html: formatContent(post.po_content) }} />
                 </div>
 
+                {/* 🚩 하단 버튼 영역: 버튼 구성 및 스타일 조건 일치 */}
                 <div className="detail-bottom-actions">
                     <div className="left-group">
                         {isLoggedIn && (
-                            <button className={`btn-like-action ${isLiked ? 'active' : ''}`} onClick={handleLikeToggle}>
-                                {isLiked ? '❤️ 추천취소' : '🤍 추천'} {post.po_up || post.poUp || 0}
+                            <button 
+                                className="btn-bookmark-action" 
+                                onClick={handleLikeToggle}
+                                style={{ 
+                                    backgroundColor: isLiked ? '#ff4757' : '#f1f2f6', 
+                                    color: isLiked ? 'white' : 'black', 
+                                    marginRight: 8 
+                                }}
+                            >
+                                {isLiked ? '❤️ 추천됨' : '🤍 추천하기'} {post.po_up}
                             </button>
                         )}
                         {isAdmin && (
                             <>
-                                {/* 🚩 수정 시 뉴스레터 작성 페이지로 이동하며 데이터 전달 */}
-                                <button className="btn-edit-action" onClick={() => navigate(`/news/newsletter/write`, { state: { mode: 'edit', postData: post, boardType: 'newsletter' } })}>✏️ 수정</button>
+                                <button 
+                                    className="btn-edit-action" 
+                                    onClick={() => navigate(`/news/newsletter/write`, { 
+                                        state: { mode: 'edit', postData: post, boardType: 'newsletter' } 
+                                    })}
+                                >
+                                    ✏️ 수정
+                                </button>
                                 <button className="btn-delete-action" onClick={handleDeletePost}>🗑️ 삭제</button>
                             </>
                         )}
                     </div>
-                    {/* 🚩 목록으로 돌아가기 경로: 뉴스레터 메인 */}
-                    <button className="btn-list-return" onClick={() => navigate(`/news/newsletter`)}>목록으로</button>
+                    {/* 🚩 우측 목록으로 버튼 위치 고정 */}
+                    <button className="btn-list-return" onClick={() => navigate(`/news/newsletter`)}>
+                        목록으로
+                    </button>
                 </div>
             </div>
         </div>

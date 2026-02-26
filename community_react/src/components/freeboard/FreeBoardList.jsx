@@ -63,7 +63,7 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
 
     return (
         <div className="freeboard-list-wrapper">
-            <h2 className="board-title">| 자유 게시판</h2>
+            <h2 className="board-title">자유 게시판</h2>
             <table className="freeboard-table">
                 <thead>
                     <tr>

@@ -4,10 +4,15 @@ import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
 
+/**
+ * 공지사항 게시판 엔티티
+ * 클래스명을 NoticePost로 변경하여 서비스/컨트롤러 계층과 일치시켰습니다.
+ */
 @Entity
 @Table(name = "notice_post")
 @Data
-public class NoticePost {
+public class Notice {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "nn_num")
@@ -43,6 +48,7 @@ public class NoticePost {
     @Column(name = "file_url")
     private String fileUrl;
 
+    // 🚩 [유지] 데이터 저장 전 기본값 설정 로직
     @PrePersist
     public void prePersist() {
         if (this.nnDate == null) this.nnDate = LocalDateTime.now();

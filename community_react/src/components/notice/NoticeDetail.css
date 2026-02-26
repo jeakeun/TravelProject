@@ -1,5 +1,9 @@
-/* 전체 컨테이너 - 자유게시판(FreeBoard)과 레이아웃 및 여백 통일 */
-.freeboard-list-wrapper,
+/* ==========================================================================
+   NoticeDetail.css (자유게시판과 동일한 디자인 규격 유지)
+   ========================================================================== */
+
+/* 전체 컨테이너 - 양옆 여백 및 레이아웃 통일 */
+.notice-list-wrapper, /* List용 클래스 포함 */
 .review-detail-wrapper {
     width: 100%;
     max-width: var(--page-size);
@@ -10,14 +14,12 @@
 }
 
 @media (max-width: 768px) {
-
-    .freeboard-list-wrapper,
+    .notice-list-wrapper,
     .review-detail-wrapper {
         padding: 24px 20px 40px;
     }
 }
 
-/* 게시판 상단 타이틀 */
 .board-title {
     font-size: 1.4rem;
     margin: 0 0 16px 5px;
@@ -25,7 +27,7 @@
     color: #2c3e50;
 }
 
-/* 테이블 스타일 - 공지사항 목록(NoticeList) 적용 */
+/* 테이블 스타일 (List 페이지용) */
 .freeboard-table {
     width: 100%;
     border-collapse: collapse;
@@ -50,7 +52,6 @@
     color: #444;
 }
 
-/* 제목 열 왼쪽 정렬 및 말줄임 처리 */
 .td-title {
     text-align: left !important;
     padding-left: 40px !important;
@@ -70,7 +71,7 @@
     width: 100%;
 }
 
-/* 페이지네이션 버튼: 40px 원형 규격 유지 */
+/* 페이지네이션 버튼: 40px 원형 */
 .page-buttons {
     display: flex;
     align-items: center;
@@ -105,7 +106,7 @@
     cursor: default;
 }
 
-/* 푸터 액션 레이아웃 (검색창 중앙, 글쓰기 우측 고정) */
+/* 푸터 액션 레이아웃 (검색창 중앙, 글쓰기 우측) */
 .footer-action-row {
     width: 100%;
     display: flex;
@@ -121,7 +122,7 @@
     gap: 12px;
 }
 
-/* 검색 선택/입력창 디자인 */
+/* 카테고리 선택창 디자인 */
 .search-select-box {
     height: 46px;
     padding: 0 15px;
@@ -134,6 +135,7 @@
     cursor: pointer;
 }
 
+/* 검색 입력창 디자인 */
 .search-input-wrapper {
     display: flex;
     align-items: center;
@@ -175,7 +177,7 @@
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* --- 상세페이지(NoticeDetail) 전용 스타일 --- */
+/* 상세페이지 전용 스타일 */
 .detail-container {
     background: #fff;
     padding: 40px;
@@ -193,7 +195,6 @@
     font-size: 2rem;
     color: #2c3e50;
     margin-bottom: 15px;
-    word-break: break-all;
 }
 
 .detail-sub-info {
@@ -212,14 +213,6 @@
     font-size: 1.05rem;
 }
 
-/* 본문 내 이미지 자동 크기 조절 (중요) */
-.detail-body-text img {
-    max-width: 100%;
-    height: auto;
-    display: block;
-    margin: 20px 0;
-}
-
 .detail-bottom-actions {
     margin-top: 40px;
     padding-top: 25px;
@@ -231,6 +224,7 @@
 
 .btn-edit-action,
 .btn-delete-action,
+.btn-bookmark-action,
 .btn-list-return {
     padding: 10px 20px;
     border-radius: 8px;
@@ -238,30 +232,27 @@
     background: #fff;
     cursor: pointer;
     font-weight: 600;
-    transition: background 0.2s;
 }
 
-.btn-edit-action:hover,
-.btn-delete-action:hover {
-    background: #f8f9fa;
+/* 추천/스크랩 버튼 (상태에 따른 배경색은 인라인 스타일로 제어되므로 기본 틀만 유지) */
+.btn-bookmark-action {
+    border-color: #f1c40f;
+    color: #f39c12;
+    transition: all 0.2s ease;
+}
+
+.btn-bookmark-action:hover:not(:disabled) {
+    background: #f1c40f;
+    color: #fff;
+}
+
+.btn-bookmark-action:disabled {
+    opacity: 0.7;
+    cursor: default;
 }
 
 .btn-list-return {
     background: #2c3e50;
     color: #fff;
     border: none;
-}
-
-.btn-list-return:hover {
-    background: #1a252f;
-}
-
-/* 로딩 박스 스타일 추가 */
-.loading-box {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 400px;
-    font-size: 1.1rem;
-    color: #666;
 }

@@ -1,15 +1,19 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 // 🚩 자유게시판(FreeBoard)과 디자인 통일을 위해 동일한 스타일 규격 유지
 import './NoticeDetail.css'; 
 
 const NoticeList = ({ posts = [], goToDetail }) => {
     const navigate = useNavigate();
+    const { user } = useOutletContext() || {}; // 유저 정보 가져오기
     const [inputValue, setInputValue] = useState(''); 
     const [appliedSearch, setAppliedSearch] = useState(''); 
     const [searchType, setSearchType] = useState('title'); 
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10; 
+
+    // 🚩 관리자 여부 확인 (ROLE_ADMIN 인지 체크)
+    const isAdmin = user && user.mbRol === 'ADMIN';
 
     // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정
     const SERVER_URL = "http://3.37.160.108:8080";
@@ -64,7 +68,7 @@ const NoticeList = ({ posts = [], goToDetail }) => {
 
     return (
         <div className="freeboard-list-wrapper">
-            <h2 className="board-title">| 공지사항</h2>
+            <h2 className="board-title">공지사항</h2>
             
             <table className="freeboard-table">
                 <thead>
@@ -84,7 +88,7 @@ const NoticeList = ({ posts = [], goToDetail }) => {
                                 <td className="td-title">
                                     {post.nnTitle}
                                 </td>
-                                <td className="td-author">User {post.nnMbNum}</td>
+                                <td className="td-author">관리자</td>
                                 <td className="td-view">{post.nnView || 0}</td>
                                 <td className="td-date">{formatDateTime(post.nnDate)}</td>
                             </tr>
@@ -146,12 +150,15 @@ const NoticeList = ({ posts = [], goToDetail }) => {
                         </div>
                     </div>
 
-                    <button 
-                        className="btn-write-footer" 
-                        onClick={() => navigate('/news/notice/write')}
-                    >
-                        글쓰기
-                    </button>
+                    {/* 🚩 관리자(ADMIN) 계정일 때만 글쓰기 버튼 노출 */}
+                    {isAdmin && (
+                        <button 
+                            className="btn-write-footer" 
+                            onClick={() => navigate('/news/notice/write')}
+                        >
+                            글쓰기
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

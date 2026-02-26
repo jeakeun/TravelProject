@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-// 🚩 디자인 유지 및 에러 방지를 위해 NewsLetterDetail.css를 공용으로 사용합니다.
+/** * 🚩 경로 확인 완료: src/components/newsletter/NewsLetterDetail.css 사용
+ * EventBoardList와 동일한 디자인 규격을 적용합니다.
+ */
 import './NewsLetterDetail.css'; 
 
 const NewsLetterList = ({ posts = [] }) => {
@@ -14,7 +16,7 @@ const NewsLetterList = ({ posts = [] }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const postsPerPage = 6; 
 
-    // 🚩 [수정] 자동 배포 환경을 위해 배포 서버 IP로 고정 설정
+    // 서버 및 이미지 설정 (이벤트 게시판과 동일)
     const SERVER_URL = "http://3.37.160.108:8080";
     const fallbackImage = "https://placehold.co/300x200?text=No+Image";
 
@@ -22,8 +24,7 @@ const NewsLetterList = ({ posts = [] }) => {
     const isAdmin = user && (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN' || user.mbLevel >= 10);
 
     /**
-     * 🚩 이미지 추출 로직
-     * SERVER_URL을 참조하여 배포 환경에서도 이미지가 올바르게 표시되도록 유지
+     * 🚩 이미지 추출 로직 (EventBoardList와 100% 동일하게 일치시킴)
      */
     const getImageUrl = (post) => {
         if (!post) return fallbackImage;
@@ -32,7 +33,7 @@ const NewsLetterList = ({ posts = [] }) => {
 
         if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null" && String(targetUrl) !== "undefined") {
             if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
-            const extractedName = String(targetUrl).split(',')[0].split(/[\\/]/).pop();
+            const extractedName = String(targetUrl).split(/[\\/]/).pop();
             return `${SERVER_URL}/pic/${extractedName}`;
         }
         
@@ -49,12 +50,14 @@ const NewsLetterList = ({ posts = [] }) => {
         return fallbackImage;
     };
 
+    /**
+     * 🚩 정렬 및 검색 필터링 (EventBoardList와 동일)
+     */
     const filteredPosts = useMemo(() => {
-        // 🚩 안전한 배열 처리
         const safePosts = Array.isArray(posts) ? posts : [];
         const sortedPosts = [...safePosts].sort((a, b) => {
-            const aId = a.po_num || a.poNum || 0;
-            const bId = b.po_num || b.poNum || 0;
+            const aId = Number(a.po_num || a.poNum || a.id || 0);
+            const bId = Number(b.po_num || b.poNum || b.id || 0);
             return bId - aId;
         });
         
@@ -85,19 +88,22 @@ const NewsLetterList = ({ posts = [] }) => {
     };
 
     return (
-        <div className="news-container">
-            <div className="main-content">
-                <h2 className="board-title">| 뉴스레터</h2>
-                
+        /* 🚩 최상위 래퍼 클래스 통일 */
+        <div className="notice-list-wrapper">
+            <h2 className="board-title">뉴스레터</h2>
+            
+            {/* 🚩 갤러리 그리드 구조 통일 */}
+            <div className="gallery-grid-container">
                 <div className="gallery-grid">
                     {currentPosts.length > 0 ? (
                         currentPosts.map((post) => {
-                            const pId = post.po_num || post.poNum;
+                            const poNum = post.po_num || post.poNum || post.id;
+                            const dateValue = post.po_date || post.poDate;
                             return (
                                 <div 
-                                    key={pId || Math.random()} 
+                                    key={poNum || Math.random()} 
                                     className="photo-card"
-                                    onClick={() => navigate(`/news/newsletter/${pId}`)}
+                                    onClick={() => navigate(`/news/newsletter/${poNum}`)}
                                 >
                                     <div className="img-placeholder">
                                         <img 
@@ -105,6 +111,7 @@ const NewsLetterList = ({ posts = [] }) => {
                                             alt={post.po_title || post.poTitle} 
                                             onError={(e) => { 
                                                 if(e.target.src !== fallbackImage) {
+                                                    e.target.onerror = null;
                                                     e.target.src = fallbackImage; 
                                                 }
                                             }}
@@ -117,7 +124,7 @@ const NewsLetterList = ({ posts = [] }) => {
                                         <div className="photo-meta">
                                             <span className="post-author">관리자</span>
                                             <span className="post-date">
-                                                {(post.po_date || post.poDate) ? (post.po_date || post.poDate).split('T')[0] : '-'}
+                                                {dateValue ? String(dateValue).split('T')[0] : '-'}
                                             </span>
                                         </div>
                                     </div>
@@ -125,23 +132,19 @@ const NewsLetterList = ({ posts = [] }) => {
                             );
                         })
                     ) : (
-                        <div className="no-data-full" style={{ gridColumn: '1/-1', textAlign: 'center', padding: '100px 0' }}>
+                        <div className="no-data-full">
                             등록된 뉴스레터가 없습니다.
                         </div>
                     )}
                 </div>
             </div>
 
+            {/* 🚩 하단 레이아웃 (페이지네이션 & 검색창) 통일 */}
             <div className="list-pagination-area">
                 <div className="page-buttons">
-                    <button 
-                        className="prev" 
-                        onClick={() => paginate(currentPage - 1)}
-                        disabled={currentPage === 1}
-                    >
+                    <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1}>
                         &lt;
                     </button>
-
                     {[...Array(totalPages)].map((_, i) => (
                         <button 
                             key={i + 1} 
@@ -151,12 +154,7 @@ const NewsLetterList = ({ posts = [] }) => {
                             {i + 1}
                         </button>
                     ))}
-
-                    <button 
-                        className="next" 
-                        onClick={() => paginate(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                    >
+                    <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages}>
                         &gt;
                     </button>
                 </div>
@@ -184,13 +182,16 @@ const NewsLetterList = ({ posts = [] }) => {
                             <button className="btn-search" onClick={() => setCurrentPage(1)}>검색</button>
                         </div>
                     </div>
-                </div>
 
-                {isAdmin && (
-                    <button className="btn-write-footer" onClick={() => navigate('/news/newsletter/write', { state: { boardType: 'newsletter' } })}>
-                        뉴스레터 작성
-                    </button>
-                )}
+                    {isAdmin && (
+                        <button 
+                            className="btn-write-footer" 
+                            onClick={() => navigate('/news/newsletter/write', { state: { boardType: 'newsletter' } })}
+                        >
+                            뉴스레터 작성
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );

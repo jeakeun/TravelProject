@@ -123,14 +123,23 @@ function CommunityContainer({ posts, loadPosts, loading }) {
     '자유 게시판': '/community/freeboard'
   }), []);
 
+  // 🚩 새소식 메뉴 추가
+  const newsMenu = useMemo(() => ({
+    '공지사항': '/news/notice',
+    '이벤트': '/news/event',
+    '뉴스레터': '/news/newsletter'
+  }), []);
+
   const isDestinationGroup = location.pathname.startsWith('/domestic') || location.pathname.startsWith('/foreigncountry');
   const isCommunityGroup = location.pathname.startsWith('/community');
+  const isNewsGroup = location.pathname.startsWith('/news'); // 🚩 뉴스 그룹 판별 추가
 
   const currentGroup = useMemo(() => {
     if (isDestinationGroup) return destinationMenu;
     if (isCommunityGroup) return communityMenu;
+    if (isNewsGroup) return newsMenu; // 🚩 뉴스 그룹일 때 newsMenu 반환
     return null;
-  }, [isDestinationGroup, isCommunityGroup, destinationMenu, communityMenu]);
+  }, [isDestinationGroup, isCommunityGroup, isNewsGroup, destinationMenu, communityMenu, newsMenu]);
 
   useEffect(() => {
     if (currentGroup) {
@@ -143,8 +152,6 @@ function CommunityContainer({ posts, loadPosts, loading }) {
 
   if (!currentGroup) return <Outlet />; 
   
-  // 수정: 데이터 로딩 중일 때 사이드바는 보이고 내용 영역만 로딩 표시되도록 변경하거나 
-  // 전체 로딩 처리를 유지하되, 데이터가 없을 때의 UI를 고려함
   if (loading) return <div style={{ textAlign: 'center', marginTop: '100px' }}>데이터를 불러오는 중입니다...</div>;
 
   return (
@@ -186,6 +193,21 @@ function CommunityContainer({ posts, loadPosts, loading }) {
               <Route path="/" element={<Navigate to="freeboard" replace />} />
             </>
           )}
+
+          {/* 🚩 뉴스 그룹 라우팅 추가 */}
+          {isNewsGroup && (
+            <>
+              <Route path="notice" element={<NoticeList posts={posts} goToDetail={(id) => navigate(`/news/notice/${id}`)} />} />
+              <Route path="notice/:poNum" element={<NoticeDetail />} />
+              <Route path="event" element={<EventBoardList posts={posts} />} />
+              <Route path="event/write" element={<PostWrite activeMenu="이벤트 게시판" boardType="event" refreshPosts={loadPosts} />} />
+              <Route path="event/:poNum" element={<EventBoardDetail />} />
+              <Route path="newsletter" element={<NewsLetterList posts={posts} />} />
+              <Route path="newsletter/write" element={<PostWrite activeMenu="뉴스레터" boardType="newsletter" refreshPosts={loadPosts} />} />
+              <Route path="newsletter/:poNum" element={<NewsLetterDetail />} />
+              <Route path="/" element={<Navigate to="notice" replace />} />
+            </>
+          )}
         </Routes>
       </main>
     </div>
@@ -201,7 +223,7 @@ function App() {
   const [resetUserId, setResetUserId] = useState('');
   const [currentLang, setCurrentLang] = useState("KR");
   const [posts, setPosts] = useState([]); 
-  const [loading, setLoading] = useState(false); // 초기값을 false로 변경하여 불필요한 빈 화면 방지
+  const [loading, setLoading] = useState(false); 
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('user');
     if (!saved) return null;
@@ -220,16 +242,13 @@ function App() {
     const pathParts = path.split('/');
     const lastPart = pathParts[pathParts.length - 1];
     
-    // 단순 페이지 이동이나 액션 페이지에서는 포스트 로딩 생략
     const isActionPage = ['write', 'edit', 'login', 'signup'].includes(lastPart) || (lastPart && !isNaN(lastPart));
     
-    // 메인 홈(/)이거나 액션 페이지면 로딩 종료 후 중단
     if (isActionPage || path === '/') {
         setLoading(false);
         return;
     }
 
-    // 로딩 대상 엔드포인트 판별
     let endpoint = ''; 
     if (path.includes('freeboard')) endpoint = 'freeboard';
     else if (path.includes('event')) endpoint = 'event';
@@ -278,15 +297,12 @@ function App() {
       }
     } catch (err) {
       console.error(`${path} 데이터 로딩 실패:`, err.message);
-      // 서버 에러 시 사용자에게 알림 (빈 화면 방지)
       setPosts([]); 
     } finally {
-      // 에러가 나든 성공하든 로딩 상태는 해제
       setLoading(false);
     }
   }, [location.pathname]);
 
-  // 페이지 이동 시 데이터 호출
   useEffect(() => {
     loadPosts();
   }, [loadPosts]);
@@ -383,19 +399,15 @@ function App() {
         <Route path="/domestic" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
         <Route path="/foreigncountry" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
         <Route path="/Domestic" element={<Navigate to="/domestic" replace />} />
+        
+        {/* 🚩 커뮤니티와 뉴스 그룹을 CommunityContainer로 통합 처리 */}
         <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
-        <Route path="/news/event" element={<EventBoardList posts={posts} />} />
-        <Route path="/news/event/write" element={<PostWrite activeMenu="이벤트 게시판" boardType="event" refreshPosts={loadPosts} />} />
-        <Route path="/news/event/:poNum" element={<EventBoardDetail />} />
-        <Route path="/news/newsletter" element={<NewsLetterList posts={posts} />} />
-        <Route path="/news/newsletter/write" element={<PostWrite activeMenu="뉴스레터" boardType="newsletter" refreshPosts={loadPosts} />} />
-        <Route path="/news/newsletter/:poNum" element={<NewsLetterDetail />} />
+        <Route path="/news/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
+
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/login" element={<OpenLoginModal openLogin={openLogin} />} />
         <Route path="/signup" element={<OpenSignupModal openSignup={openSignup} />} />
-        <Route path="/news/notice" element={<NoticeList posts={posts} />} />
-        <Route path="/news/notice/:poNum" element={<NoticeDetail />} />
         <Route path="/inquiry" element={<InquiryPage />} />
       </Route>
     </Routes>
