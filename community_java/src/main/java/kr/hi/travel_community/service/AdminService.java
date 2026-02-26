@@ -92,7 +92,11 @@ public class AdminService {
 
     @Transactional
     public void updateReportReply(Integer rbNum, String reply) {
-        reportRepository.updateReply(rbNum, reply != null ? reply : "");
+        String r = reply != null ? reply : "";
+        reportRepository.updateReply(rbNum, r);
+        if (!r.trim().isEmpty()) {
+            reportRepository.updateManage(rbNum, "Y");
+        }
     }
 
     private Map<String, Object> toInquiryMap(InquiryBox ib) {

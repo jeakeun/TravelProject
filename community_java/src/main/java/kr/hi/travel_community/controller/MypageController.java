@@ -170,6 +170,7 @@ public class MypageController {
     }
 
     @PutMapping("/reports/{rbNum}/seen")
+    @Transactional
     public ResponseEntity<?> markReportSeen(@PathVariable Integer rbNum, Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()
                 || !(authentication.getPrincipal() instanceof CustomUser)) {

@@ -7,6 +7,7 @@ import kr.hi.travel_community.repository.InquiryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -74,6 +75,7 @@ public class InquiryController {
     }
 
     @PutMapping("/my/{ibNum}/seen")
+    @Transactional
     public ResponseEntity<?> markInquirySeen(@PathVariable Integer ibNum, Authentication auth) {
         if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof CustomUser)) {
             return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));

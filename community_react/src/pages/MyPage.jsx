@@ -156,23 +156,33 @@ function MyPage() {
     ((q.ibReply && String(q.ibReply).trim()) || q.ibStatus === "Y") &&
     !/^[Yy]$/.test(q.ibSeen ?? "");
 
-  const openReportDetail = (r) => {
+  const openReportDetail = async (r) => {
     setDetailModal({ type: "report", data: r });
     if (isReportUnseen(r)) {
-      setMyReports((prev) =>
-        prev.map((x) => (x.rbNum === r.rbNum ? { ...x, rbSeen: "Y" } : x))
-      );
-      api.put(`/api/mypage/reports/${r.rbNum}/seen`).catch(() => {});
+      try {
+        await api.put(`/api/mypage/reports/${r.rbNum}/seen`);
+        setMyReports((prev) =>
+          prev.map((x) => (x.rbNum === r.rbNum ? { ...x, rbSeen: "Y" } : x))
+        );
+      } catch (_) {
+        const res = await api.get("/api/mypage/reports");
+        setMyReports(Array.isArray(res.data) ? res.data : []);
+      }
     }
   };
 
-  const openInquiryDetail = (q) => {
+  const openInquiryDetail = async (q) => {
     setDetailModal({ type: "inquiry", data: q });
     if (isInquiryUnseen(q)) {
-      setMyInquiries((prev) =>
-        prev.map((x) => (x.ibNum === q.ibNum ? { ...x, ibSeen: "Y" } : x))
-      );
-      api.put(`/api/inquiry/my/${q.ibNum}/seen`).catch(() => {});
+      try {
+        await api.put(`/api/inquiry/my/${q.ibNum}/seen`);
+        setMyInquiries((prev) =>
+          prev.map((x) => (x.ibNum === q.ibNum ? { ...x, ibSeen: "Y" } : x))
+        );
+      } catch (_) {
+        const res = await api.get("/api/inquiry/my");
+        setMyInquiries(Array.isArray(res.data) ? res.data : []);
+      }
     }
   };
 
@@ -639,7 +649,7 @@ function MyPage() {
                         >
                           <span className="mypage-post-board">{r.rbName} #{r.rbId}</span>
                           <span className="mypage-post-title">{(r.rbContent || "").slice(0, 40)}{(r.rbContent || "").length > 40 ? "..." : ""}</span>
-                          <span className="mypage-post-date">{r.rbManage === "Y" ? "처리완료" : r.rbManage === "D" ? "삭제됨" : r.rbManage === "H" ? "보류" : "대기"}</span>
+                          <span className="mypage-post-date">{(r.rbReply && String(r.rbReply).trim()) ? "답변완료" : r.rbManage === "Y" ? "처리완료" : r.rbManage === "D" ? "삭제됨" : r.rbManage === "H" ? "보류" : "대기"}</span>
                         </li>
                       ))}
                     </ul>
@@ -693,7 +703,7 @@ function MyPage() {
                     <p>{detailModal.data.rbReply}</p>
                   </div>
                 )}
-                <p><strong>상태:</strong> {detailModal.data.rbManage === "Y" ? "처리완료" : detailModal.data.rbManage === "D" ? "삭제됨" : detailModal.data.rbManage === "H" ? "보류" : "대기"}</p>
+                <p><strong>상태:</strong> {(detailModal.data.rbReply && String(detailModal.data.rbReply).trim()) ? "답변완료" : detailModal.data.rbManage === "Y" ? "처리완료" : detailModal.data.rbManage === "D" ? "삭제됨" : detailModal.data.rbManage === "H" ? "보류" : "대기"}</p>
               </div>
             ) : (
               <div className="mypage-detail-body">
