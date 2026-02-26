@@ -8,6 +8,7 @@ import kr.hi.travel_community.entity.Comment;
 import kr.hi.travel_community.entity.Member; 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest; // 🚩 추가됨
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,12 +45,15 @@ public class RecommendPostService {
         return getAllPosts(null);
     }
 
+    /**
+     * [수정] 메인용 상위 10개 게시글 조회
+     * Repository의 Pageable 파라미터에 맞춰 PageRequest.of(0, 10)을 사용합니다.
+     */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getAllPosts(Integer mbNum) {
-        return postRepository.findByPoDelOrderByPoNumDesc("N").stream()
+        // 🚩 PageRequest.of(0, 10)으로 첫 페이지의 10개 항목을 가져옵니다.
+        return postRepository.findTopPostsByScore(PageRequest.of(0, 10)).stream()
                 .map(p -> convertToMapWithAuth(p, mbNum))
-                .sorted((a, b) -> Integer.compare((int) b.get("score"), (int) a.get("score")))
-                .limit(10)
                 .collect(Collectors.toList());
     }
 
@@ -254,13 +258,17 @@ public class RecommendPostService {
 
         int views = p.getPoView() != null ? p.getPoView() : 0;
         int likes = p.getPoUp() != null ? p.getPoUp() : 0;
+        int reports = p.getPoReport() != null ? p.getPoReport() : 0;
+        
         long commentCount = commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getPoNum(), "RECOMMEND", "N");
         long bookmarkCount = bookMarkRepository.countByBmPoNumAndBmPoType(p.getPoNum(), "RECOMMEND");
 
-        int score = views + likes + (int)commentCount + (int)bookmarkCount;
+        // 🚩 점수 공식: 조회 + 추천 + 댓글 + 즐겨찾기 - 신고
+        int score = views + likes + (int)commentCount + (int)bookmarkCount - reports;
 
         map.put("poView", views);
         map.put("poUp", likes);
+        map.put("poReport", reports);
         map.put("commentCount", commentCount);
         map.put("bookmarkCount", bookmarkCount);
         map.put("score", score);
