@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "./Main.css";
 import { useOutletContext, useNavigate } from "react-router-dom";
 
-// 🚩 불필요한 더미 여행지 문구를 제거하고 제목만 남겼습니다.
+
 const carouselTranslations = {
   KR: { rank_main_title: "이달의 여행지 랭킹" },
   EN: { rank_main_title: "Monthly Rankings" },
@@ -138,7 +138,7 @@ function Main() {
         </div>
       </section>
 
-      <footer>© 2026 Travel Recommendation</footer>
+      <footer>김진영 진짜 그만 아프다고 해라~</footer>
     </div>
   );
 }

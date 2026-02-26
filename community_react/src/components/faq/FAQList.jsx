@@ -15,9 +15,6 @@ const FAQList = ({ posts = [], goToDetail }) => {
     // 🚩 관리자 여부 확인 (ADMIN 체크)
     const isAdmin = user && user.mbRol === 'ADMIN';
 
-    // 🚩 AWS 자동 배포 환경 서버 URL (공지사항과 동일 유지)
-    const SERVER_URL = "http://3.37.160.108:8080";
-
     // 검색 실행 함수
     const handleSearch = () => {
         setAppliedSearch(inputValue);
