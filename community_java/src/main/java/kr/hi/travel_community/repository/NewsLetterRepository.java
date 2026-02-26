@@ -16,17 +16,19 @@ public interface NewsLetterRepository extends JpaRepository<NewsLetter, Integer>
 
     /**
      * 🚩 1. 삭제되지 않은 뉴스레터 전체 조회 (최신순)
+     * 서비스의 getRealAllPosts()와 연동됩니다.
      */
     List<NewsLetter> findByPoDelOrderByPoNumDesc(String poDel);
 
     /**
      * 🚩 2. 특정 뉴스레터 상세 조회 (삭제 여부 확인)
+     * 서비스의 getPostDetailWithImage()와 연동됩니다.
      */
     Optional<NewsLetter> findByPoNumAndPoDel(Integer poNum, String poDel);
 
     /**
      * 🚩 3. 조회수 증가 (JPQL 방식)
-     * 💡 Native Query의 테이블명 의존성을 제거하고 엔티티 객체 기준으로 안전하게 업데이트합니다.
+     * Native Query의 테이블명 의존성을 제거하고 엔티티 객체 기준으로 안전하게 업데이트합니다.
      */
     @Modifying
     @Transactional

@@ -23,13 +23,13 @@ public class NoticeBoardController {
 
     private final NoticeBoardService noticePostService;
 
-    // 공지사항 전체 목록 조회
+    // 🚩 공지사항 전체 목록 조회
     @GetMapping("/posts")
     public List<Map<String, Object>> getAllPosts() {
         return noticePostService.getRealAllPosts();
     }
 
-    // 공지사항 상세 조회 (조회수 증가 포함)
+    // 🚩 공지사항 상세 조회 (조회수 증가 포함)
     @GetMapping("/posts/{id}")
     public Map<String, Object> getPostDetail(
             @PathVariable("id") Integer id,
@@ -41,14 +41,18 @@ public class NoticeBoardController {
         return noticePostService.getPostDetail(id, mbNum);
     }
 
-    // 공지사항 저장 (관리자만 가능)
+    // 🚩 공지사항 저장 (관리자만 가능)
     @PostMapping("/posts")
     public ResponseEntity<String> savePost(Authentication authentication, @RequestBody Notice post) {
         try {
-            // 관리자 권한 체크
+            // ✅ 관리자 권한 체크
             if (!isAdmin(authentication)) {
                 return ResponseEntity.status(403).body("관리자만 작성할 수 있습니다.");
             }
+            
+            // 작성자 번호(mbNum) 설정 (인증 객체에서 추출)
+            MemberVO member = ((CustomUser) authentication.getPrincipal()).getMember();
+            post.setNnMbNum(member.getMb_num());
             
             noticePostService.savePost(post);
             return ResponseEntity.ok("saved");
@@ -57,14 +61,14 @@ public class NoticeBoardController {
         }
     }
 
-    // 공지사항 수정 (관리자만 가능)
+    // 🚩 공지사항 수정 (관리자만 가능)
     @PutMapping("/posts/{id}")
     public ResponseEntity<String> updatePost(
             Authentication authentication,
             @PathVariable("id") Integer id,
             @RequestBody Map<String, String> updateData) {
         try {
-            // 관리자 권한 체크
+            // ✅ 관리자 권한 체크
             if (!isAdmin(authentication)) {
                 return ResponseEntity.status(403).body("관리자만 수정할 수 있습니다.");
             }
@@ -78,11 +82,11 @@ public class NoticeBoardController {
         }
     }
 
-    // 공지사항 삭제 (관리자만 가능)
+    // 🚩 공지사항 삭제 (관리자만 가능)
     @DeleteMapping("/posts/{id}")
     public ResponseEntity<String> deletePost(Authentication authentication, @PathVariable("id") Integer id) {
         try {
-            // 관리자 권한 체크
+            // ✅ 관리자 권한 체크
             if (!isAdmin(authentication)) {
                 return ResponseEntity.status(403).body("관리자만 삭제할 수 있습니다.");
             }
@@ -114,7 +118,8 @@ public class NoticeBoardController {
     }
 
     /**
-     * 관리자 여부 확인 공통 로직
+     * ✅ 관리자 여부 확인 공통 로직
+     * CustomUser에서 MemberVO를 꺼내 mb_rol이 'ADMIN'인지 확인합니다.
      */
     private boolean isAdmin(Authentication authentication) {
         if (authentication != null && authentication.getPrincipal() instanceof CustomUser) {

@@ -6,7 +6,6 @@ import java.time.LocalDateTime;
 
 /**
  * 공지사항 게시판 엔티티
- * 클래스명을 NoticePost로 변경하여 서비스/컨트롤러 계층과 일치시켰습니다.
  */
 @Entity
 @Table(name = "notice_post")

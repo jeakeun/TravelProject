@@ -55,7 +55,7 @@ public class NewsLetter {
     private String poDel; // 삭제 여부 ('N' 또는 'Y')
 
     @Column(name = "po_mb_num")
-    private Integer poMbNum; // 작성자 회원 번호
+    private Integer poMbNum; // 작성자 회원 번호 (관리자 식별용)
 
     /**
      * 🚩 엔티티 저장 전 기본값 설정

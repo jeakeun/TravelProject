@@ -14,12 +14,22 @@ import java.util.Optional;
 @Repository
 public interface NoticeRepository extends JpaRepository<Notice, Integer> {
 
-    // 삭제되지 않은 특정 게시글 상세 조회
+    /**
+     * 삭제되지 않은 특정 게시글 상세 조회
+     * 서비스의 findByNnNumAndNnDel 호출과 매칭됩니다.
+     */
     Optional<Notice> findByNnNumAndNnDel(Integer nnNum, String nnDel);
 
-    // 공지사항 목록 조회 (삭제되지 않은 데이터를 최신순으로)
+    /**
+     * 공지사항 목록 조회 (삭제되지 않은 데이터를 최신순으로)
+     * 서비스의 findByNnDelOrderByNnNumDesc 호출과 매칭됩니다.
+     */
     List<Notice> findByNnDelOrderByNnNumDesc(String nnDel);
 
+    /**
+     * 조회수 증가 로직
+     * p.nnView가 null일 경우를 대비해 COALESCE를 사용하며, 삭제되지 않은 게시글만 업데이트합니다.
+     */
     @Modifying
     @Transactional
     @Query("UPDATE Notice p SET p.nnView = COALESCE(p.nnView, 0) + 1 WHERE p.nnNum = :id AND p.nnDel = 'N'")

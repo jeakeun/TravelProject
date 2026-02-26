@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -14,6 +15,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.hi.travel_community.entity.Notice;
 import kr.hi.travel_community.mapper.LikeMapper;
+import kr.hi.travel_community.model.vo.MemberVO;
+import kr.hi.travel_community.repository.MemberRepository;
 import kr.hi.travel_community.repository.NoticeRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -22,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class NoticeBoardService {
 
     private final NoticeRepository postRepository;
+    private final MemberRepository memberRepository; // 🚩 닉네임 조회를 위해 추가
     private final LikeMapper likeMapper; 
 
     @Transactional(readOnly = true)
@@ -135,6 +139,22 @@ public class NoticeBoardService {
         map.put("nnView", p.getNnView() != null ? p.getNnView() : 0);
         map.put("nnUp", p.getNnUp() != null ? p.getNnUp() : 0);
         map.put("nnMbNum", p.getNnMbNum());
+
+        // 🚩 작성자(관리자) 닉네임 매핑 로직 (타입 에러 방어)
+        String nickname = "관리자";
+        try {
+            Optional<?> result = memberRepository.findById(p.getNnMbNum());
+            if (result.isPresent()) {
+                Object obj = result.get();
+                if (obj instanceof MemberVO) {
+                    nickname = ((MemberVO) obj).getMb_nickname();
+                }
+            }
+        } catch (Exception e) {
+            // 에러 시 기본값 "관리자" 유지
+        }
+        map.put("mbNickname", nickname);
+
         return map;
     }
 }

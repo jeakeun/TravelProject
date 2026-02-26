@@ -16,6 +16,7 @@ public interface EventRepository extends JpaRepository<Event, Integer> {
 
     /**
      * 🚩 1. 삭제되지 않은 게시글 전체 조회 (최신순)
+     * 서비스의 getRealAllPosts()와 연동됩니다.
      */
     List<Event> findByPoDelOrderByPoNumDesc(String poDel);
 
@@ -26,6 +27,7 @@ public interface EventRepository extends JpaRepository<Event, Integer> {
 
     /**
      * 🚩 2. 특정 게시글 상세 조회 (삭제되지 않은 상태 확인)
+     * 서비스의 getPostDetailWithImage()와 연동됩니다.
      */
     Optional<Event> findByPoNumAndPoDel(Integer poNum, String poDel);
 
