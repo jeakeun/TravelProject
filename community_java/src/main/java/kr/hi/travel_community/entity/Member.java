@@ -10,32 +10,38 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString // 일반적인 ToString 사용 (순환 참조 방지 필요 시 exclude 추가 가능)
 public class Member {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "mb_num") // DB 컬럼명 명시
     private Integer mbNum;
 
-    @Column(nullable = false, unique = true, length = 30)
+    @Column(name = "mb_uid", nullable = false, unique = true, length = 30)
     private String mbUid;
 
     @Column(name = "mb_nickname", nullable = false, length = 50)
     private String mbNickname;
 
-    @Column(length = 255)
+    @Column(name = "mb_pw", length = 255)
     private String mbPw;
 
-    @Column(length = 50)
+    @Column(name = "mb_email", length = 50)
     private String mbEmail;
 
-    @Column(nullable = false, length = 10)
+    @Builder.Default
+    @Column(name = "mb_rol", nullable = false, length = 10)
     private String mbRol = "USER";
 
-    @Column(nullable = false)
+    @Builder.Default
+    @Column(name = "mb_score", nullable = false)
     private Integer mbScore = 0;
 
-    @Column(length = 100)
+    @Column(name = "mb_photo", length = 100)
     private String mbPhoto;
 
-    @Column(nullable = false, length = 1)
+    @Builder.Default
+    @Column(name = "mb_agree", nullable = false, length = 1)
     private String mbAgree = "N";
 }

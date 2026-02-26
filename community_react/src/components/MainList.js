@@ -10,8 +10,8 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
   const itemsPerPage = 6; 
   const navigate = useNavigate();
 
-  // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정 (환경 변수 적용)
-  const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+  // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정 (공백일 경우 현재 도메인 기준)
+  const SERVER_URL = process.env.REACT_APP_API_URL || "";
 
   // 지도 관련 상태 관리
   const [mapInput, setMapInput] = useState('');
@@ -75,16 +75,17 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
     }
   };
 
-  // 서버의 poTitle 필드로 검색 (다양한 필드명 대응)
+  /**
+   * 🚩 필터링 로직 수정
+   * SERVER_URL 조건문을 제거하여 빈 값일 때도 리스트가 나오게 함
+   */
   const filteredItems = useMemo(() => {
-    // 🚩 SERVER_URL 사용 여부 경고 방지
-    if (!SERVER_URL) return [];
-    
-    return photos.filter(p => {
+    const safePhotos = Array.isArray(photos) ? photos : [];
+    return safePhotos.filter(p => {
       const title = p.poTitle || p.po_title || p.title || "";
       return title.toLowerCase().includes(appliedSearch.toLowerCase());
     });
-  }, [photos, appliedSearch, SERVER_URL]);
+  }, [photos, appliedSearch]);
   
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage) || 1;
   const currentItems = filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -135,7 +136,6 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
       {activeMenu.trim() === '국내여행' ? (
         <div className="map-section" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '20px' }}>
           
-          {/* 1. 지도 상단 카테고리 필터 버튼 */}
           <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
             {['식당', '카페', '관광지', '숙박'].map(cat => (
               <button 
@@ -163,7 +163,6 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
             ))}
           </div>
           
-          {/* 2. 지도 영역 */}
           <div style={{ 
             width: '500px', 
             height: '450px', 
@@ -176,7 +175,6 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
             <Mapha category={selectedCategory} keyword={mapKeyword} />
           </div>
 
-          {/* 3. 지도 하단 장소 검색창 */}
           <div style={{ ...searchBoxStyle, marginTop: '10px' }}>
             <input 
               type="text" 
@@ -191,13 +189,13 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
         </div>
       ) : (
         <>
-          {/* 게시판 목록 레이아웃 */}
           <div className="gallery-grid">
             {currentItems.length > 0 ? (
               currentItems.map((photo, idx) => {
                 const virtualNum = filteredItems.length - ((currentPage - 1) * itemsPerPage + idx);
                 const postId = photo.poNum || photo.po_num || photo.postId;
                 const displayTitle = photo.poTitle || photo.po_title || photo.title;
+                // 🚩 SERVER_URL 활용하여 이미지 경로 동적 생성
                 const displayImg = photo.fileUrl || (photo.poImg ? `${SERVER_URL}/pic/${photo.poImg.split(',')[0]}` : FALLBACK_IMAGE);
 
                 return (
@@ -233,7 +231,6 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
                 );
               })
             ) : (
-              
               <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '100px 0', color: '#888', fontSize: '18px', fontWeight: 'bold' }}>
                 {activeMenu.trim() === '해외여행' ? "돈 많아요? 국내에도 갈데 많은데 뭐하러 해외까지 알아보시나요?." : "등록된 게시글이 없습니다."}
               </div>

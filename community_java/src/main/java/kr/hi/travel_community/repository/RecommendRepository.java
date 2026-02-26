@@ -43,24 +43,33 @@ public interface RecommendRepository extends JpaRepository<RecommendPost, Intege
     List<RecommendPost> findByTitleOrContent(@Param("keyword") String keyword, @Param("poDel") String poDel);
 
     /**
-     * 🚩 [추가] 작성자(mbNum)로 게시글 찾기
-     * 서비스의 searchPosts 메서드 내 "author" 케이스에서 빨간 줄이 뜨지 않도록 추가합니다.
+     * 🚩 작성자(mbNum)로 게시글 찾기
      */
     List<RecommendPost> findByPoMbNumAndPoDelOrderByPoNumDesc(Integer poMbNum, String poDel);
 
     /**
      * 🚩 조회수 증가
+     * (COALESCE를 사용하여 poView가 null일 경우 0으로 처리 후 +1)
      */
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("UPDATE RecommendPost p SET p.poView = COALESCE(p.poView, 0) + 1 " +
            "WHERE p.poNum = :id AND p.poDel = 'N'")
     int updateViewCount(@Param("id") Integer id);
 
     /**
-     * 🚩 좋아요(추천) 수 동기화
+     * 🚩 좋아요(추천) 수 업데이트
+     * 추천 시 +1, 취소 시 -1을 amount로 전달받아 처리합니다.
      */
-    @Modifying
-    @Query("UPDATE RecommendPost p SET p.poUp = COALESCE(p.poUp, 0) + :amount " +
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE RecommendPost p SET p.poUp = GREATEST(0, COALESCE(p.poUp, 0) + :amount) " +
            "WHERE p.poNum = :id AND p.poDel = 'N'")
     void updateLikeCount(@Param("id") Integer id, @Param("amount") int amount);
+
+    /**
+     * 🚩 [추가] 신고 횟수 증가
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE RecommendPost p SET p.poReport = COALESCE(p.poReport, 0) + 1 " +
+           "WHERE p.poNum = :id AND p.poDel = 'N'")
+    void updateReportCount(@Param("id") Integer id);
 }

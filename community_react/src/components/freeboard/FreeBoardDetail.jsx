@@ -4,6 +4,7 @@ import axios from 'axios';
 import api from '../../api/axios';
 import { getMemberNum } from '../../utils/user';
 import { addRecentView } from '../../utils/recentViews'; 
+import ReportModal from '../ReportModal'; // 🚩 신고 모달 컴포넌트 임포트
 import './FreeBoardDetail.css'; 
 
 const FreeBoardDetail = () => {
@@ -13,22 +14,27 @@ const FreeBoardDetail = () => {
     const [post, setPost] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isBookmarked, setIsBookmarked] = useState(false);
+    const [likeCount, setLikeCount] = useState(0); 
+    const [isLiked, setIsLiked] = useState(false); // 🚩 추천 여부 상태 추가
+
+    // 🚩 신고 모달 상태 추가
+    const [reportModal, setReportModal] = useState({ open: false, type: 'post', targetId: null });
 
     const isLoggedIn = !!user;
     const currentUserNum = getMemberNum(user);
 
-    // 🚩 [수정] 자동 배포 환경을 위해 배포 서버 IP로 고정 설정
+    // 🚩 [유지] 자동 배포 환경을 위해 빈 공백 설정
     const SERVER_URL = "";
 
     /**
-     * 🚩 본문 내 이미지 경로를 영구 저장소 경로로 변환
-     * 에디터에서 삽입된 상대 경로(/pic/...)를 서버의 전체 URL로 변환하여 영구 보존 대응
+     * 🚩 본문 내 이미지 경로 처리 로직 보완
      */
     const formatContent = (content) => {
         if (!content) return "";
-        // /pic/ 경로로 시작하는 이미지 src를 서버 주소와 결합
-        // 🚩 SERVER_URL을 참조하여 배포 환경에서도 이미지가 깨지지 않게 함
-        return content.replace(/src="\/pic\//g, `src="${SERVER_URL}/pic/`);
+        if (SERVER_URL) {
+            return content.replace(/src="\/pic\//g, `src="${SERVER_URL}/pic/`);
+        }
+        return content;
     };
 
     const fetchDetail = useCallback(async () => {
@@ -39,10 +45,16 @@ const FreeBoardDetail = () => {
 
         try {
             setLoading(true);
-            // 🚩 고정된 SERVER_URL을 사용하여 게시글 상세 정보 호출
             const res = await axios.get(`${SERVER_URL}/api/freeboard/posts/${id}`);
             setPost(res.data);
-            addRecentView({ boardType: 'freeboard', poNum: Number(id), poTitle: res.data?.poTitle }, currentUserNum);
+            setLikeCount(res.data?.poLike || 0);
+            setIsLiked(res.data?.isLikedByMe || false); // 추천 여부 초기화
+            
+            // 즐겨찾기 상태 초기화 (백엔드 필드명에 맞게 체크)
+            const bookmarkStatus = res.data.isBookmarkedByMe || res.data.isBookmarked === 'Y';
+            setIsBookmarked(bookmarkStatus);
+
+            addRecentView({ boardType: 'freeboard', poNum: Number(id), poTitle: res.data?.poTitle });
         } catch (err) {
             console.error("상세보기 로딩 에러:", err);
             alert("게시글을 불러올 수 없습니다.");
@@ -60,17 +72,68 @@ const FreeBoardDetail = () => {
 
     const isOwner = isLoggedIn && Number(post.poMbNum) === Number(currentUserNum);
 
+    // 🚩 RecommendPostDetail과 동일한 버튼 스타일 (둥근 디자인)
+    const actionButtonStyle = {
+        padding: '10px 25px',
+        borderRadius: '30px',
+        fontWeight: 'bold',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '5px',
+        transition: 'all 0.2s ease',
+        fontSize: '14px'
+    };
+
     const handleBookmark = async () => {
         if (!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
-            // 즐겨찾기 API는 기존 공용 api 인스턴스(axios)를 사용하되 
-            // 만약 여기서도 베이스 URL 이슈가 발생하면 api 인스턴스 설정 자체를 점검해야 합니다.
             await api.post("/api/mypage/bookmarks", { poNum: Number(id), boardType: "freeboard" });
-            setIsBookmarked(true);
-            alert("즐겨찾기에 추가되었습니다.");
+            setIsBookmarked(!isBookmarked);
+            alert(!isBookmarked ? "즐겨찾기에 추가되었습니다." : "즐겨찾기가 취소되었습니다.");
         } catch (err) {
             const msg = err?.response?.data?.msg || err?.response?.data?.error;
-            alert(msg || "즐겨찾기 추가에 실패했습니다.");
+            alert(msg || "즐겨찾기 처리에 실패했습니다.");
+        }
+    };
+
+    const handleLike = async () => {
+        if (!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
+        try {
+            const res = await axios.post(`${SERVER_URL}/api/freeboard/posts/${id}/like`);
+            // 추천/취소 상태에 따른 실시간 처리
+            if (res.data.status === "liked" || !isLiked) {
+                setIsLiked(true);
+                setLikeCount(prev => prev + 1);
+                alert("게시글을 추천했습니다.");
+            } else {
+                setIsLiked(false);
+                setLikeCount(prev => Math.max(0, prev - 1));
+                alert("추천을 취소했습니다.");
+            }
+        } catch (err) {
+            alert(err.response?.data?.msg || "이미 추천하셨거나 오류가 발생했습니다.");
+        }
+    };
+
+    // 🚩 신고하기 로직 추가
+    const handleReportPost = () => {
+        if (!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
+        setReportModal({ open: true, type: 'post', targetId: id });
+    };
+
+    const handleReportSubmit = async ({ category, reason }) => {
+        try {
+            await axios.post(`${SERVER_URL}/api/freeboard/posts/${id}/report`, { 
+                category, 
+                reason, 
+                mbNum: currentUserNum 
+            });
+            alert("신고가 정상적으로 접수되었습니다.");
+        } catch (err) {
+            alert(err.response?.data?.msg || "이미 신고했거나 오류가 발생했습니다.");
+        } finally {
+            setReportModal({ open: false, type: 'post', targetId: null });
         }
     };
 
@@ -85,45 +148,82 @@ const FreeBoardDetail = () => {
         }
     };
 
+    // 🚩 [수정] 작성자 닉네임 로직: 연관 관계 member 객체를 최우선으로 참조하도록 수정
+    const postAuthorNick = post.member?.mbNickname || post.mbNickname || post.mb_nickname || post.authorNick || `User ${post.poMbNum}`;
+
     return (
         <div className="review-detail-wrapper">
             <div className="detail-container">
-                {/* 헤더 섹션: 리뷰보드 규격 일치 */}
                 <div className="detail-header-section">
                     <h1 className="detail-main-title">{post.poTitle}</h1>
                     <div className="detail-sub-info">
-                        <span>작성자: User {post.poMbNum}</span> 
+                        <span>작성자: {postAuthorNick}</span> 
                         <span className="info-divider">|</span>
                         <span>조회 {post.poView}</span> 
+                        <span className="info-divider">|</span>
+                        <span>추천 {likeCount}</span>
                         <span className="info-divider">|</span>
                         <span>작성일 {new Date(post.poDate).toLocaleString()}</span>
                     </div>
                 </div>
 
-                {/* 본문 섹션: 이미지 경로 치환 로직 적용 */}
                 <div className="detail-body-text">
                     <div dangerouslySetInnerHTML={{ __html: formatContent(post.poContent) }} />
                 </div>
                 
-                {/* 하단 버튼 영역 */}
                 <div className="detail-bottom-actions">
-                    <div className="left-group">
+                    <div className="left-group" style={{ display: 'flex', gap: '10px' }}>
                         {isLoggedIn && (
-                            <button className="btn-bookmark-action" onClick={handleBookmark} disabled={isBookmarked} style={{ marginRight: 8 }}>
-                                {isBookmarked ? '★ 즐겨찾기됨' : '☆ 즐겨찾기'}
-                            </button>
+                            <>
+                                {/* 🚩 추천 버튼: 하트 아이콘 및 RecommendPostDetail 스타일 적용 */}
+                                <button 
+                                    className={`btn-like-action ${isLiked ? 'active' : ''}`} 
+                                    onClick={handleLike}
+                                    style={{ 
+                                        ...actionButtonStyle, 
+                                        background: isLiked ? '#e74c3c' : '#fff', 
+                                        border: '1px solid #e74c3c', 
+                                        color: isLiked ? '#fff' : '#e74c3c' 
+                                    }}
+                                >
+                                    {isLiked ? '❤️' : '🤍'} 추천 {likeCount}
+                                </button>
+                                <button 
+                                    className="btn-bookmark-action" 
+                                    onClick={handleBookmark} 
+                                    style={{ 
+                                        ...actionButtonStyle, 
+                                        background: isBookmarked ? '#f1c40f' : '#fff', 
+                                        border: '1px solid #f1c40f',
+                                        color: isBookmarked ? '#fff' : '#f1c40f' 
+                                    }}
+                                >
+                                    {isBookmarked ? '★ 즐겨찾기' : '☆ 즐겨찾기'}
+                                </button>
+                                {!isOwner && (
+                                    <button 
+                                        className="btn-report-action" 
+                                        onClick={handleReportPost}
+                                        style={{ ...actionButtonStyle, background: '#fff', border: '1px solid #ff4d4f', color: '#ff4d4f' }}
+                                    >
+                                        🚨 신고
+                                    </button>
+                                )}
+                            </>
                         )}
                         {isOwner && (
                             <>
                                 <button 
                                     className="btn-edit-action" 
                                     onClick={() => navigate(`/community/freeboard/edit/${id}`)}
+                                    style={{ ...actionButtonStyle, background: '#fff', border: '1px solid #3498db', color: '#3498db' }}
                                 >
                                     ✏️ 수정
                                 </button>
                                 <button 
                                     className="btn-delete-action" 
                                     onClick={handleDelete}
+                                    style={{ ...actionButtonStyle, background: '#fff', border: '1px solid #e67e22', color: '#e67e22' }}
                                 >
                                     🗑️ 삭제
                                 </button>
@@ -131,12 +231,23 @@ const FreeBoardDetail = () => {
                         )}
                     </div>
                     
-                    {/* 우측 끝 '목록으로' 버튼 */}
-                    <button className="btn-list-return" onClick={() => navigate('/community/freeboard')}>
+                    <button 
+                        className="btn-list-return" 
+                        onClick={() => navigate('/community/freeboard')}
+                        style={{ ...actionButtonStyle, background: '#fff', border: '1px solid #34495e', color: '#34495e' }}
+                    >
                         목록으로
                     </button>
                 </div>
             </div>
+
+            {/* 🚩 신고 모달 추가 */}
+            <ReportModal
+                isOpen={reportModal.open}
+                onClose={() => setReportModal({ open: false, type: 'post', targetId: null })}
+                onSubmit={handleReportSubmit}
+                title="게시글 신고하기"
+            />
         </div>
     );
 };
