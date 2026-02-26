@@ -142,7 +142,10 @@ function CommunityContainer({ posts, loadPosts, loading }) {
   }, [location.pathname, currentGroup]);
 
   if (!currentGroup) return <Outlet />; 
-  if (loading) return <div style={{ textAlign: 'center', marginTop: '100px' }}>로딩 중...</div>;
+  
+  // 수정: 데이터 로딩 중일 때 사이드바는 보이고 내용 영역만 로딩 표시되도록 변경하거나 
+  // 전체 로딩 처리를 유지하되, 데이터가 없을 때의 UI를 고려함
+  if (loading) return <div style={{ textAlign: 'center', marginTop: '100px' }}>데이터를 불러오는 중입니다...</div>;
 
   return (
     <div className="container">
@@ -198,7 +201,7 @@ function App() {
   const [resetUserId, setResetUserId] = useState('');
   const [currentLang, setCurrentLang] = useState("KR");
   const [posts, setPosts] = useState([]); 
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(false); // 초기값을 false로 변경하여 불필요한 빈 화면 방지
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('user');
     if (!saved) return null;
@@ -219,30 +222,34 @@ function App() {
     
     // 단순 페이지 이동이나 액션 페이지에서는 포스트 로딩 생략
     const isActionPage = ['write', 'edit', 'login', 'signup'].includes(lastPart) || (lastPart && !isNaN(lastPart));
+    
+    // 메인 홈(/)이거나 액션 페이지면 로딩 종료 후 중단
     if (isActionPage || path === '/') {
         setLoading(false);
         return;
     }
 
+    // 로딩 대상 엔드포인트 판별
+    let endpoint = ''; 
+    if (path.includes('freeboard')) endpoint = 'freeboard';
+    else if (path.includes('event')) endpoint = 'event';
+    else if (path.includes('newsletter')) endpoint = 'newsletter';
+    else if (path.includes('recommend')) endpoint = 'recommend';
+    else if (path.includes('notice')) endpoint = 'notice';
+
+    if (!endpoint) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      let endpoint = ''; 
-      if (path.includes('freeboard')) endpoint = 'freeboard';
-      else if (path.includes('event')) endpoint = 'event';
-      else if (path.includes('newsletter')) endpoint = 'newsletter';
-      else if (path.includes('recommend')) endpoint = 'recommend';
-
-      if (!endpoint) {
-        setLoading(false);
-        return;
-      }
-
-      // ✅ [수정] 백엔드 컨트롤러 구조에 맞춰 /api/recommend 및 /api/게시판/posts 설정
       const apiUrl = endpoint === 'recommend' 
         ? `${API_BASE_URL}/api/recommend` 
         : `${API_BASE_URL}/api/${endpoint}/posts`;
 
       const response = await axios.get(apiUrl);
+      
       if (response.data && Array.isArray(response.data)) {
         const storageChange = localStorage.getItem('bookmark_changed');
         let syncData = null;
@@ -271,12 +278,15 @@ function App() {
       }
     } catch (err) {
       console.error(`${path} 데이터 로딩 실패:`, err.message);
+      // 서버 에러 시 사용자에게 알림 (빈 화면 방지)
       setPosts([]); 
     } finally {
+      // 에러가 나든 성공하든 로딩 상태는 해제
       setLoading(false);
     }
   }, [location.pathname]);
 
+  // 페이지 이동 시 데이터 호출
   useEffect(() => {
     loadPosts();
   }, [loadPosts]);
@@ -301,7 +311,6 @@ function App() {
     const saved = localStorage.getItem('user');
     if (saved) return; 
     
-    // ✅ 자동 로그인(refresh) 시도
     fetch(`${API_BASE_URL}/auth/refresh`, { method: "POST", credentials: "include" })
       .then((res) => {
         if (!res.ok) return;
