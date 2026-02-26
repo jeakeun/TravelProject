@@ -47,9 +47,6 @@ const FreeBoardDetail = () => {
             setLoading(true);
             const res = await axios.get(`${SERVER_URL}/api/freeboard/posts/${id}`);
             setPost(res.data);
-<<<<<<< Updated upstream
-            addRecentView({ boardType: 'freeboard', poNum: Number(id), poTitle: res.data?.poTitle }, currentUserNum);
-=======
             setLikeCount(res.data?.poLike || 0);
             setIsLiked(res.data?.isLikedByMe || false); // 추천 여부 초기화
             
@@ -58,7 +55,6 @@ const FreeBoardDetail = () => {
             setIsBookmarked(bookmarkStatus);
 
             addRecentView({ boardType: 'freeboard', poNum: Number(id), poTitle: res.data?.poTitle });
->>>>>>> Stashed changes
         } catch (err) {
             console.error("상세보기 로딩 에러:", err);
             alert("게시글을 불러올 수 없습니다.");
