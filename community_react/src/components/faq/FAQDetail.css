@@ -1,0 +1,260 @@
+/* ==========================================================================
+   FAQDetail.css (자유게시판 및 공지사항과 동일한 디자인 규격 유지)
+   ========================================================================== */
+
+/* 전체 컨테이너 - 양옆 여백 및 레이아웃 통일 */
+.faq-list-wrapper, 
+.faq-detail-wrapper,
+.review-detail-wrapper {
+    width: 100%;
+    max-width: var(--page-size);
+    min-height: calc(100vh - var(--header-height));
+    margin: 0 auto;
+    padding: var(--page-padding-top) var(--page-padding-x) var(--page-padding-bottom);
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .faq-list-wrapper,
+    .faq-detail-wrapper,
+    .review-detail-wrapper {
+        padding: 24px 20px 40px;
+    }
+}
+
+.board-title {
+    font-size: 1.4rem;
+    margin: 0 0 16px 5px;
+    font-weight: 800;
+    color: #2c3e50;
+}
+
+/* 테이블 스타일 (List 페이지용) */
+.freeboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    margin-bottom: 12px;
+    background-color: #fff;
+}
+
+.freeboard-table thead th {
+    background-color: #f8f9fa;
+    border-top: 2px solid #34495e;
+    border-bottom: 1px solid #dee2e6;
+    padding: 15px 5px;
+    font-weight: 700;
+}
+
+.freeboard-table td {
+    padding: 15px 5px;
+    border-bottom: 1px solid #eee;
+    text-align: center;
+    font-size: 0.95rem;
+    color: #444;
+}
+
+.td-title {
+    text-align: left !important;
+    padding-left: 40px !important;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 🚩 하단 컨트롤 영역 (페이지네이션 + 검색 + 글쓰기) */
+.list-pagination-area {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+}
+
+/* 페이지네이션 버튼: 40px 원형 */
+.page-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.page-buttons button {
+    width: 40px !important;
+    height: 40px !important;
+    border: 1px solid #ddd;
+    background: #fff;
+    border-radius: 50% !important;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    color: #333;
+    padding: 0;
+}
+
+.page-buttons button.active {
+    background: #2c3e50 !important;
+    color: #fff !important;
+    border-color: #2c3e50 !important;
+}
+
+.page-buttons button:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* 푸터 액션 레이아웃 (검색창 중앙, 글쓰기 우측) */
+.footer-action-row {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    height: 50px;
+}
+
+.search-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* 카테고리 선택창 디자인 */
+.search-select-box {
+    height: 46px;
+    padding: 0 15px;
+    border: 1px solid #ddd;
+    border-radius: 30px;
+    background-color: #fff;
+    font-weight: 600;
+    color: #333;
+    outline: none;
+    cursor: pointer;
+}
+
+/* 검색 입력창 디자인 */
+.search-input-wrapper {
+    display: flex;
+    align-items: center;
+    height: 46px;
+    border: 1px solid #ddd;
+    border-radius: 30px;
+    padding: 3px 5px 3px 15px;
+    background: #fff;
+}
+
+.search-input-wrapper input {
+    border: none;
+    outline: none;
+    width: 250px;
+    font-size: 0.9rem;
+}
+
+.btn-search {
+    padding: 8px 22px;
+    background: #2c3e50;
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* 🚩 글쓰기 버튼 (우측 끝 고정) */
+.btn-write-footer {
+    position: absolute;
+    right: 0;
+    padding: 12px 28px;
+    background: #2c3e50;
+    color: #fff;
+    border: none;
+    border-radius: 30px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* 상세페이지 전용 스타일 */
+.detail-container {
+    background: #fff;
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+}
+
+.detail-header-section {
+    border-bottom: 2px solid #f1f1f1;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+}
+
+.detail-main-title {
+    font-size: 2rem;
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.detail-sub-info {
+    color: #888;
+    font-size: 0.95rem;
+}
+
+.info-divider {
+    margin: 0 10px;
+    color: #eee;
+}
+
+.detail-body-text {
+    min-height: 300px;
+    line-height: 1.8;
+    font-size: 1.05rem;
+}
+
+.detail-bottom-actions {
+    margin-top: 40px;
+    padding-top: 25px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.btn-edit-action,
+.btn-delete-action,
+.btn-bookmark-action,
+.btn-list-return {
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    background: #fff;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+/* 추천/스크랩 버튼 (상태에 따른 배경색은 인라인 스타일로 제어되므로 기본 틀만 유지) */
+.btn-bookmark-action {
+    border-color: #f1c40f;
+    color: #f39c12;
+    transition: all 0.2s ease;
+}
+
+.btn-bookmark-action:hover:not(:disabled) {
+    background: #f1c40f;
+    color: #fff;
+}
+
+.btn-bookmark-action:disabled {
+    opacity: 0.7;
+    cursor: default;
+}
+
+.btn-list-return {
+    background: #2c3e50;
+    color: #fff;
+    border: none;
+}
