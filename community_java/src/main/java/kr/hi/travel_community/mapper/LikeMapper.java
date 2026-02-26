@@ -11,10 +11,11 @@ public interface LikeMapper {
     int checkLikeStatus(@Param("poNum") Integer poNum, @Param("mbNum") Integer mbNum);
 
     // 추천 로그 추가 (li_id에 poNum이 들어감)
-    void insertLikeLog(@Param("poNum") Integer poNum, @Param("mbNum") Integer mbNum);
+    // 🚩 [보완] void를 int로 변경하여 성공 시 1을 반환받도록 설정 (선택 사항이나 권장)
+    int insertLikeLog(@Param("poNum") Integer poNum, @Param("mbNum") Integer mbNum);
 
     // 추천 로그 삭제
-    void deleteLikeLog(@Param("poNum") Integer poNum, @Param("mbNum") Integer mbNum);
+    int deleteLikeLog(@Param("poNum") Integer poNum, @Param("mbNum") Integer mbNum);
 
     // === 즐겨찾기(Scrap) 관련 추가 ===
 
@@ -22,8 +23,8 @@ public interface LikeMapper {
     int checkScrapStatus(@Param("poNum") Integer poNum, @Param("mbNum") Integer mbNum);
 
     // 스크랩 로그 추가
-    void insertScrapLog(@Param("poNum") Integer poNum, @Param("mbNum") Integer mbNum);
+    int insertScrapLog(@Param("poNum") Integer poNum, @Param("mbNum") Integer mbNum);
 
     // 스크랩 로그 삭제
-    void deleteScrapLog(@Param("poNum") Integer poNum, @Param("mbNum") Integer mbNum);
+    int deleteScrapLog(@Param("poNum") Integer poNum, @Param("mbNum") Integer mbNum);
 }

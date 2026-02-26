@@ -82,6 +82,9 @@ public class FreePostService {
         }).orElse(null);
     }
 
+    /**
+     * 🚩 게시글 등록
+     */
     @Transactional
     public void savePost(FreePost post, List<MultipartFile> images) throws Exception {
         post.setPoDate(LocalDateTime.now());
@@ -89,7 +92,7 @@ public class FreePostService {
         post.setPoUp(0);
         post.setPoDel("N"); 
         
-        if (post.getPoMbNum() == null) {
+        if (post.getPoMbNum() == null || post.getPoMbNum() == 0) {
             post.setPoMbNum(1); 
         }
 
@@ -97,6 +100,9 @@ public class FreePostService {
         postRepository.save(post);
     }
 
+    /**
+     * 🚩 게시글 수정
+     */
     @Transactional
     public void updatePost(Integer id, String title, String content, List<MultipartFile> images) throws Exception {
         FreePost post = postRepository.findByPoNumAndPoDel(id, "N")
@@ -109,6 +115,9 @@ public class FreePostService {
         postRepository.save(post);
     }
 
+    /**
+     * 🚩 게시글 삭제 (논리 삭제)
+     */
     @Transactional
     public void deletePost(Integer id) {
         postRepository.findByPoNumAndPoDel(id, "N").ifPresent(p -> {
@@ -117,6 +126,9 @@ public class FreePostService {
         });
     }
 
+    /**
+     * 🚩 추천 토글
+     */
     @Transactional
     public String toggleLikeStatus(Integer poNum, Integer mbNum) {
         int count = likeMapper.checkLikeStatus(poNum, mbNum);
@@ -136,6 +148,25 @@ public class FreePostService {
         }
     }
 
+    /**
+     * 🚩 신고 처리 로직
+     */
+    @Transactional
+    public void reportPost(Integer id, Integer mbNum, String category, String reason) {
+        FreePost post = postRepository.findByPoNumAndPoDel(id, "N")
+                .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
+        
+        // 신고 수 증가 (NPE 방지 처리 포함)
+        Integer currentReportCount = post.getPoReport();
+        post.setPoReport((currentReportCount == null ? 0 : currentReportCount) + 1);
+        
+        // 신고 저장은 엔티티 매핑을 통해 처리됨
+        postRepository.save(post);
+    }
+
+    /**
+     * 이미지 처리 공통 메서드
+     */
     private void handleImages(FreePost post, List<MultipartFile> images) throws Exception {
         if (images == null || images.isEmpty()) return;
 
@@ -147,7 +178,7 @@ public class FreePostService {
 
         List<String> savedNames = new ArrayList<>();
         for (MultipartFile file : images) {
-            if (!file.isEmpty()) {
+            if (file != null && !file.isEmpty()) {
                 String originalFileName = file.getOriginalFilename();
                 if (originalFileName == null || !originalFileName.contains(".")) continue;
                 
@@ -164,6 +195,9 @@ public class FreePostService {
         }
     }
 
+    /**
+     * 엔티티 -> Map 변환 (신고 수 필드 포함)
+     */
     private Map<String, Object> convertToMap(FreePost p) {
         Map<String, Object> map = new HashMap<>();
         map.put("poNum", p.getPoNum());
@@ -172,19 +206,19 @@ public class FreePostService {
         map.put("poDate", p.getPoDate() != null ? p.getPoDate().toString() : "");
         map.put("poView", p.getPoView() != null ? p.getPoView() : 0);
         map.put("poUp", p.getPoUp() != null ? p.getPoUp() : 0);
+        
+        // 🚩 상세 페이지 등에서 실시간 반영을 위해 신고 수 필드 맵에 추가
+        map.put("poReport", p.getPoReport() != null ? p.getPoReport() : 0);
+        
         map.put("poMbNum", p.getPoMbNum());
         map.put("commentCount", commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getPoNum(), "FREE", "N"));
         
-        // 🚩 [수정] 엔티티의 연관 관계를 통해 직접 닉네임을 추출합니다.
         String nickname = "알 수 없는 사용자";
         if (p.getMember() != null) {
             nickname = p.getMember().getMbNickname(); 
-        } else {
-            // member가 null일 경우 대비하여 직접 조회 시도 (필요 시)
+        } else if (p.getPoMbNum() != null) {
             try {
                 memberRepository.findById(p.getPoMbNum()).ifPresent(m -> {
-                    // Member 엔티티의 닉네임 필드명에 맞춰 호출
-                    // 만약 엔티티 필드가 mbNickname이라면 getMbNickname() 사용
                     map.put("mbNickname", m.getMbNickname());
                 });
                 if(map.get("mbNickname") != null) nickname = (String) map.get("mbNickname");
@@ -192,8 +226,6 @@ public class FreePostService {
         }
         
         map.put("mbNickname", nickname);
-        
-        // 🚩 [추가] 리액트에서 post.member.mbNickname으로 접근할 수 있도록 객체 전달
         map.put("member", p.getMember());
         
         String imgPath = p.getFileUrl();

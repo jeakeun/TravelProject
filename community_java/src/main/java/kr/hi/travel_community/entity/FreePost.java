@@ -1,22 +1,8 @@
 package kr.hi.travel_community.entity;
 
 import java.time.LocalDateTime;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
 @Table(name = "free_post")
@@ -24,7 +10,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = "member") // 🚩 중요: 무한 루프 에러 방지
+@ToString(exclude = "member")
 public class FreePost {
 
     @Id
@@ -55,23 +41,17 @@ public class FreePost {
 
     @Builder.Default
     @Column(name = "po_report", nullable = false)
-    private Integer poReport = 0;
+    private Integer poReport = 0; // 🚩 신고 수 필드 확인됨
 
     @Builder.Default
     @Column(name = "po_del", nullable = false, length = 1)
     private String poDel = "N";
 
-    /**
-     * 🚩 JoinColumn과 충돌하지 않도록 설정 추가
-     */
-    @Column(name = "po_mb_num", insertable = false, updatable = false)
+    @Column(name = "po_mb_num")
     private Integer poMbNum;
 
-    /**
-     * 작성자 정보 조인
-     */
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "po_mb_num")
+    @JoinColumn(name = "po_mb_num", insertable = false, updatable = false)
     private Member member; 
 
     @Column(name = "po_img", length = 1000)

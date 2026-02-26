@@ -16,13 +16,13 @@ public interface FreeRepository extends JpaRepository<FreePost, Integer> {
 
     /**
      * 🚩 상세 조회: 삭제되지 않은 특정 게시글 조회
-     * 서비스의 getPostDetailWithImage에서 findByPoNumAndPoDel(id, "N") 호출 시 사용됩니다.
+     * 서비스의 getPostDetailWithImage 및 reportPost에서 호출 시 사용됩니다.
      */
     Optional<FreePost> findByPoNumAndPoDel(Integer poNum, String poDel);
 
     /**
      * 🚩 목록 조회: 삭제되지 않은 글을 최신순으로 조회
-     * 서비스의 getRealAllPosts에서 findByPoDelOrderByPoNumDesc("N") 호출 시 사용됩니다.
+     * 서비스의 getRealAllPosts에서 호출 시 사용됩니다.
      */
     List<FreePost> findByPoDelOrderByPoNumDesc(String poDel);
 
@@ -32,7 +32,7 @@ public interface FreeRepository extends JpaRepository<FreePost, Integer> {
      */
     @Modifying
     @Transactional
-    @Query("UPDATE FreePost p SET p.poView = COALESCE(p.poView, 0) + 1 " +
+    @Query("UPDATE FreePost p SET p.poView = COALESCE(p.poView, 0) + 1 " + 
            "WHERE p.poNum = :id AND p.poDel = 'N'")
     int updateViewCount(@Param("id") Integer id);
 
