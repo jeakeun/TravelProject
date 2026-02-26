@@ -4,6 +4,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.hi.travel_community.entity.NewsLetter;
 import kr.hi.travel_community.model.util.CustomUser;
+import kr.hi.travel_community.model.vo.MemberVO;
 import kr.hi.travel_community.service.NewsLetterService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -23,7 +24,7 @@ public class NewsLetterController {
     private final NewsLetterService newsLetterService;
 
     /**
-     * 🚩 뉴스레터 목록 조회
+     * 🚩 뉴스레터 목록 조회 (유저/관리자 공용)
      */
     @GetMapping("/posts")
     public List<Map<String, Object>> getList(
@@ -36,14 +37,17 @@ public class NewsLetterController {
     }
 
     /**
-     * 🚩 뉴스레터 상세 조회
+     * 🚩 뉴스레터 상세 조회 (유저/관리자 공용)
      */
     @GetMapping("/posts/{id}")
     public ResponseEntity<?> getDetail(@PathVariable("id") Integer id,
                                        @RequestParam(value = "mbNum", required = false) Integer mbNum,
                                        HttpServletRequest request,
                                        HttpServletResponse response) {
+        // 조회수 증가
         newsLetterService.increaseViewCount(id, request, response);
+        
+        // 상세 데이터 조회 (좋아요 여부 포함)
         Map<String, Object> postData = newsLetterService.getPostDetailWithImage(id, mbNum);
         return postData != null ? ResponseEntity.ok(postData) : ResponseEntity.notFound().build();
     }
@@ -55,24 +59,30 @@ public class NewsLetterController {
     public ResponseEntity<?> create(Authentication authentication,
                                     @RequestParam("poTitle") String title,
                                     @RequestParam("poContent") String content,
-                                    @RequestParam(value = "poMbNum", required = false) Integer poMbNum,
                                     @RequestParam(value = "image", required = false) MultipartFile image) {
         
-        // 🚩 권한 체크: 인증 정보가 있거나 관리자 번호(1)인 경우 허용
+        // ✅ 관리자 권한 체크
+        if (!isAdmin(authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "관리자만 작성할 수 있습니다."));
+        }
+
         try {
+            // 인증 객체에서 관리자 정보 추출
+            int mbNum = resolveMbNum(authentication);
+
             NewsLetter post = NewsLetter.builder()
                     .poTitle(title)
                     .poContent(content)
-                    .poMbNum(poMbNum != null ? poMbNum : resolveMbNum(authentication))
+                    .poMbNum(mbNum)
                     .build();
             
-            // ✅ 이미지를 리스트로 감싸서 서비스로 전달 (영구 저장 처리용)
+            // 이미지를 리스트로 감싸서 서비스로 전달
             List<MultipartFile> images = (image != null) ? List.of(image) : Collections.emptyList();
             newsLetterService.savePost(post, images);
             
             return ResponseEntity.ok(Map.of("message", "Success"));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -85,14 +95,19 @@ public class NewsLetterController {
                                     @RequestParam("poTitle") String title,
                                     @RequestParam("poContent") String content,
                                     @RequestParam(value = "image", required = false) MultipartFile image) {
+        
+        // ✅ 관리자 권한 체크
+        if (!isAdmin(authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "관리자만 수정할 수 있습니다."));
+        }
+
         try {
-            // ✅ 수정 시에도 이미지 리스트 전달 체계 유지
             List<MultipartFile> images = (image != null ? List.of(image) : null);
             newsLetterService.updatePost(id, title, content, images);
             
             return ResponseEntity.ok(Map.of("message", "Updated"));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -101,24 +116,51 @@ public class NewsLetterController {
      */
     @DeleteMapping("/posts/{id}")
     public ResponseEntity<?> delete(Authentication authentication, @PathVariable("id") Integer id) {
+        
+        // ✅ 관리자 권한 체크
+        if (!isAdmin(authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "관리자만 삭제할 수 있습니다."));
+        }
+
         try {
             newsLetterService.deletePost(id);
             return ResponseEntity.ok(Map.of("message", "Deleted"));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
 
     /**
-     * 🚩 뉴스레터 추천 토글
+     * 🚩 뉴스레터 추천 토글 (유저 이용 가능)
      */
     @PostMapping("/posts/{id}/like")
-    public ResponseEntity<?> toggleLike(@PathVariable("id") Integer id, @RequestBody Map<String, Integer> data) {
+    public ResponseEntity<?> toggleLike(@PathVariable("id") Integer id, @RequestBody Map<String, Object> data) {
         try {
-            String status = newsLetterService.toggleLikeStatus(id, data.get("mbNum"));
+            Object mbNumObj = data.get("mbNum");
+            if (mbNumObj == null) return ResponseEntity.badRequest().body(Map.of("error", "로그인이 필요합니다."));
+            
+            int mbNum = Integer.parseInt(mbNumObj.toString());
+            String status = newsLetterService.toggleLikeStatus(id, mbNum);
             return ResponseEntity.ok(Map.of("status", status));
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().body(e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * 🚩 뉴스레터 즐겨찾기(스크랩) 토글 (유저 이용 가능)
+     */
+    @PostMapping("/posts/{id}/bookmark")
+    public ResponseEntity<?> toggleBookmark(@PathVariable("id") Integer id, @RequestBody Map<String, Object> data) {
+        try {
+            Object mbNumObj = data.get("mbNum");
+            if (mbNumObj == null) return ResponseEntity.badRequest().body(Map.of("error", "로그인이 필요합니다."));
+            
+            int mbNum = Integer.parseInt(mbNumObj.toString());
+            boolean isBookmarked = newsLetterService.toggleBookmarkStatus(id, mbNum);
+            return ResponseEntity.ok(Map.of("isBookmarked", isBookmarked, "status", isBookmarked ? "ADDED" : "REMOVED"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -126,10 +168,13 @@ public class NewsLetterController {
 
     private boolean isAdmin(Authentication auth) {
         if (auth != null && auth.getPrincipal() instanceof CustomUser user) {
-            String role = user.getMember().getMb_rol();
-            return "ADMIN".equalsIgnoreCase(role) || "ROLE_ADMIN".equalsIgnoreCase(role);
+            MemberVO member = user.getMember();
+            if (member != null) {
+                String role = member.getMb_rol();
+                return "ADMIN".equalsIgnoreCase(role) || "ROLE_ADMIN".equalsIgnoreCase(role);
+            }
         }
-        return true; // 로컬 테스트 및 세션 유지 실패 시 대응
+        return false;
     }
 
     private int resolveMbNum(Authentication auth) {

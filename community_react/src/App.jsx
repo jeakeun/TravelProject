@@ -23,6 +23,10 @@ import EventBoardDetail from './components/eventboard/EventBoardDetail';
 import NewsLetterList from './components/newsletter/NewsLetterList';
 import NewsLetterDetail from './components/newsletter/NewsLetterDetail';
 
+// FAQ 컴포넌트 추가
+import FAQList from './components/faq/FAQList';
+import FAQDetail from './components/faq/FAQDetail';
+
 import NoticeList from './components/notice/NoticeList';
 import NoticeDetail from './components/notice/NoticeDetail';
 import MyPage from './pages/MyPage';
@@ -230,6 +234,7 @@ function App() {
       else if (path.includes('event')) endpoint = 'event';
       else if (path.includes('newsletter')) endpoint = 'newsletter';
       else if (path.includes('recommend')) endpoint = 'recommend';
+      else if (path.includes('faq')) endpoint = 'faq'; // 🚩 FAQ 엔드포인트 추가
 
       if (!endpoint) {
         setLoading(false);
@@ -260,7 +265,6 @@ function App() {
             ...post,
             id: pId,
             isBookmarked: isBookmarked,
-            // 🚩 [수정] 백엔드에서 내려오는 mbNickname 필드를 최우선으로 매핑하여 authorNick으로 통일
             authorNick: post.mbNickname || post.mb_nickname || post.mb_nick || post.mbNick || post.member?.mbNickname || post.member?.mb_nickname || `User ${post.poMbNum || post.po_mb_num}`
           };
         });
@@ -382,6 +386,10 @@ function App() {
         <Route path="/news/newsletter" element={<NewsLetterList posts={posts} />} />
         <Route path="/news/newsletter/write" element={<PostWrite activeMenu="뉴스레터" boardType="newsletter" refreshPosts={loadPosts} />} />
         <Route path="/news/newsletter/:poNum" element={<NewsLetterDetail />} />
+
+        {/* 🚩 FAQ(자주 묻는 질문) 라우트 추가 */}
+        <Route path="/cscenter/faq" element={<FAQList posts={posts} />} />
+        <Route path="/cscenter/faq/:poNum" element={<FAQDetail />} />
 
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/admin" element={<AdminPage />} />

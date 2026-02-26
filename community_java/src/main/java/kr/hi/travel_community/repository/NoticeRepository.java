@@ -1,6 +1,6 @@
 package kr.hi.travel_community.repository;
 
-import kr.hi.travel_community.entity.NoticePost;
+import kr.hi.travel_community.entity.Notice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,17 +12,26 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface NoticeRepository extends JpaRepository<NoticePost, Integer> {
+public interface NoticeRepository extends JpaRepository<Notice, Integer> {
 
-    // DDL의 nn_num과 nn_del 컬럼에 맞춰 수정
-    Optional<NoticePost> findByNnNumAndNnDel(Integer nnNum, String nnDel);
+    /**
+     * 삭제되지 않은 특정 게시글 상세 조회
+     * 서비스의 findByNnNumAndNnDel 호출과 매칭됩니다.
+     */
+    Optional<Notice> findByNnNumAndNnDel(Integer nnNum, String nnDel);
 
-    // 공지사항 목록 조회 (삭제되지 않은 데이터를 최신순으로)
-    List<NoticePost> findByNnDelOrderByNnNumDesc(String nnDel);
+    /**
+     * 공지사항 목록 조회 (삭제되지 않은 데이터를 최신순으로)
+     * 서비스의 findByNnDelOrderByNnNumDesc 호출과 매칭됩니다.
+     */
+    List<Notice> findByNnDelOrderByNnNumDesc(String nnDel);
 
+    /**
+     * 조회수 증가 로직
+     * p.nnView가 null일 경우를 대비해 COALESCE를 사용하며, 삭제되지 않은 게시글만 업데이트합니다.
+     */
     @Modifying
     @Transactional
-    // DDL의 nn_view, nn_num, nn_del 필드명에 맞춰 쿼리 수정
-    @Query("UPDATE NoticePost p SET p.nnView = COALESCE(p.nnView, 0) + 1 WHERE p.nnNum = :id AND p.nnDel = 'N'")
+    @Query("UPDATE Notice p SET p.nnView = COALESCE(p.nnView, 0) + 1 WHERE p.nnNum = :id AND p.nnDel = 'N'")
     int updateViewCount(@Param("id") Integer id);
 }

@@ -3,7 +3,8 @@ package kr.hi.travel_community.service;
 import kr.hi.travel_community.entity.Event; 
 import kr.hi.travel_community.mapper.LikeMapper;
 import kr.hi.travel_community.repository.EventRepository;
-import kr.hi.travel_community.repository.CommentRepository;
+import kr.hi.travel_community.repository.MemberRepository;
+import kr.hi.travel_community.model.vo.MemberVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -25,14 +26,14 @@ import java.util.stream.Collectors;
 public class EventBoardService {
 
     private final EventRepository postRepository;
+    private final MemberRepository memberRepository; // 🚩 닉네임 조회를 위해 주입
     private final LikeMapper likeMapper;
-    private final CommentRepository commentRepository;
     
-    // 🚩 [수정] 외부 절대 경로 사용 (application.properties 연동)
+    // 🚩 [유지] 외부 절대 경로 사용
     @Value("${file.upload-dir:C:/travel_contents/uploads/pic/}")
     private String uploadRoot;
 
-    // 🚩 [수정] 프론트엔드 호환성을 위한 상대 경로 방식 사용
+    // 🚩 [유지] 프론트엔드 호환성을 위한 상대 경로
     private final String SERVER_URL = "/pic/";
     
     // 이벤트 게시판 고유 타입
@@ -105,15 +106,13 @@ public class EventBoardService {
     }
 
     /**
-     * 🚩 게시글 상세 정보
+     * 🚩 게시글 상세 정보 (이미지 포함)
      */
     @Transactional(readOnly = true)
     public Map<String, Object> getPostDetailWithImage(Integer id, Integer mbNum) {
         return postRepository.findByPoNumAndPoDel(id, "N").map(p -> {
             Map<String, Object> map = convertToMap(p);
-            
-            // 댓글 조회 시 EVENT 타입으로 고정
-            map.put("comments", commentRepository.findByCoPoNumAndCoPoTypeAndCoDelOrderByCoDateAsc(id, BOARD_TYPE, "N"));
+            // 🚩 이벤트 게시판은 댓글 기능을 사용하지 않으므로 comments 로직 제외
             map.put("isLikedByMe", mbNum != null && mbNum > 0 && likeMapper.checkLikeStatus(id, mbNum) > 0);
             return map;
         }).orElse(null);
@@ -181,12 +180,27 @@ public class EventBoardService {
     }
 
     /**
-     * 🚩 이미지 파일 물리 저장 및 엔티티 세팅
+     * 🚩 북마크(스크랩) 토글 로직
+     */
+    @Transactional
+    public boolean toggleBookmarkStatus(Integer poNum, Integer mbNum) {
+        // 기존 LikeMapper에 스크랩 관련 메서드가 있다고 가정 (공지사항과 동일 방식)
+        int count = likeMapper.checkScrapStatus(poNum, mbNum);
+        if (count == 0) {
+            likeMapper.insertScrapLog(poNum, mbNum);
+            return true;
+        } else {
+            likeMapper.deleteScrapLog(poNum, mbNum);
+            return false;
+        }
+    }
+
+    /**
+     * 🚩 이미지 파일 물리 저장 및 엔티티 세팅 (기존 로직 유지)
      */
     private void handleImages(Event post, List<MultipartFile> images) throws Exception {
         if (images == null || images.isEmpty()) return;
         
-        // 경로 구분자 통일
         String cleanPath = uploadRoot.replace("\\", "/");
         if (!cleanPath.endsWith("/")) cleanPath += "/";
         
@@ -198,7 +212,6 @@ public class EventBoardService {
         List<String> savedNames = new ArrayList<>();
         for (MultipartFile file : images) {
             if (!file.isEmpty()) {
-                // UUID를 사용하여 파일명 중복 방지 및 타임스탬프보다 안전한 명명
                 String originalFileName = file.getOriginalFilename();
                 String extension = originalFileName.substring(originalFileName.lastIndexOf("."));
                 String fileName = UUID.randomUUID().toString() + extension;
@@ -238,15 +251,25 @@ public class EventBoardService {
         map.put("po_up", p.getPoUp() != null ? p.getPoUp() : 0);
         
         map.put("poMbNum", p.getPoMbNum());
-        
-        map.put("commentCount", commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getPoNum(), BOARD_TYPE, "N"));
+
+        // 🚩 작성자(관리자) 닉네임 매핑 (방어 로직 포함)
+        String nickname = "관리자";
+        try {
+            Optional<?> result = memberRepository.findById(p.getPoMbNum());
+            if (result.isPresent()) {
+                Object obj = result.get();
+                if (obj instanceof MemberVO) {
+                    nickname = ((MemberVO) obj).getMb_nickname();
+                }
+            }
+        } catch (Exception e) {}
+        map.put("mbNickname", nickname);
         
         if (p.getPoImg() != null && !p.getPoImg().isEmpty()) {
             String firstImg = p.getPoImg().split(",")[0].trim();
-            // 리액트에서 /pic/파일명으로 접근 가능하도록 처리
             map.put("fileUrl", SERVER_URL + firstImg);
             map.put("po_img", firstImg);
-            map.put("poImg", SERVER_URL + firstImg); // 다중 명칭 지원
+            map.put("poImg", SERVER_URL + firstImg);
         } else {
             map.put("fileUrl", null);
             map.put("po_img", null);

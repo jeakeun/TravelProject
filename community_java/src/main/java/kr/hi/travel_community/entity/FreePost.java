@@ -2,11 +2,17 @@ package kr.hi.travel_community.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "free_post")
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class FreePost {
 
     @Id
@@ -23,6 +29,7 @@ public class FreePost {
     @Column(name = "po_date", nullable = false, updatable = false)
     private LocalDateTime poDate;
 
+    // 초기값 0을 필드 선언 시 할당하여 DB/JPA 양쪽에서 안전하게 관리합니다.
     @Column(name = "po_view", nullable = false)
     private Integer poView = 0;
 
@@ -38,17 +45,22 @@ public class FreePost {
     @Column(name = "po_del", nullable = false, length = 1)
     private String poDel = "N";
 
+    /**
+     * MemberVO의 mb_num이 int 타입이므로 Integer로 선언하여
+     * null 체크와 MyBatis 연동 시 타입 불일치 에러를 방지합니다.
+     */
     @Column(name = "po_mb_num", nullable = false)
     private Integer poMbNum;
 
     /**
-     * 🚩 [수정] 외부 저장 파일명 보관 필드
-     * 서비스 클래스에서 사용하는 변수명(fileUrl)을 유지하되, 
-     * DB 컬럼명은 po_img로 매핑하고 길이를 1000자로 확장했습니다.
+     * [유지] DB 컬럼명은 po_img, 자바 필드명은 서비스와 호환되는 fileUrl
      */
     @Column(name = "po_img", length = 1000)
     private String fileUrl;
 
+    /**
+     * 저장 전 null 방지 로직 유지
+     */
     @PrePersist
     public void prePersist() {
         if (this.poDate == null) this.poDate = LocalDateTime.now();

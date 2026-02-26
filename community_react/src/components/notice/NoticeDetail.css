@@ -1,11 +1,23 @@
-/* 전체 컨테이너 */
-.freeboard-list-wrapper,
+/* ==========================================================================
+   NoticeDetail.css (자유게시판과 동일한 디자인 규격 유지)
+   ========================================================================== */
+
+/* 전체 컨테이너 - 양옆 여백 및 레이아웃 통일 */
+.notice-list-wrapper, /* List용 클래스 포함 */
 .review-detail-wrapper {
     width: 100%;
     max-width: var(--page-size);
     min-height: calc(100vh - var(--header-height));
     margin: 0 auto;
     padding: var(--page-padding-top) var(--page-padding-x) var(--page-padding-bottom);
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .notice-list-wrapper,
+    .review-detail-wrapper {
+        padding: 24px 20px 40px;
+    }
 }
 
 .board-title {
@@ -15,7 +27,7 @@
     color: #2c3e50;
 }
 
-/* 테이블 스타일 */
+/* 테이블 스타일 (List 페이지용) */
 .freeboard-table {
     width: 100%;
     border-collapse: collapse;
@@ -212,6 +224,7 @@
 
 .btn-edit-action,
 .btn-delete-action,
+.btn-bookmark-action,
 .btn-list-return {
     padding: 10px 20px;
     border-radius: 8px;
@@ -219,6 +232,23 @@
     background: #fff;
     cursor: pointer;
     font-weight: 600;
+}
+
+/* 추천/스크랩 버튼 (상태에 따른 배경색은 인라인 스타일로 제어되므로 기본 틀만 유지) */
+.btn-bookmark-action {
+    border-color: #f1c40f;
+    color: #f39c12;
+    transition: all 0.2s ease;
+}
+
+.btn-bookmark-action:hover:not(:disabled) {
+    background: #f1c40f;
+    color: #fff;
+}
+
+.btn-bookmark-action:disabled {
+    opacity: 0.7;
+    cursor: default;
 }
 
 .btn-list-return {

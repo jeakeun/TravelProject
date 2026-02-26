@@ -7,6 +7,10 @@ import { addRecentView } from '../../utils/recentViews';
 import ReportModal from '../ReportModal';
 import './RecommendPostDetail.css';
 
+// 🚩 [수정] App.js와 동일하게 배포 서버 및 포트 8080 설정 유지
+const API_BASE_URL = "";
+const SERVER_URL = API_BASE_URL;
+
 const RecommendPostDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -35,10 +39,10 @@ const RecommendPostDetail = () => {
     const isAdmin = user ? (Number(user.mbLevel ?? user.mb_score ?? 0) >= 10 || user.mb_rol === 'ADMIN') : false; 
 
     const isNumericId = id && !isNaN(Number(id)) && id !== "write";
-    const SERVER_URL = "";
 
     const fixImagePaths = (content) => {
         if (!content) return "";
+        // 🚩 SERVER_URL 변수를 사용하여 이미지 경로 치환
         let fixedContent = content.replace(/src=["'](?:\/)?pic\//g, `src="${SERVER_URL}/pic/`);
         return fixedContent;
     };
@@ -48,18 +52,20 @@ const RecommendPostDetail = () => {
         const storageKey = `viewed_post_${id}`;
         if (!sessionStorage.getItem(storageKey)) {
             try {
+                // 🚩 API 주소 체계를 App.js의 방식과 맞춤
                 await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/view`);
                 sessionStorage.setItem(storageKey, 'true');
             } catch (err) {
                 console.error("조회수 증가 실패", err);
             }
         }
-    }, [id, isNumericId, SERVER_URL]);
+    }, [id, isNumericId]);
 
     const fetchAllData = useCallback(async (isAction = false, isCommentAction = false) => {
         if (!isNumericId) return;
         try {
             if (!isAction) setLoading(true);
+            // 🚩 App.js에서 사용하는 호출 경로와 일치하도록 유지
             const postRes = await axios.get(`${SERVER_URL}/api/recommend/posts/${id}`);
             setPost(postRes.data);
             setIsLiked(postRes.data.isLikedByMe || false);
@@ -98,7 +104,7 @@ const RecommendPostDetail = () => {
             }
             setLoading(false);
         }
-    }, [id, navigate, isNumericId, SERVER_URL]);
+    }, [id, navigate, isNumericId]);
 
     useEffect(() => {
         const handleStorageChange = (e) => {
@@ -256,7 +262,6 @@ const RecommendPostDetail = () => {
             const isActiveEdit = editId === comment.coNum;
             const isActiveReply = replyTo === comment.coNum;
             
-            // 🚩 [수정] 백엔드에서 넘겨주는 coNickname을 최우선으로 사용
             const authorDisplayName = comment.coNickname || comment.mbNickname || comment.mb_nickname || "알 수 없는 사용자";
 
             return (
@@ -315,7 +320,6 @@ const RecommendPostDetail = () => {
     const isPostOwner = isLoggedIn && Number(post.poMbNum || post.po_mb_num) === Number(currentUserNum);
     const canManagePost = isPostOwner || isAdmin;
     
-    // 🚩 [수정] 게시글 작성자도 백엔드 필드 우선순위 조정
     const postAuthorNick = post.poNickname || post.mbNickname || post.mb_nickname || post.mbNick || `User ${post.poMbNum || post.po_mb_num}`;
 
     return (

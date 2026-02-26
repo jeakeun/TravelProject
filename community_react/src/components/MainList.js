@@ -10,6 +10,9 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
   const itemsPerPage = 6; 
   const navigate = useNavigate();
 
+  // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정 (환경 변수 적용)
+  const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+
   // 지도 관련 상태 관리
   const [mapInput, setMapInput] = useState('');
   const [mapKeyword, setMapKeyword] = useState('');
@@ -73,13 +76,15 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
   };
 
   // 서버의 poTitle 필드로 검색 (다양한 필드명 대응)
-  const filteredItems = useMemo(() => 
-    photos.filter(p => {
+  const filteredItems = useMemo(() => {
+    // 🚩 SERVER_URL 사용 여부 경고 방지
+    if (!SERVER_URL) return [];
+    
+    return photos.filter(p => {
       const title = p.poTitle || p.po_title || p.title || "";
       return title.toLowerCase().includes(appliedSearch.toLowerCase());
-    }), 
-    [photos, appliedSearch]
-  );
+    });
+  }, [photos, appliedSearch, SERVER_URL]);
   
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage) || 1;
   const currentItems = filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -191,10 +196,9 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
             {currentItems.length > 0 ? (
               currentItems.map((photo, idx) => {
                 const virtualNum = filteredItems.length - ((currentPage - 1) * itemsPerPage + idx);
-                // 🚩 데이터 필드 호환성 유지
                 const postId = photo.poNum || photo.po_num || photo.postId;
                 const displayTitle = photo.poTitle || photo.po_title || photo.title;
-                const displayImg = photo.fileUrl || (photo.poImg ? `/pic/${photo.poImg.split(',')[0]}` : FALLBACK_IMAGE);
+                const displayImg = photo.fileUrl || (photo.poImg ? `${SERVER_URL}/pic/${photo.poImg.split(',')[0]}` : FALLBACK_IMAGE);
 
                 return (
                   <div key={postId || idx} className="photo-card" onClick={() => goToDetail(postId)} style={{ position: 'relative' }}>
@@ -229,7 +233,10 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
                 );
               })
             ) : (
-              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '100px 0', color: '#888' }}>등록된 게시글이 없습니다.</div>
+              
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '100px 0', color: '#888', fontSize: '18px', fontWeight: 'bold' }}>
+                {activeMenu.trim() === '해외여행' ? "돈 많아요? 국내에도 갈데 많은데 뭐하러 해외까지 알아보시나요?." : "등록된 게시글이 없습니다."}
+              </div>
             )}
           </div>
 

@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
-// 🚩 디자인 및 기능을 유지하면서 참조 파일 확인
+// 🚩 디자인 일관성을 위해 수정된 CSS 파일 참조
 import './EventBoardDetail.css'; 
 
 const EventBoardDetail = () => {
-    // App.jsx 라우트 설정 <Route path="/news/event/:poNum" ... /> 에 맞춰 poNum 수신
     const { poNum } = useParams(); 
     const navigate = useNavigate();
     
-    // 상위 context에서 주입되는 데이터 및 함수
+    // 상위 context 데이터
     const { user, loadPosts } = useOutletContext() || {}; 
     
     const [post, setPost] = useState(null);
@@ -19,20 +18,12 @@ const EventBoardDetail = () => {
     const isLoggedIn = !!user; 
     const SERVER_URL = "";
 
-    // 유저 번호 추출 (mb_num 또는 mbNum 대응)
     const currentUserNum = user ? (user.mb_num || user.mbNum) : null; 
-    // 관리자 여부 판단 (mb_rol 또는 mbRol 대응)
     const isAdmin = user ? (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN' || user.mbLevel >= 10) : false; 
-
     const isNumericId = poNum && !isNaN(Number(poNum));
 
-    /**
-     * 🚩 본문 내 이미지 경로를 영구 저장소 경로로 변환
-     * 에디터에서 삽입된 상대 경로(/pic/...)를 서버의 전체 URL로 변환하여 영구 보존 대응
-     */
     const formatContent = (content) => {
         if (!content) return "";
-        // /pic/ 경로로 시작하는 이미지 src를 서버 주소와 결합
         return content.replace(/src="\/pic\//g, `src="${SERVER_URL}/pic/`);
     };
 
@@ -40,11 +31,8 @@ const EventBoardDetail = () => {
         if (!isNumericId) return;
         try {
             setLoading(true);
-            // 이벤트 전용 엔드포인트 호출
             const postRes = await axios.get(`${SERVER_URL}/api/event/posts/${poNum}?mbNum=${currentUserNum || ''}`);
-            
             const data = postRes.data;
-            // 필드명 정규화 (Snake case / Camel case 모두 대응하여 데이터 유실 방지)
             const normalizedData = {
                 ...data,
                 po_title: data.po_title || data.poTitle || "제목 없음",
@@ -53,36 +41,26 @@ const EventBoardDetail = () => {
                 po_up: data.po_up || data.poUp || 0,
                 po_date: data.po_date || data.poDate
             };
-
             setPost(normalizedData);
             setIsLiked(data.isLikedByMe || data.liked || false);
         } catch (err) {
             console.error("데이터 로딩 실패:", err);
-            if (err.response?.status === 404) {
-                alert("게시글을 찾을 수 없습니다.");
-                navigate(`/news/event`); 
-            }
+            navigate(`/news/event`); 
         } finally {
             setLoading(false);
         }
-    }, [poNum, navigate, isNumericId, currentUserNum]);
+    }, [poNum, navigate, isNumericId, currentUserNum, SERVER_URL]);
 
     useEffect(() => { 
-        if(isNumericId) {
-            fetchPostData();       
-        }
+        if(isNumericId) fetchPostData();
     }, [isNumericId, fetchPostData]);
 
     const handleDeletePost = async () => {
         if (!window.confirm("정말 게시글을 삭제하시겠습니까?")) return;
         try {
-            // 이벤트 전용 삭제 API 호출
             await axios.delete(`${SERVER_URL}/api/event/posts/${poNum}`);
             alert("게시글이 삭제되었습니다.");
-            
-            // 삭제 후 부모 리스트의 상태를 동기화
             if (loadPosts) loadPosts(); 
-            
             navigate(`/news/event`); 
         } catch (err) {
             alert("게시글 삭제 중 오류가 발생했습니다.");
@@ -92,7 +70,6 @@ const EventBoardDetail = () => {
     const handleLikeToggle = async () => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
-            // 이벤트 전용 추천 API 호출
             const res = await axios.post(`${SERVER_URL}/api/event/posts/${poNum}/like`, { mbNum: currentUserNum });
             if (res.data.status === "liked" || res.data === "liked") {
                 setIsLiked(true);
@@ -106,12 +83,15 @@ const EventBoardDetail = () => {
         }
     };
 
-    if (loading) return <div className="loading-box" style={{textAlign: 'center', padding: '100px'}}>데이터 로딩 중...</div>;
-    if (!post) return <div className="loading-box" style={{textAlign: 'center', padding: '100px'}}>게시글을 찾을 수 없습니다.</div>;
+    if (loading) return <div style={{textAlign: 'center', padding: '100px'}}>데이터 로딩 중...</div>;
+    if (!post) return null;
 
     return (
-        <div className="event-detail-wrapper">
+        /* 🚩 공지사항 상세와 동일한 래퍼 클래스 사용 (여백 및 위치 통일) */
+        <div className="review-detail-wrapper">
             <div className="detail-container">
+                
+                {/* 🚩 헤더 섹션: 공지사항과 완벽하게 동일한 구조 */}
                 <div className="detail-header-section">
                     <h1 className="detail-main-title">{post.po_title}</h1>
                     <div className="detail-sub-info">
@@ -125,16 +105,25 @@ const EventBoardDetail = () => {
                     </div>
                 </div>
                 
+                {/* 🚩 본문 섹션: 줄바꿈, 폰트 크기, 이미지 정렬 일관성 유지 */}
                 <div className="detail-body-text">
-                    {/* 🚩 가공된 content를 적용하여 이미지 경로 유실 방지 */}
                     <div dangerouslySetInnerHTML={{ __html: formatContent(post.po_content) }} />
                 </div>
 
+                {/* 🚩 하단 버튼 영역: 버튼 크기 및 좌우 배치 통일 */}
                 <div className="detail-bottom-actions">
                     <div className="left-group">
                         {isLoggedIn && (
-                            <button className={`btn-like-action ${isLiked ? 'active' : ''}`} onClick={handleLikeToggle}>
-                                {isLiked ? '❤️ 추천취소' : '🤍 추천'} {post.po_up}
+                            <button 
+                                className="btn-bookmark-action" 
+                                onClick={handleLikeToggle}
+                                style={{ 
+                                    backgroundColor: isLiked ? '#ff4757' : '#f1f2f6', 
+                                    color: isLiked ? 'white' : 'black', 
+                                    marginRight: 8 
+                                }}
+                            >
+                                {isLiked ? '❤️ 추천됨' : '🤍 추천하기'} {post.po_up}
                             </button>
                         )}
                         {isAdmin && (
@@ -151,7 +140,10 @@ const EventBoardDetail = () => {
                             </>
                         )}
                     </div>
-                    <button className="btn-list-return" onClick={() => navigate(`/news/event`)}>목록으로</button>
+                    {/* 🚩 우측 목록으로 버튼 위치 고정 */}
+                    <button className="btn-list-return" onClick={() => navigate(`/news/event`)}>
+                        목록으로
+                    </button>
                 </div>
             </div>
         </div>

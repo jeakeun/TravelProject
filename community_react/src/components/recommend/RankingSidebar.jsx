@@ -1,6 +1,10 @@
 import React from 'react';
 
 const RankingSidebar = ({ ranking, startRank, onDetail, getImageUrl, onBookmarkToggle }) => {
+    // 🚩 [수정] 8080 포트 차단을 피하기 위해 빈 문자열("")로 설정합니다.
+    // 이렇게 하면 현재 접속 중인 80 포트를 통해 이미지를 안전하게 가져옵니다.
+    const SERVER_URL = "";
+
     return (
         <aside className="ranking-section">
             <h3 className="ranking-title">실시간 추천 랭킹</h3>
@@ -27,14 +31,25 @@ const RankingSidebar = ({ ranking, startRank, onDetail, getImageUrl, onBookmarkT
                         }
                     };
 
+                    // 🚩 [수정] 노란 줄 방지 및 경로 최적화: SERVER_URL을 로직에 활용
+                    const finalImageUrl = (() => {
+                        const url = getImageUrl(post);
+                        if (url.includes('placehold.co') || url.startsWith('http')) return url;
+                        return `${SERVER_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+                    })();
+
                     return (
                         <div key={postId || idx} className="rank-item" onClick={() => onDetail(postId)}>
                             <div className="rank-thumb-box">
                                 <img 
                                     className="rank-thumb" 
-                                    src={getImageUrl(post)} 
+                                    src={finalImageUrl} 
                                     alt="" 
-                                    onError={(e) => { e.target.src = "https://placehold.co/100x100?text=No+Img"; }}
+                                    onError={(e) => { 
+                                        if (e.target.src !== "https://placehold.co/100x100?text=No+Img") {
+                                            e.target.src = "https://placehold.co/100x100?text=No+Img"; 
+                                        }
+                                    }}
                                 />
                             </div>
                             

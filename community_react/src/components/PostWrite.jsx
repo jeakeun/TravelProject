@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, useOutletContext } from 'react-router-dom';
 import axios from 'axios';
 
+// 🚩 [수정] 8080 포트 차단을 피하기 위해 상대 경로("")로 변경합니다.
+// 이렇게 하면 현재 접속 중인 80포트를 통해 백엔드로 요청이 전달됩니다.
+const API_BASE_URL = "";
+
 function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -46,7 +50,6 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
   const handleImageChange = (e) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
-      // 🚩 기존 파일 리스트에 추가 (누적 선택 가능)
       setImageFiles((prev) => [...prev, ...files]);
       
       files.forEach((file) => {
@@ -70,24 +73,19 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
       return;
     }
 
-    // 🚩 FormData 구성 최적화
     const formData = new FormData();
-    // mbNum, mb_num, id 등 다양한 사용자 식별자 대응
     const authorNum = currentUser?.mbNum || currentUser?.mb_num || currentUser?.id || 1;
 
-    // 스프링 부트 컨트롤러의 DTO/파라미터 명칭과 일치시킵니다.
     formData.append('poTitle', title);
     formData.append('poContent', htmlContent);
     formData.append('poMbNum', String(authorNum));
 
-    // 🚩 [핵심] 단일 파일('image')이 아닌 리스트('images')로 모든 파일 전송
     if (imageFiles.length > 0) {
       imageFiles.forEach((file) => {
         formData.append('images', file); 
       });
     }
 
-    // API 경로 결정 로직
     const apiMap = {
       '여행 추천 게시판': 'recommend',
       '여행 후기 게시판': 'reviewboard',
@@ -105,15 +103,14 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
 
     let categoryPath = propsBoardType || stateBoardType || urlDerivedBoard || boardParam || apiMap[activeMenu] || 'freeboard';
 
-    // 한글명 카테고리를 영문 API 경로로 변환
     if (categoryPath === '이벤트' || categoryPath === '이벤트 게시판') categoryPath = 'event';
     if (categoryPath === '뉴스레터') categoryPath = 'newsletter';
     if (categoryPath === '여행 추천 게시판') categoryPath = 'recommend';
     if (categoryPath === '자유 게시판') categoryPath = 'freeboard';
 
     const apiUrl = isEdit 
-      ? `/api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.po_num || existingPost?.id}`
-      : `/api/${categoryPath}/posts`;
+      ? `${API_BASE_URL}/api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.po_num || existingPost?.id}`
+      : `${API_BASE_URL}/api/${categoryPath}/posts`;
 
     const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
 
