@@ -2,31 +2,12 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "./Main.css";
 import { useOutletContext, useNavigate } from "react-router-dom";
 
+// 🚩 불필요한 더미 여행지 문구를 제거하고 제목만 남겼습니다.
 const carouselTranslations = {
-  KR: {
-    rank_main_title: "이달의 여행지 랭킹",
-    dest1_name: "01. 발리, 인도네시아", dest1_desc: "신들의 섬에서 즐기는 완벽한 휴양",
-    dest2_name: "02. 아이슬란드", dest2_desc: "대자연의 경이로움, 오로라 헌팅",
-    dest3_name: "03. 교토, 일본", dest3_desc: "전통과 현대가 공존하는 고요한 도시"
-  },
-  EN: {
-    rank_main_title: "Monthly Rankings",
-    dest1_name: "01. Bali, Indonesia", dest1_desc: "Perfect relaxation in the Island of the Gods",
-    dest2_name: "02. Iceland", dest2_desc: "Wonder of nature, Aurora hunting",
-    dest3_name: "03. Kyoto, Japan", dest3_desc: "Quiet city where tradition meets modernity"
-  },
-  JP: {
-    rank_main_title: "今月の旅行先ランキング",
-    dest1_name: "01. バリ、インドネシア", dest1_desc: "神々の島で楽しむ完璧な休息",
-    dest2_name: "02. アイスランド", dest2_desc: "大自然의 驚異、オーロラハンティング",
-    dest3_name: "03. 京都、日本", dest3_desc: "伝統と現代が共存する静かな都市"
-  },
-  CH: {
-    rank_main_title: "本月目的地排名",
-    dest1_name: "01. 巴厘岛，印度尼西亚", dest1_desc: "在众神之岛享受完美的休闲",
-    dest2_name: "02. 冰岛", dest2_desc: "大自然的惊奇，极光狩猎",
-    dest3_name: "03. 京都，日本", dest3_desc: "传统与现代共存의 宁静城市"
-  }
+  KR: { rank_main_title: "이달의 여행지 랭킹" },
+  EN: { rank_main_title: "Monthly Rankings" },
+  JP: { rank_main_title: "今月の旅行先ランキング" },
+  CH: { rank_main_title: "本月目的地排名" }
 };
 
 function Main() {
@@ -34,57 +15,44 @@ function Main() {
   const navigate = useNavigate();
   const outletContext = useOutletContext() || {};
   
-  // 🚩 노란 줄 방지: Main 컴포넌트 내에서 실제 사용하는 변수(currentLang, posts)만 추출합니다.
   const { currentLang, posts = [] } = outletContext;
 
   const t = carouselTranslations[currentLang] || carouselTranslations["KR"];
-  
-  // 🚩 [수정] 8080 포트 차단을 우회하기 위해 SERVER_URL을 빈 문자열로 설정합니다.
   const SERVER_URL = "";
 
-  // 🚩 [데이터 로직] 추천 게시판 1,2,3위 추출 (조회수 기준 정렬)
+  // 🚩 [데이터 로직] DB 점수 기준 1~3위 추출
   const topThree = useMemo(() => {
     if (!Array.isArray(posts)) return [];
-    return [...posts]
-      .sort((a, b) => (b.poView || b.po_view || 0) - (a.poView || a.po_view || 0))
-      .slice(0, 3);
+    return posts.slice(0, 3);
   }, [posts]);
 
-  // 🚩 [이미지 로직] 다중 파일명 및 절대/상대 경로 모두 대응
+  // 🚩 [이미지 로직] 게시글 이미지 가져오기
   const getImageUrl = (post) => {
     const defaultImg = "https://placehold.co/1200x800?text=No+Image";
     if (!post) return defaultImg;
     
-    // 필드명 다양성 대응 (poImg, po_img, fileName 등)
     const targetUrl = post.poImg || post.po_img || post.fileName || post.fileUrl || post.image;
 
     if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null") {
-      // 1. 이미 완전한 URL(http)인 경우
       if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
-      
-      // 2. 콤마로 구분된 다중 파일명인 경우 첫 번째 파일만 추출
       const firstFile = String(targetUrl).split(',')[0].trim();
-      
-      // 3. 파일명만 있는 경우 서버 경로와 결합
       const extractedName = firstFile.split(/[\\/]/).pop();
       return `${SERVER_URL}/pic/${extractedName}`;
     }
 
-    // 4. 이미지가 없을 경우 본문 내 첫 번째 img 태그 검색
-    if (post.poContent && typeof post.poContent === 'string') {
+    const content = post.poContent || post.po_content;
+    if (content && typeof content === 'string') {
       const imgRegex = /<img[^>]+src=["']([^"']+)["']/;
-      const match = post.poContent.match(imgRegex);
+      const match = content.match(imgRegex);
       if (match && match[1]) return match[1];
     }
     
     return defaultImg; 
   };
 
-  // 카러셀 로직
   const handlePrev = () => setCarouselIndex((prev) => (prev === 0 ? 2 : prev - 1));
   const handleNext = () => setCarouselIndex((prev) => (prev === 2 ? 0 : prev + 1));
 
-  // 스크롤 이벤트 (헤더 스타일 조절)
   useEffect(() => {
     const header = document.querySelector('.App .nav-area header');
     if (!header) return;
@@ -133,28 +101,33 @@ function Main() {
             <div className="carousel-wrapper">
               {[0, 1, 2].map((idx) => {
                 const post = topThree[idx];
-                const postId = post?.poNum || post?.po_num || post?.postId;
-                const displayTitle = post?.poTitle || post?.po_title || t[`dest${idx + 1}_name`];
+                // 🚩 데이터가 있을 때만 렌더링하도록 조건부 처리
+                if (!post) return <div key={idx} className={getCarouselClass(idx)}></div>;
+
+                const postId = post.poNum || post.po_num || post.postId;
+                const displayTitle = post.poTitle || post.po_title;
+                const displayContent = (post.poContent || post.po_content || "")
+                  .replace(/<[^>]*>?/gm, '') // HTML 태그 제거
+                  .substring(0, 40) + "...";
 
                 return (
                   <div 
-                    key={idx} 
+                    key={postId || idx} 
                     className={getCarouselClass(idx)}
-                    onClick={() => post && navigate(`/community/recommend/${postId}`)}
-                    style={{ cursor: post ? 'pointer' : 'default' }}
+                    onClick={() => navigate(`/community/recommend/${postId}`)}
+                    style={{ cursor: 'pointer' }}
                   >
+                    {/* 🚩 랭킹 배지 추가 (No.1, No.2, No.3) */}
+                    <span className="rank-badge">No.{idx + 1}</span>
+
                     <img 
                       src={getImageUrl(post)} 
                       alt={displayTitle} 
                       onError={(e) => { e.target.src = "https://placehold.co/1200x800?text=No+Image"; }}
                     />
                     <div className="item-info">
-                      <h3>{post ? `0${idx + 1}. ${displayTitle}` : displayTitle}</h3>
-                      <p>
-                        {post 
-                          ? (post.poContent?.replace(/<[^>]*>?/gm, '').substring(0, 40) + "...") 
-                          : t[`dest${idx + 1}_desc`]}
-                      </p>
+                      <h3>0{idx + 1}. {displayTitle}</h3>
+                      <p>{displayContent}</p>
                     </div>
                   </div>
                 );

@@ -540,6 +540,40 @@ body {
     object-fit: cover;
 }
 
+/* 🚩 랭킹 배지 추가: 이미지 바로 다음에 위치하도록 삽입 */
+.rank-badge {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    background: #e74c3c; /* 게시판과 동일한 레드 */
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 800;
+    font-size: 0.9rem;
+    z-index: 20; /* 텍스트 정보(15)보다 위에 띄움 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+}
+
+/* 활성화된 카드에서 배지를 더 강조하고 싶다면 추가 (선택) */
+.carousel-item.active .rank-badge {
+    transform: scale(1.1);
+}
+
+/* 아이템 내부 정보(텍스트) - 기존 코드의 z-index만 확인해 주세요 */
+.item-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 16px 20px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.85));
+    color: #fff;
+    text-align: left;
+    z-index: 15; /* 배지보다 낮게 설정하여 겹침 방지 */
+}
+
 /* 활성화 및 좌우 배치용 상태 클래스 */
 .carousel-item.active {
     transform: translate3d(0, 0, 260px);
@@ -713,6 +747,8 @@ body {
     .item-info h3 { font-size: 1.15rem; }
     .item-info p { font-size: 0.95rem; }
 }
+
+
 
 /* 푸터: 검은색, 크기·색 유지. 위치는 두 번째 섹션 바로 아래(조금만 스크롤하면 보임) */
 footer {
