@@ -57,10 +57,14 @@ public class RecommendPost {
     /**
      * 🚩 [추가/유지] 비즈니스 로직용 필드 (DB 저장 안 됨)
      * isLikedByMe: 현재 로그인 유저의 좋아요 여부
+     * isBookmarkedByMe: 현재 로그인 유저의 즐겨찾기 여부 (추가됨)
      * score: 실시간 계산된 랭킹 점수
      */
     @Transient 
     private boolean isLikedByMe; 
+
+    @Transient
+    private boolean isBookmarkedByMe; // 🚩 즐겨찾기 여부 필드 추가
 
     @Transient
     private Integer score; // 랭킹 산정용 점수 필드 추가

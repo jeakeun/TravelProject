@@ -16,12 +16,17 @@ public interface BookMarkRepository extends JpaRepository<BookMark, Integer> {
     // 2. 토글용 존재 확인
     Optional<BookMark> findByBmMbNumAndBmPoNumAndBmPoType(Integer bmMbNum, Integer bmPoNum, String bmPoType);
 
-    // 3. 존재 여부 확인
+    // 3. 존재 여부 확인 (MypageController 등에서 사용)
     boolean existsByBmMbNumAndBmPoNumAndBmPoType(Integer bmMbNum, Integer bmPoNum, String bmPoType);
 
     /**
-     * 🚩 [추가] 점수 계산을 위한 특정 게시글의 즐겨찾기 총 개수 조회
-     * 서비스 레이어의 빨간 줄을 해결하기 위해 반드시 필요합니다.
+     * 🚩 [추가] RecommendPostService의 빨간 줄 해결을 위한 메서드
+     * 서비스에서 호출하는 이름과 매개변수 순서를 일치시켰습니다.
+     */
+    boolean existsByBmPoNumAndBmPoTypeAndBmMbNum(Integer bmPoNum, String bmPoType, Integer bmMbNum);
+
+    /**
+     * 🚩 점수 계산을 위한 특정 게시글의 즐겨찾기 총 개수 조회
      */
     long countByBmPoNumAndBmPoType(Integer bmPoNum, String bmPoType);
 }

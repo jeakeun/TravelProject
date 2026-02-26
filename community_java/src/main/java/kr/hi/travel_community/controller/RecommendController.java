@@ -21,30 +21,38 @@ public class RecommendController {
 
     private final RecommendPostService recommendPostService;
 
+    /**
+     * 🚩 메인용 상위 10개 게시글 조회
+     * [수정] 로그인 정보를 넘겨서 좋아요/즐겨찾기 여부 확인
+     */
     @GetMapping("/posts")
-    public ResponseEntity<List<Map<String, Object>>> getAllPosts() {
-        return ResponseEntity.ok(recommendPostService.getAllPosts());
+    public ResponseEntity<List<Map<String, Object>>> getAllPosts(Authentication authentication) {
+        Integer mbNum = resolveMbNum(authentication, null);
+        return ResponseEntity.ok(recommendPostService.getAllPosts(mbNum));
     }
 
     /**
      * 🚩 전체 게시글 조회 (검색 기능 포함)
+     * [수정] 로그인 정보를 넘겨서 좋아요/즐겨찾기 여부 확인
      */
     @GetMapping("/posts/all")
     public ResponseEntity<List<Map<String, Object>>> getRealAllPosts(
+            Authentication authentication,
             @RequestParam(value = "type", required = false) String type,
             @RequestParam(value = "keyword", required = false) String keyword) {
         
+        Integer mbNum = resolveMbNum(authentication, null);
+
         if (type != null && keyword != null && !keyword.trim().isEmpty()) {
             System.out.println("🚩 검색 요청 실행 -> 타입: " + type + ", 키워드: " + keyword);
-            return ResponseEntity.ok(recommendPostService.searchPosts(type, keyword));
+            return ResponseEntity.ok(recommendPostService.searchPosts(type, keyword, mbNum));
         }
         
-        return ResponseEntity.ok(recommendPostService.getRealAllPosts()); 
+        return ResponseEntity.ok(recommendPostService.getRealAllPosts(mbNum)); 
     }
 
     /**
      * 🚩 상세 페이지 조회 및 조회수 처리
-     * [수정] Authentication 객체를 추가하여 로그인 유저의 mbNum과 Role을 정확히 판단합니다.
      */
     @GetMapping("/posts/{id}")
     public ResponseEntity<?> getPostDetail(
@@ -56,7 +64,6 @@ public class RecommendController {
         
         recommendPostService.increaseViewCount(id, request, response);
         
-        // 🚩 [수정] 닉네임 표시 및 본인 확인을 위해 실제 로그인 정보를 기반으로 데이터 세팅
         Integer currentUserNum = resolveMbNum(authentication, mbNum);
         String currentUserRole = "USER";
         
@@ -70,7 +77,6 @@ public class RecommendController {
         Map<String, Object> postData = recommendPostService.getPostDetailWithImage(id, currentUserNum);
         
         if (postData != null) {
-            // poMbNum과 현재 유저의 번호를 비교 (poMbNum은 서비스에서 쿼리로 채워져야 함)
             boolean isOwner = postData.get("poMbNum") != null && postData.get("poMbNum").equals(currentUserNum);
             boolean isAdmin = "ADMIN".equals(currentUserRole);
             
@@ -111,14 +117,14 @@ public class RecommendController {
     }
 
     /**
-     * [수정] 공통 로직: Authentication 정보가 있으면 해당 유저 정보를, 없으면 전달된 ID(또는 기본값 1)를 반환
+     * [수정] 공통 로직: Authentication 정보가 있으면 해당 유저 정보를, 없으면 전달된 ID(또는 null)를 반환
      */
-    private int resolveMbNum(Authentication authentication, Integer requestMbNum) {
+    private Integer resolveMbNum(Authentication authentication, Integer requestMbNum) {
         if (authentication != null && authentication.getPrincipal() instanceof CustomUser) {
             MemberVO member = ((CustomUser) authentication.getPrincipal()).getMember();
             if (member != null) return member.getMb_num();
         }
-        return requestMbNum != null ? requestMbNum : 1;
+        return requestMbNum; // requestMbNum이 없으면 null 반환 (비로그인 상태 대응)
     }
 
     @PutMapping("/posts/{id}")

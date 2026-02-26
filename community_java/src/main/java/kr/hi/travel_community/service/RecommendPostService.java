@@ -31,31 +31,49 @@ public class RecommendPostService {
     private final CommentRepository commentRepository;
     private final ReportRepository reportRepository; 
     private final MemberRepository memberRepository; 
-    private final BookMarkRepository bookMarkRepository; // 🚩 주입 확인
+    private final BookMarkRepository bookMarkRepository;
 
     @Value("${file.upload-dir:C:/travel_contents/uploads/pic/}")
     private String uploadRoot;
 
     private final String SERVER_URL = "/pic/";
 
+    // 🚩 마이페이지 등 기존 호출부를 위한 오버로딩
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getAllPosts() {
+        return getAllPosts(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getAllPosts(Integer mbNum) {
         return postRepository.findByPoDelOrderByPoNumDesc("N").stream()
-                .map(this::convertToMap)
+                .map(p -> convertToMapWithAuth(p, mbNum))
                 .sorted((a, b) -> Integer.compare((int) b.get("score"), (int) a.get("score")))
                 .limit(10)
                 .collect(Collectors.toList());
     }
 
+    // 🚩 마이페이지 등 기존 호출부를 위한 오버로딩
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getRealAllPosts() {
-        return postRepository.findByPoDelOrderByPoNumDesc("N").stream()
-                .map(this::convertToMap)
-                .collect(Collectors.toList());
+        return getRealAllPosts(null);
     }
 
     @Transactional(readOnly = true)
+    public List<Map<String, Object>> getRealAllPosts(Integer mbNum) {
+        return postRepository.findByPoDelOrderByPoNumDesc("N").stream()
+                .map(p -> convertToMapWithAuth(p, mbNum))
+                .collect(Collectors.toList());
+    }
+
+    // 🚩 마이페이지(MypageController) 빨간줄 해결을 위한 오버로딩
+    @Transactional(readOnly = true)
     public List<Map<String, Object>> searchPosts(String type, String keyword) {
+        return searchPosts(type, keyword, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> searchPosts(String type, String keyword, Integer mbNum) {
         List<RecommendPost> result;
         switch (type) {
             case "title":
@@ -69,8 +87,8 @@ public class RecommendPostService {
                 break;
             case "author":
                 try {
-                    Integer mbNum = Integer.parseInt(keyword);
-                    result = postRepository.findByPoMbNumAndPoDelOrderByPoNumDesc(mbNum, "N");
+                    Integer mbNumSearch = Integer.parseInt(keyword);
+                    result = postRepository.findByPoMbNumAndPoDelOrderByPoNumDesc(mbNumSearch, "N");
                 } catch (NumberFormatException e) {
                     result = new ArrayList<>();
                 }
@@ -78,7 +96,7 @@ public class RecommendPostService {
             default:
                 result = postRepository.findByPoDelOrderByPoNumDesc("N");
         }
-        return result.stream().map(this::convertToMap).collect(Collectors.toList());
+        return result.stream().map(p -> convertToMapWithAuth(p, mbNum)).collect(Collectors.toList());
     }
 
     @Transactional
@@ -103,7 +121,7 @@ public class RecommendPostService {
     @Transactional(readOnly = true)
     public Map<String, Object> getPostDetailWithImage(Integer id, Integer mbNum) {
         return postRepository.findByPoNumAndPoDel(id, "N").map(p -> {
-            Map<String, Object> map = convertToMap(p);
+            Map<String, Object> map = convertToMapWithAuth(p, mbNum);
             List<Map<String, Object>> comments = commentRepository.findByCoPoNumAndCoPoTypeAndCoDelOrderByCoDateAsc(id, "RECOMMEND", "N").stream()
                 .map(c -> {
                     Map<String, Object> cMap = new HashMap<>();
@@ -119,8 +137,6 @@ public class RecommendPostService {
                     return cMap;
                 }).collect(Collectors.toList());
             map.put("comments", comments);
-            int likeCheck = (mbNum != null) ? likeMapper.checkLikeStatus(id, mbNum) : 0;
-            map.put("isLikedByMe", likeCheck > 0); 
             return map;
         }).orElse(null);
     }
@@ -213,9 +229,15 @@ public class RecommendPostService {
         if (!savedNames.isEmpty()) post.setPoImg(String.join(",", savedNames));
     }
 
-    /**
-     * 🚩 점수 계산 로직이 포함된 Map 변환 메서드
-     */
+    private Map<String, Object> convertToMapWithAuth(RecommendPost p, Integer mbNum) {
+        Map<String, Object> map = convertToMap(p);
+        boolean isLiked = (mbNum != null) && (likeMapper.checkLikeStatus(p.getPoNum(), mbNum) > 0);
+        map.put("isLikedByMe", isLiked);
+        boolean isBookmarked = (mbNum != null) && (bookMarkRepository.existsByBmPoNumAndBmPoTypeAndBmMbNum(p.getPoNum(), "RECOMMEND", mbNum));
+        map.put("isBookmarkedByMe", isBookmarked);
+        return map;
+    }
+
     private Map<String, Object> convertToMap(RecommendPost p) {
         Map<String, Object> map = new HashMap<>();
         map.put("postId", p.getPoNum());
@@ -225,26 +247,16 @@ public class RecommendPostService {
         map.put("poDate", p.getPoDate() != null ? p.getPoDate().toString() : "");
         map.put("poMbNum", p.getPoMbNum());
 
-        // 닉네임 처리
         String mbNickname = "알 수 없는 사용자";
         Optional<Member> mOpt = memberRepository.findById(p.getPoMbNum());
         if(mOpt.isPresent()) mbNickname = mOpt.get().getMbNickname();
         map.put("mbNickname", mbNickname);
 
-        // --- 순위 산정 점수 계산 (각 1점) ---
-        // 1. 조회수 (1점)
         int views = p.getPoView() != null ? p.getPoView() : 0;
-        
-        // 2. 추천수 (1점)
         int likes = p.getPoUp() != null ? p.getPoUp() : 0;
-        
-        // 3. 댓글수 (1점)
         long commentCount = commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getPoNum(), "RECOMMEND", "N");
-        
-        // 4. 즐겨찾기수 (1점) 🚩 리포지토리 필드명 bmPoNum으로 수정 완료
         long bookmarkCount = bookMarkRepository.countByBmPoNumAndBmPoType(p.getPoNum(), "RECOMMEND");
 
-        // 🚩 최종 점수 합산
         int score = views + likes + (int)commentCount + (int)bookmarkCount;
 
         map.put("poView", views);
@@ -253,7 +265,6 @@ public class RecommendPostService {
         map.put("bookmarkCount", bookmarkCount);
         map.put("score", score);
 
-        // 이미지 처리
         if (p.getPoImg() != null && !p.getPoImg().trim().isEmpty()) {
             String firstImg = p.getPoImg().split(",")[0].trim();
             map.put("fileUrl", SERVER_URL + firstImg);
