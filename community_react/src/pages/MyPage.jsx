@@ -151,7 +151,17 @@ function MyPage() {
     const d = new Date(dateString);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   };
+  const getReportStatusLabel = (r) => {
+    // 관리자 답변이 있으면 처리완료
+    if (r?.rbReply && String(r.rbReply).trim()) return "처리완료";
 
+    // rbManage가 "대기"를 의미하는 값만 대기로 표시
+    // 지금 코드 기준으로 "Y/D/H"가 아니면 대기 처리였음
+    const m = String(r?.rbManage ?? "").toUpperCase();
+    if (m === "Y" || m === "D" || m === "H") return "처리완료";
+
+    return "대기";
+  };
   const isReportUnseen = (r) =>
     r.rbReply &&
     String(r.rbReply).trim() &&
@@ -653,7 +663,7 @@ function MyPage() {
                         >
                           <span className="mypage-post-board">{r.rbName} #{r.rbId}</span>
                           <span className="mypage-post-title">{(r.rbContent || "").slice(0, 40)}{(r.rbContent || "").length > 40 ? "..." : ""}</span>
-                          <span className="mypage-post-date">{(r.rbReply && String(r.rbReply).trim()) ? "답변완료" : r.rbManage === "Y" ? "처리완료" : r.rbManage === "D" ? "삭제됨" : r.rbManage === "H" ? "보류" : "대기"}</span>
+                          <span className="mypage-post-date">{getReportStatusLabel(r)}</span>
                         </li>
                       ))}
                     </ul>
@@ -707,7 +717,7 @@ function MyPage() {
                     <p>{detailModal.data.rbReply}</p>
                   </div>
                 )}
-                <p><strong>상태:</strong> {(detailModal.data.rbReply && String(detailModal.data.rbReply).trim()) ? "답변완료" : detailModal.data.rbManage === "Y" ? "처리완료" : detailModal.data.rbManage === "D" ? "삭제됨" : detailModal.data.rbManage === "H" ? "보류" : "대기"}</p>
+                <p><strong>상태:</strong> {getReportStatusLabel(detailModal.data)}</p>
               </div>
             ) : (
               <div className="mypage-detail-body">
