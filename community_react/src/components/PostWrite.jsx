@@ -134,13 +134,14 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType, 
     const authorNum = currentUser?.mbNum || currentUser?.mb_num || currentUser?.id || 1;
     const authorNick = currentUser?.mbNickname || currentUser?.mb_nickname || currentUser?.nickname || "익명 사용자";
 
-    // 🚩 [수정] 400 에러 해결: 서버 컨트롤러의 @RequestParam 이름과 1:1 매칭
+    // 🚩 [수정] 모든 게시판 컨트롤러 호환성 확보
+    // title/content와 poTitle/poContent를 모두 보냄으로써 서버 에러(400)를 원천 차단합니다.
     if (isEdit) {
-      // FreeBoardController.java의 update 메서드는 "title", "content"라는 이름으로 데이터를 받음
       formData.append('title', title);
       formData.append('content', htmlContent);
+      formData.append('poTitle', title);
+      formData.append('poContent', htmlContent);
     } else {
-      // 등록 시에는 컨트롤러 로직에 맞춰 poTitle, poContent 사용
       formData.append('poTitle', title);
       formData.append('poContent', htmlContent);
       formData.append('poMbNum', String(authorNum));
