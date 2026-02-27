@@ -64,7 +64,10 @@ const FreeBoardDetail = () => {
             const bookmarkStatus = data?.isBookmarkedByMe || data?.isBookmarked === 'Y';
             setIsBookmarked(bookmarkStatus);
 
-            addRecentView({ boardType: 'freeboard', poNum: Number(id), poTitle: data?.poTitle });
+            addRecentView(
+                { boardType: 'freeboard', poNum: Number(id), poTitle: data?.poTitle },
+                currentUserNum
+            );
 
             // 2. 댓글 리스트 정보
             const commentRes = await axios.get(`${SERVER_URL}/api/comment/list/${id}`);
@@ -82,7 +85,7 @@ const FreeBoardDetail = () => {
         } finally {
             if (!isAction) setLoading(false);
         }
-    }, [id, navigate, SERVER_URL]);
+    }, [id, navigate, SERVER_URL, currentUserNum]);
 
     useEffect(() => { fetchDetail(); }, [fetchDetail]);
 
