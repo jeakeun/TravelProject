@@ -1,6 +1,7 @@
 package kr.hi.travel_community.repository;
 
 import kr.hi.travel_community.entity.RecommendPost;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -24,6 +25,19 @@ public interface RecommendRepository extends JpaRepository<RecommendPost, Intege
     List<RecommendPost> findByPoDelOrderByPoNumDesc(String poDel);
 
     /**
+     * 🚩 [수정] 점수순 게시글 조회 (Pageable 사용하여 LIMIT 처리)
+     * Native Query에서 발생할 수 있는 LIMIT 파라미터 에러를 방지하기 위해 Pageable을 사용합니다.
+     */
+    @Query(value = "SELECT p.*, " +
+           "(COALESCE(p.po_view, 0) + COALESCE(p.po_up, 0) - COALESCE(p.po_report, 0) + " +
+           "(SELECT COUNT(*) FROM comment c WHERE c.co_po_num = p.po_num AND c.co_po_type = 'RECOMMEND' AND c.co_del = 'N') + " +
+           "(SELECT COUNT(*) FROM bookmark b WHERE b.bm_po_num = p.po_num AND b.bm_po_type = 'RECOMMEND')) AS score " +
+           "FROM recommend_post p " +
+           "WHERE p.po_del = 'N' " +
+           "ORDER BY score DESC, p.po_num DESC", nativeQuery = true)
+    List<RecommendPost> findTopPostsByScore(Pageable pageable);
+
+    /**
      * 🚩 검색 기능: 제목에 키워드 포함 + 삭제 안 된 글
      */
     List<RecommendPost> findByPoTitleContainingAndPoDelOrderByPoNumDesc(String title, String poDel);
@@ -43,24 +57,31 @@ public interface RecommendRepository extends JpaRepository<RecommendPost, Intege
     List<RecommendPost> findByTitleOrContent(@Param("keyword") String keyword, @Param("poDel") String poDel);
 
     /**
-     * 🚩 [추가] 작성자(mbNum)로 게시글 찾기
-     * 서비스의 searchPosts 메서드 내 "author" 케이스에서 빨간 줄이 뜨지 않도록 추가합니다.
+     * 🚩 작성자(mbNum)로 게시글 찾기
      */
     List<RecommendPost> findByPoMbNumAndPoDelOrderByPoNumDesc(Integer poMbNum, String poDel);
 
     /**
      * 🚩 조회수 증가
      */
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("UPDATE RecommendPost p SET p.poView = COALESCE(p.poView, 0) + 1 " +
            "WHERE p.poNum = :id AND p.poDel = 'N'")
     int updateViewCount(@Param("id") Integer id);
 
     /**
-     * 🚩 좋아요(추천) 수 동기화
+     * 🚩 좋아요(추천) 수 업데이트
      */
-    @Modifying
-    @Query("UPDATE RecommendPost p SET p.poUp = COALESCE(p.poUp, 0) + :amount " +
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE RecommendPost p SET p.poUp = GREATEST(0, COALESCE(p.poUp, 0) + :amount) " +
            "WHERE p.poNum = :id AND p.poDel = 'N'")
     void updateLikeCount(@Param("id") Integer id, @Param("amount") int amount);
+
+    /**
+     * 🚩 신고 횟수 증가
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("UPDATE RecommendPost p SET p.poReport = COALESCE(p.poReport, 0) + 1 " +
+           "WHERE p.poNum = :id AND p.poDel = 'N'")
+    void updateReportCount(@Param("id") Integer id);
 }

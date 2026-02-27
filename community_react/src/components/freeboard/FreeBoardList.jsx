@@ -10,9 +10,6 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10; 
 
-    // 🚩 [수정] 자동 배포 환경을 위해 배포 서버 IP로 고정 설정
-    const SERVER_URL = "";
-
     // 검색 실행 함수
     const handleSearch = () => {
         setAppliedSearch(inputValue);
@@ -20,36 +17,43 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
     };
 
     /**
-     * 🚩 필터링 로직
+     * 필터링 로직
      */
     const filteredItems = useMemo(() => {
-        // 🚩 SERVER_URL 참조를 유지하여 배포 환경 대응
-        if (!SERVER_URL) return []; 
-
         const safePosts = Array.isArray(posts) ? posts : [];
+        
         if (!appliedSearch) return safePosts;
+        
         const term = appliedSearch.toLowerCase();
         
         return safePosts.filter(p => {
             const title = (p.poTitle || "").toLowerCase();
             const content = (p.poContent || "").toLowerCase();
-            const author = `user ${p.poMbNum}`.toLowerCase();
+            
+            // 🚩 [수정] JPA 연관 관계(member 객체)를 최우선으로 체크하도록 개선
+            const authorName = (
+                p.member?.mbNickname || 
+                p.mbNickname || 
+                p.mb_nickname || 
+                p.authorNick || 
+                `user ${p.poMbNum}`
+            ).toLowerCase();
 
             switch (searchType) {
                 case 'title': return title.includes(term);
                 case 'content': return content.includes(term);
                 case 'titleContent': return title.includes(term) || content.includes(term);
-                case 'author': return author.includes(term);
+                case 'author': return authorName.includes(term);
                 default: return title.includes(term);
             }
         });
-    }, [posts, appliedSearch, searchType, SERVER_URL]); 
+    }, [posts, appliedSearch, searchType]); 
     
     // 페이징 계산
     const totalPages = Math.ceil(filteredItems.length / itemsPerPage) || 1;
     const currentItems = filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-    // 날짜 포맷 함수 (기존 유지)
+    // 날짜 포맷 함수
     const formatDateTime = (dateString) => {
         if (!dateString) return "-";
         const date = new Date(dateString);
@@ -83,7 +87,10 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
                                     {post.poTitle}
                                     {post.commentCount > 0 && <span className="freeboard-comment-count"> [{post.commentCount}]</span>}
                                 </td>
-                                <td className="td-author">User {post.poMbNum}</td>
+                                {/* 🚩 [수정] 작성자 닉네임 표시: member 객체 내부의 mbNickname을 가장 먼저 참조 */}
+                                <td className="td-author">
+                                    {post.member?.mbNickname || post.mbNickname || post.mb_nickname || post.authorNick || `User ${post.poMbNum}`}
+                                </td>
                                 <td className="td-view">{post.poView || 0}</td>
                                 <td className="td-date">{formatDateTime(post.poDate)}</td>
                             </tr>
@@ -94,7 +101,6 @@ const FreeBoardList = ({ posts = [], goToDetail }) => {
                 </tbody>
             </table>
 
-            {/* 🚩 하단 레이아웃 영역 */}
             <div className="list-pagination-area">
                 <div className="page-buttons">
                     <button 

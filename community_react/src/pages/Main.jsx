@@ -1,31 +1,32 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "./Main.css";
 import { useOutletContext, useNavigate } from "react-router-dom";
+import NavigationBar from "./NavigationBar";
 
 const carouselTranslations = {
   KR: {
     rank_main_title: "이달의 여행지 랭킹",
-    dest1_name: "01. 발리, 인도네시아", dest1_desc: "신들의 섬에서 즐기는 완벽한 휴양",
-    dest2_name: "02. 아이슬란드", dest2_desc: "대자연의 경이로움, 오로라 헌팅",
-    dest3_name: "03. 교토, 일본", dest3_desc: "전통과 현대가 공존하는 고요한 도시"
+    dest1_name: "01. 여행지 정보 없음", dest1_desc: "추천 게시글이 없습니다.",
+    dest2_name: "02. 여행지 정보 없음", dest2_desc: "추천 게시글이 없습니다.",
+    dest3_name: "03. 여행지 정보 없음", dest3_desc: "추천 게시글이 없습니다."
   },
   EN: {
     rank_main_title: "Monthly Rankings",
-    dest1_name: "01. Bali, Indonesia", dest1_desc: "Perfect relaxation in the Island of the Gods",
-    dest2_name: "02. Iceland", dest2_desc: "Wonder of nature, Aurora hunting",
-    dest3_name: "03. Kyoto, Japan", dest3_desc: "Quiet city where tradition meets modernity"
+    dest1_name: "01. No Info", dest1_desc: "No recommended posts.",
+    dest2_name: "02. No Info", dest2_desc: "No recommended posts.",
+    dest3_name: "03. No Info", dest3_desc: "No recommended posts."
   },
   JP: {
     rank_main_title: "今月の旅行先ランキング",
-    dest1_name: "01. バリ、インドネシア", dest1_desc: "神々の島で楽しむ完璧な休息",
-    dest2_name: "02. アイスランド", dest2_desc: "大自然の驚異、オーロラハンティング",
-    dest3_name: "03. 京都、日本", dest3_desc: "伝統と現代が共存する静かな都市"
+    dest1_name: "01. 情報なし", dest1_desc: "おすすめの投稿がありません。",
+    dest2_name: "02. 정보 없음", dest2_desc: "おすすめ의 게시글이 없습니다.",
+    dest3_name: "03. 정보 없음", dest3_desc: "おすすめ의 게시글이 없습니다."
   },
   CH: {
     rank_main_title: "本月目的地排名",
-    dest1_name: "01. 巴厘岛，印度尼西亚", dest1_desc: "在众神之岛享受完美的休闲",
-    dest2_name: "02. 冰岛", dest2_desc: "大自然的惊奇，极光狩猎",
-    dest3_name: "03. 京都，日本", dest3_desc: "传统与现代共存의 宁静城市"
+    dest1_name: "01. 无信息", dest1_desc: "暂无推荐帖子。",
+    dest2_name: "02. 无信息", dest2_desc: "暂无推荐帖子。",
+    dest3_name: "03. 无信息", dest3_desc: "暂无推荐帖子。"
   }
 };
 
@@ -34,41 +35,43 @@ function Main() {
   const navigate = useNavigate();
   const outletContext = useOutletContext() || {};
   
-  // 🚩 노란 줄 방지: Main 컴포넌트 내에서 실제 사용하는 변수(currentLang, posts)만 추출합니다.
+  // outletContext에서 posts와 currentLang을 가져옵니다.
   const { currentLang, posts = [] } = outletContext;
 
   const t = carouselTranslations[currentLang] || carouselTranslations["KR"];
   const SERVER_URL = "";
 
-  // 🚩 [데이터 로직] 추천 게시판 1,2,3위 추출 (조회수 기준 정렬)
+  // 🚩 [데이터 로직] 서버에서 이미 계산되어 내려온 순서를 유지하며 recommend 데이터 상위 3개 추출
   const topThree = useMemo(() => {
     if (!Array.isArray(posts)) return [];
-    return [...posts]
-      .sort((a, b) => (b.poView || b.po_view || 0) - (a.poView || a.po_view || 0))
-      .slice(0, 3);
+    
+    // 1. recommend 게시판 데이터만 필터링 (poBoardType이나 엔드포인트에서 구분된 데이터 기반)
+    // 서버 응답 데이터 구조에 맞게 'recommend' 게시글만 필터링합니다.
+    const recommendPosts = posts.filter(p => 
+      p.poBoardType === 'recommend' || 
+      p.boardType === 'recommend' || 
+      p.category === 'recommend'
+    );
+
+    // 2. 서버에서 랭킹순으로 보내주므로 별도 sort 없이 상위 3개만 선택
+    return recommendPosts.slice(0, 3);
   }, [posts]);
 
-  // 🚩 [이미지 로직] 다중 파일명 및 절대/상대 경로 모두 대응
+  // 🚩 [이미지 로직] DB 필드 대응 및 첫 번째 이미지 추출
   const getImageUrl = (post) => {
     const defaultImg = "https://placehold.co/1200x800?text=No+Image";
     if (!post) return defaultImg;
     
-    // 필드명 다양성 대응 (poImg, po_img, fileName 등)
-    const targetUrl = post.poImg || post.po_img || post.fileName || post.fileUrl || post.image;
+    // DB 컬럼명 po_img 또는 poImg 대응
+    const targetUrl = post.poImg || post.po_img || post.fileName;
 
     if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null") {
-      // 1. 이미 완전한 URL(http)인 경우
       if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
-      
-      // 2. 콤마로 구분된 다중 파일명인 경우 첫 번째 파일만 추출
       const firstFile = String(targetUrl).split(',')[0].trim();
-      
-      // 3. 파일명만 있는 경우 서버 경로와 결합
       const extractedName = firstFile.split(/[\\/]/).pop();
       return `${SERVER_URL}/pic/${extractedName}`;
     }
 
-    // 4. 이미지가 없을 경우 본문 내 첫 번째 img 태그 검색
     if (post.poContent && typeof post.poContent === 'string') {
       const imgRegex = /<img[^>]+src=["']([^"']+)["']/;
       const match = post.poContent.match(imgRegex);
@@ -78,11 +81,11 @@ function Main() {
     return defaultImg; 
   };
 
-  // 카러셀 로직
+  // 카러셀 제어 로직
   const handlePrev = () => setCarouselIndex((prev) => (prev === 0 ? 2 : prev - 1));
   const handleNext = () => setCarouselIndex((prev) => (prev === 2 ? 0 : prev + 1));
 
-  // 스크롤 이벤트 (헤더 스타일 조절)
+  // 스크롤 시 헤더 스타일 변경 이벤트
   useEffect(() => {
     const header = document.querySelector('.App .nav-area header');
     if (!header) return;
@@ -109,7 +112,9 @@ function Main() {
 
   return (
     <div className="main-container">
-      {/* ===== 메인 비디오 ===== */}
+      {/* 네이게이션바 */}
+      <NavigationBar />
+      {/* ===== 메인 비디오 섹션 ===== */}
       <section id="main-video">
         <iframe 
           src="https://www.youtube.com/embed/1La4QzGeaaQ?autoplay=1&mute=1&controls=0&loop=1&playlist=1La4QzGeaaQ" 
@@ -117,12 +122,12 @@ function Main() {
           allow="autoplay; fullscreen" 
           title="video"
         ></iframe>
-        <button type="button" className="scroll-down" onClick={scrollToRanking} aria-label="두 번째 화면으로">
+        <button type="button" className="scroll-down" onClick={scrollToRanking} aria-label="랭킹으로 이동">
           <span className="scroll-down-arrow">⬇</span>
         </button>
       </section>
 
-      {/* ===== 랭킹 카러셀 ===== */}
+      {/* ===== 랭킹 카러셀 섹션 ===== */}
       <section id="ranking">
         <h2>{t.rank_main_title}</h2>
         <div className="carousel-outer">
@@ -131,13 +136,15 @@ function Main() {
             <div className="carousel-wrapper">
               {[0, 1, 2].map((idx) => {
                 const post = topThree[idx];
-                const postId = post?.poNum || post?.po_num || post?.postId;
+                // 서버 데이터 구조(po_num 또는 poNum)에 맞춰 ID 추출
+                const postId = post?.poNum || post?.po_num || post?.id;
                 const displayTitle = post?.poTitle || post?.po_title || t[`dest${idx + 1}_name`];
 
                 return (
                   <div 
                     key={idx} 
                     className={getCarouselClass(idx)}
+                    // 🚩 클릭 시 상세페이지로 이동: /community/recommend/:id
                     onClick={() => post && navigate(`/community/recommend/${postId}`)}
                     style={{ cursor: post ? 'pointer' : 'default' }}
                   >

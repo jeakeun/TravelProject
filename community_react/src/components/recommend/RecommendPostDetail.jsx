@@ -7,7 +7,7 @@ import { addRecentView } from '../../utils/recentViews';
 import ReportModal from '../ReportModal';
 import './RecommendPostDetail.css';
 
-// 🚩 [수정] App.js와 동일하게 배포 서버 및 포트 8080 설정 유지
+// 🚩 [유지] 배포 서버 및 포트 설정
 const API_BASE_URL = "";
 const SERVER_URL = API_BASE_URL;
 
@@ -27,7 +27,6 @@ const RecommendPostDetail = () => {
     const [replyTo, setReplyTo] = useState(null);         
     const [replyInput, setReplyInput] = useState(""); 
 
-    // 즐겨찾기 상태
     const [isBookmarked, setIsBookmarked] = useState(false);
     const [reportModal, setReportModal] = useState({ open: false, type: 'post', targetId: null });
 
@@ -42,7 +41,6 @@ const RecommendPostDetail = () => {
 
     const fixImagePaths = (content) => {
         if (!content) return "";
-        // 🚩 SERVER_URL 변수를 사용하여 이미지 경로 치환
         let fixedContent = content.replace(/src=["'](?:\/)?pic\//g, `src="${SERVER_URL}/pic/`);
         return fixedContent;
     };
@@ -52,7 +50,6 @@ const RecommendPostDetail = () => {
         const storageKey = `viewed_post_${id}`;
         if (!sessionStorage.getItem(storageKey)) {
             try {
-                // 🚩 API 주소 체계를 App.js의 방식과 맞춤
                 await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/view`);
                 sessionStorage.setItem(storageKey, 'true');
             } catch (err) {
@@ -65,10 +62,15 @@ const RecommendPostDetail = () => {
         if (!isNumericId) return;
         try {
             if (!isAction) setLoading(true);
-            // 🚩 App.js에서 사용하는 호출 경로와 일치하도록 유지
-            const postRes = await axios.get(`${SERVER_URL}/api/recommend/posts/${id}`);
+            
+            const postRes = await axios.get(`${SERVER_URL}/api/recommend/posts/${id}`, {
+                params: { mbNum: currentUserNum }
+            });
+
             setPost(postRes.data);
-            setIsLiked(postRes.data.isLikedByMe || false);
+
+            const likedStatus = postRes.data.isLiked === true || postRes.data.isLiked === 'Y' || postRes.data.isLikedByMe === true;
+            setIsLiked(likedStatus);
             
             const bookmarkStatus = postRes.data.isBookmarkedByMe || postRes.data.isBookmarked === 'Y' || postRes.data.isBookmarked === true || postRes.data.favorited;
             
@@ -104,7 +106,7 @@ const RecommendPostDetail = () => {
             }
             setLoading(false);
         }
-    }, [id, navigate, isNumericId]);
+    }, [id, navigate, isNumericId, currentUserNum]);
 
     useEffect(() => {
         const handleStorageChange = (e) => {
@@ -167,16 +169,13 @@ const RecommendPostDetail = () => {
         if (!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
             await api.post("/api/mypage/bookmarks", { poNum: Number(id), boardType: "recommend" });
-            
             const newState = !isBookmarked;
             setIsBookmarked(newState);
-            
             localStorage.setItem('bookmark_changed', JSON.stringify({ 
                 id: Number(id), 
                 state: newState, 
                 time: Date.now() 
             }));
-
             alert(newState ? "게시글을 즐겨찾기에 등록했습니다." : "게시글 즐겨찾기를 취소했습니다.");
         } catch (err) {
             const msg = err?.response?.data?.msg || err?.response?.data?.error;
@@ -206,6 +205,12 @@ const RecommendPostDetail = () => {
         try {
             if (type === 'post') {
                 await axios.post(`${SERVER_URL}/api/recommend/posts/${targetId}/report`, { category, reason, mbNum: currentUserNum });
+                
+                // 🚩 게시글 신고 성공 시 화면의 신고 수 실시간 업데이트
+                setPost(prev => ({
+                    ...prev,
+                    poReport: (prev.poReport || prev.po_report || 0) + 1 
+                }));
             } else {
                 await axios.post(`${SERVER_URL}/api/comment/report/${targetId}`, { category, reason, mbNum: currentUserNum });
             }
@@ -261,7 +266,6 @@ const RecommendPostDetail = () => {
             const isReply = depth > 0;
             const isActiveEdit = editId === comment.coNum;
             const isActiveReply = replyTo === comment.coNum;
-            
             const authorDisplayName = comment.coNickname || comment.mbNickname || comment.mb_nickname || "알 수 없는 사용자";
 
             return (
@@ -319,7 +323,6 @@ const RecommendPostDetail = () => {
 
     const isPostOwner = isLoggedIn && Number(post.poMbNum || post.po_mb_num) === Number(currentUserNum);
     const canManagePost = isPostOwner || isAdmin;
-    
     const postAuthorNick = post.poNickname || post.mbNickname || post.mb_nickname || post.mbNick || `User ${post.poMbNum || post.po_mb_num}`;
 
     return (
@@ -333,6 +336,9 @@ const RecommendPostDetail = () => {
                         <span>조회 {post.poView || post.po_view || 0}</span> 
                         <span className="info-divider">|</span>
                         <span>추천 {post.poUp || post.po_up || 0}</span> 
+                        <span className="info-divider">|</span>
+                        {/* 🚩 신고 횟수 추가 */}
+                        <span>신고 {post.poReport || post.po_report || 0}</span> 
                         <span className="info-divider">|</span>
                         <span>작성일 {new Date(post.poDate || post.po_date).toLocaleString()}</span>
                     </div>
@@ -361,7 +367,8 @@ const RecommendPostDetail = () => {
                                     gap: '5px' 
                                 }}
                             >
-                                {isLiked ? '❤️' : '🤍'} 추천 {post.poUp || post.po_up || 0}
+                                <span style={{ color: '#e74c3c', filter: isLiked ? 'brightness(0) invert(1)' : 'none' }}>❤️</span>
+                                추천 {post.poUp || post.po_up || 0}
                             </button>
                         )}
 
@@ -402,7 +409,25 @@ const RecommendPostDetail = () => {
                         )}
                     </div>
 
-                    <button className="btn-list-return" onClick={() => navigate('/community/recommend')}>
+                    {/* 🚩 자유게시판과 동일한 디자인으로 수정된 '목록으로' 버튼 */}
+                    <button 
+                        className="btn-list-return" 
+                        onClick={() => navigate('/community/recommend')}
+                        style={{ 
+                            padding: '10px 25px', 
+                            borderRadius: '30px', 
+                            fontWeight: 'bold', 
+                            cursor: 'pointer', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '5px', 
+                            transition: 'all 0.2s ease', 
+                            fontSize: '14px',
+                            background: '#fff', 
+                            border: '1px solid #34495e', 
+                            color: '#34495e' 
+                        }}
+                    >
                         목록으로 
                     </button>
                 </div>

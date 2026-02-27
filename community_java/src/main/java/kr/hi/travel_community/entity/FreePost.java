@@ -1,11 +1,8 @@
 package kr.hi.travel_community.entity;
 
-import jakarta.persistence.*;
-import lombok.Data;
-import lombok.Builder;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 import java.time.LocalDateTime;
+import jakarta.persistence.*;
+import lombok.*;
 
 @Entity
 @Table(name = "free_post")
@@ -13,6 +10,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@ToString(exclude = "member")
 public class FreePost {
 
     @Id
@@ -29,45 +27,60 @@ public class FreePost {
     @Column(name = "po_date", nullable = false, updatable = false)
     private LocalDateTime poDate;
 
-    // 초기값 0을 필드 선언 시 할당하여 DB/JPA 양쪽에서 안전하게 관리합니다.
+    @Builder.Default
     @Column(name = "po_view", nullable = false)
     private Integer poView = 0;
 
+    @Builder.Default
     @Column(name = "po_up", nullable = false)
     private Integer poUp = 0;
 
+    @Builder.Default
     @Column(name = "po_down", nullable = false)
     private Integer poDown = 0;
 
+    @Builder.Default
     @Column(name = "po_report", nullable = false)
     private Integer poReport = 0;
 
+    @Builder.Default
     @Column(name = "po_del", nullable = false, length = 1)
     private String poDel = "N";
 
-    /**
-     * MemberVO의 mb_num이 int 타입이므로 Integer로 선언하여
-     * null 체크와 MyBatis 연동 시 타입 불일치 에러를 방지합니다.
-     */
-    @Column(name = "po_mb_num", nullable = false)
+    @Column(name = "po_mb_num")
     private Integer poMbNum;
 
-    /**
-     * [유지] DB 컬럼명은 po_img, 자바 필드명은 서비스와 호환되는 fileUrl
-     */
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "po_mb_num", insertable = false, updatable = false)
+    private Member member; 
+
     @Column(name = "po_img", length = 1000)
     private String fileUrl;
 
     /**
-     * 저장 전 null 방지 로직 유지
+     * 🚩 데이터 저장 전 실행되는 로직
+     * 서비스에서 깜빡하고 세팅하지 않은 기본값들을 한 번 더 검증함
      */
     @PrePersist
     public void prePersist() {
-        if (this.poDate == null) this.poDate = LocalDateTime.now();
+        if (this.poDate == null) {
+            this.poDate = LocalDateTime.now();
+        }
         if (this.poView == null) this.poView = 0;
         if (this.poUp == null) this.poUp = 0;
         if (this.poDown == null) this.poDown = 0;
         if (this.poReport == null) this.poReport = 0;
         if (this.poDel == null) this.poDel = "N";
+    }
+
+    /**
+     * 🚩 데이터 수정 시 실행 (선택 사항)
+     * 수정 시에도 null 값이 들어오지 않도록 방어
+     */
+    @PreUpdate
+    public void preUpdate() {
+        if (this.poView == null) this.poView = 0;
+        if (this.poUp == null) this.poUp = 0;
+        if (this.poReport == null) this.poReport = 0;
     }
 }
