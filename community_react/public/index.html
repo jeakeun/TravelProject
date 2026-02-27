@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=0fe7c7a264f9456db151ae55939175a2&libraries=services"></script>
+    <!-- [카카오 로그인] Kakao.Auth.authorize() 사용을 위한 Login SDK -->
     <script src="//t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" crossorigin="anonymous"></script>
     <script>
       window.KAKAO_JS_KEY = '0fe7c7a264f9456db151ae55939175a2';
@@ -11,7 +12,7 @@
         if (window.Kakao && !window.Kakao.isInitialized()) {
           window.Kakao.init(window.KAKAO_JS_KEY);
         } else if (!window.Kakao) {
-          setTimeout(initKakao, 100);
+          setTimeout(initKakao, 100); /* SDK 로드 지연 시 재시도 */
         }
       })();
     </script>

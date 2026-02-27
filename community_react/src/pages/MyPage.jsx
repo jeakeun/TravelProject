@@ -212,6 +212,7 @@ function MyPage() {
 
   const handleWithdraw = async () => {
     const pw = (withdrawPassword || "").trim();
+    // [카카오 로그인] 카카오 유저는 비밀번호 입력 없이 탈퇴 가능
     if (!isKakaoUser && !pw) {
       alert("비밀번호를 입력하세요.");
       return;
@@ -348,6 +349,7 @@ function MyPage() {
     return null;
   }
 
+  // [카카오 로그인] 카카오 유저: 이메일 수정/비밀번호 영역 숨김(API 연동 데이터 보호, 비밀번호 미사용)
   const isKakaoUser = (user.mb_provider || user.mbProvider) === "kakao";
   const email = user.mb_email ?? user.mb_Email ?? "-";
 
@@ -434,6 +436,7 @@ function MyPage() {
               {!isEditingEmail ? (
                 <>
                   <span className="mypage-info-text">{email}</span>
+                  {/* [카카오 로그인] 카카오 유저는 이메일이 API 연동 데이터이므로 수정 버튼 숨김 */}
                   {!isKakaoUser && (
                     <button type="button" className="mypage-info-btn" onClick={startEditEmail}>
                       수정
@@ -459,6 +462,7 @@ function MyPage() {
                 </div>
               )}
             </div>
+            {/* [카카오 로그인] 카카오 유저는 비밀번호를 사용하지 않으므로 비밀번호 영역 숨김 */}
             {!isKakaoUser && (
               <div className="mypage-info-row">
                 <span className="mypage-info-icon" aria-hidden>🔒</span>
@@ -543,6 +547,7 @@ function MyPage() {
           <div className="mypage-withdraw-modal" onClick={(e) => e.stopPropagation()}>
             <h3 className="mypage-withdraw-title">회원 탈퇴</h3>
             <p className="mypage-withdraw-desc">정말 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
+            {/* [카카오 로그인] 카카오 유저는 비밀번호 없이 확인만으로 탈퇴 */}
             {!isKakaoUser && (
               <input
                 type="password"

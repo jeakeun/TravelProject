@@ -16,13 +16,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * 카카오 OAuth2: authorization code → access token → 사용자 정보
+ * [카카오 로그인] 프론트에서 Kakao.Auth.authorize() 후 받은 code를 서버에서 토큰으로 교환하고
+ * 사용자 정보를 가져오기 위한 서비스. 카카오 REST API 호출 담당.
  */
 @Service
 public class KakaoAuthService {
 
+    /** 카카오 REST API 키. 토큰 교환 시 필요. application.properties 또는 KAKAO_REST_API_KEY 환경변수. */
     @Value("${kakao.rest-api-key:}")
     private String restApiKey;
 
+    /** 카카오 개발자 콘솔에 등록한 Redirect URI와 동일해야 함. 토큰 교환 시 검증에 사용됨. */
     @Value("${kakao.redirect-uri:http://localhost:3000/kakao-callback}")
     private String redirectUri;
 
@@ -30,7 +34,8 @@ public class KakaoAuthService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * 인증 코드를 카카오 access token으로 교환
+     * 인증 코드를 카카오 access token으로 교환.
+     * 카카오 OAuth2 규격: code로 토큰 요청 → access_token 수신.
      */
     public String exchangeCodeForToken(String code) throws Exception {
         if (restApiKey == null || restApiKey.isBlank()) {
@@ -62,7 +67,8 @@ public class KakaoAuthService {
     }
 
     /**
-     * 카카오 access token으로 사용자 정보 조회
+     * 카카오 access token으로 사용자 정보 조회.
+     * id, nickname, email 추출 → 회원 가입/로그인 시 사용.
      * @return Map with keys: id (Long), email (String, nullable), nickname (String, nullable)
      */
     public Map<String, Object> getUserInfo(String accessToken) throws Exception {
@@ -92,6 +98,7 @@ public class KakaoAuthService {
             if (emailNode != null && !emailNode.isNull()) email = emailNode.asText();
         }
 
+        // 이메일/닉네임 미동의 시 fallback 값 사용 (카카오 API에서 미제공 가능)
         return Map.of(
                 "id", kakaoId,
                 "nickname", nickname != null && !nickname.isBlank() ? nickname : "카카오회원",

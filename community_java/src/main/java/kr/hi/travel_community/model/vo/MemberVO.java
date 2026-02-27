@@ -23,6 +23,7 @@ public class MemberVO {
     private String mb_photo;   // (deprecated) 이전 파일명 저장용
     private Integer mb_photo_ver; // 프로필 사진 버전 (DB blob 존재 시 캐시 무효화용)
     private String mb_agree; // 동의 여부
+    // [카카오 로그인] 로그인 방식. 'local'=일반, 'kakao'=카카오. 프론트 MyPage에서 이메일 수정 비활성화·비밀번호 숨김 판별용.
     @JsonProperty("mb_provider")
-    private String mb_provider; // 로그인 방식: 'local' | 'kakao'
+    private String mb_provider;
 }

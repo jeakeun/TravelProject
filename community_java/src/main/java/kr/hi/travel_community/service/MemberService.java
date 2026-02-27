@@ -125,6 +125,7 @@ public class MemberService {
 
             MemberVO member = memberDAO.selectMemberById(id.trim());
             if (member == null) return false;
+            // [카카오 로그인] 카카오 유저는 비밀번호를 사용하지 않으므로 변경 불가
             if ("kakao".equalsIgnoreCase(member.getMb_provider())) return false;
             if (!encoder.matches(currentPw.trim(), member.getMb_pw())) return false;
 
@@ -173,6 +174,7 @@ public class MemberService {
 
             MemberVO member = memberDAO.selectMemberById(id.trim());
             if (member == null) return false;
+            // [카카오 로그인] 카카오 유저 이메일은 API 연동 데이터이므로 수정 불가
             if ("kakao".equalsIgnoreCase(member.getMb_provider())) return false;
 
             String emailTrim = newEmail.trim();
@@ -257,7 +259,7 @@ public class MemberService {
             if (member == null) return false;
 
             if ("kakao".equalsIgnoreCase(member.getMb_provider())) {
-                // 카카오 회원: 비밀번호 검증 없이 탈퇴
+                // [카카오 로그인] 카카오 유저는 비밀번호를 쓰지 않으므로 검증 생략 후 탈퇴
                 int deleted = memberDAO.deleteMemberById(id.trim());
                 return deleted > 0;
             }
@@ -274,7 +276,8 @@ public class MemberService {
     }
 
     /**
-     * 카카오 인증 코드로 로그인 또는 자동 회원가입
+     * [카카오 로그인] 카카오 인증 코드로 로그인 또는 자동 회원가입.
+     * 기존 카카오 회원이면 로그인, 없으면 신규 가입 후 반환.
      * @return 로그인된 회원 정보 (없으면 null)
      */
     @Transactional
@@ -295,7 +298,7 @@ public class MemberService {
                 return existing;
             }
 
-            // 신규 가입: placeholder 비밀번호 (사용 안 함)
+            // [카카오 로그인] 신규 가입: 비밀번호 미사용이므로 placeholder BCrypt 저장
             String placeholderPw = encoder.encode(java.util.UUID.randomUUID().toString());
             boolean inserted = memberDAO.insertMemberKakao(kakaoUid, nickname, placeholderPw, email);
             if (!inserted) return null;

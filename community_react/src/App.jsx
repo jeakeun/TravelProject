@@ -384,6 +384,7 @@ function App() {
         <Route path="/cscenter/faq/posts/:id" element={<FAQDetail />} />
         <Route path="/cscenter/faq/edit/:id" element={<PostWrite activeMenu="자주 묻는 질문" boardType="faq" refreshPosts={loadPosts} isEdit={true} />} />
 
+        {/* [카카오 로그인] 카카오 동의 후 돌아오는 redirect URI. URL의 code를 백엔드에 전달. */}
         <Route path="/kakao-callback" element={<KakaoCallback />} />
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/admin" element={<AdminPage />} />

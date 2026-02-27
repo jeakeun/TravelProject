@@ -125,6 +125,7 @@ function Signup({ onClose }) {
           )}
           <div className="modal-btn-group">
             <button type="submit" className="btn-primary">회원가입</button>
+            {/* [카카오 로그인] 카카오로 가입도 동일 flow - 첫 로그인 시 백엔드에서 자동 회원가입 */}
             <button
               type="button"
               className="btn-kakao"

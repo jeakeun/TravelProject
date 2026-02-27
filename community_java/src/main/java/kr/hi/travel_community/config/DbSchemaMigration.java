@@ -33,6 +33,7 @@ public class DbSchemaMigration implements ApplicationRunner {
         ensureColumn("report_box", "rb_reply", "TEXT NULL");
         ensureColumn("report_box", "rb_manage", "CHAR(1) NULL DEFAULT 'N'");
         ensureColumn("report_box", "rb_seen", "CHAR(1) NULL DEFAULT 'N'");
+        // [카카오 로그인] 로그인 방식 구분용. 'local'=일반회원가입, 'kakao'=카카오 로그인. MyPage에서 이메일/비밀번호 수정 여부 판단.
         ensureColumn("member", "mb_provider", "VARCHAR(20) NULL DEFAULT 'local'");
     }
 

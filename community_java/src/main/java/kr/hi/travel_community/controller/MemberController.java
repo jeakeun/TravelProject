@@ -343,6 +343,7 @@ public class MemberController {
         String id = ((CustomUser) authentication.getPrincipal()).getMember().getMb_Uid();
         String password = body != null ? (body.get("password") != null ? body.get("password") : "") : "";
         MemberVO member = memberDAO.selectMemberById(id);
+        // [카카오 로그인] 카카오 유저는 비밀번호를 쓰지 않으므로 빈 비밀번호 허용
         boolean isKakao = member != null && "kakao".equalsIgnoreCase(member.getMb_provider());
         if (!isKakao && password.isEmpty()) {
             return ResponseEntity.badRequest().body("비밀번호를 입력하세요.");
@@ -355,7 +356,8 @@ public class MemberController {
     }
 
     /**
-     * 카카오 로그인/회원가입: authorization code를 받아 토큰 교환 → 사용자 조회/생성 → JWT 발급
+     * [카카오 로그인] 프론트 KakaoCallback에서 전달한 code로 토큰 교환 → 회원 조회/생성 → JWT 발급.
+     * 로그인/회원가입이 동일 엔드포인트로 처리됨 (카카오 첫 로그인 시 자동 가입).
      */
     @PostMapping("/auth/kakao")
     public ResponseEntity<?> kakaoAuth(@RequestBody Map<String, String> body) {

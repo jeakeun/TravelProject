@@ -48,6 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // ✅ 인증 없이 접근하는 auth 경로만 제외 (update-email, change-password는 JWT 필요)
         return "/auth/refresh".equals(path)
             || "/auth/logout".equals(path)
+            // [카카오 로그인] code로 토큰 교환 후 JWT 발급하므로 인증 없이 접근 허용
             || "/auth/kakao".equals(path)
             || "/auth/verify-user".equals(path)
             || "/auth/reset-password".equals(path);

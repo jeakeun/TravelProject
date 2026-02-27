@@ -112,6 +112,7 @@ function Login({ onClose, onLogin, onOpenSignup, onOpenFindPw }) {
             <button type="submit" className="btn-primary">
               로그인
             </button>
+            {/* [카카오 로그인] 클릭 시 카카오 인증 페이지로 이동 → 동의 후 /kakao-callback으로 code와 함께 리다이렉트 */}
             <button
               type="button"
               className="btn-kakao"

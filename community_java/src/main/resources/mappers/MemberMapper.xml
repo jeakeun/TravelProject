@@ -14,6 +14,7 @@
         <result property="mb_photo" column="mb_photo"/>
         <result property="mb_photo_ver" column="mb_photo_ver"/>
         <result property="mb_agree" column="mb_agree"/>
+        <!-- [카카오 로그인] mb_provider: MyPage에서 카카오 유저 식별용 -->
         <result property="mb_provider" column="mb_provider"/>
     </resultMap>
 
@@ -24,7 +25,7 @@
           AND mb_email = #{email}
     </select>
 
-    <!-- 로그인 시 아이디로 조회 (mb_photo_data 제외, blob 제외하여 JSON 용량 절감) -->
+    <!-- 로그인 시 아이디로 조회. mb_provider 포함 → 프론트에서 카카오 유저 여부 판단용. -->
     <select id="selectMemberById" resultMap="MemberVOMap">
         SELECT mb_num, mb_uid, mb_nickname, mb_pw, mb_email, mb_rol, mb_score,
                mb_photo_ver, mb_agree, IFNULL(mb_provider, 'local') as mb_provider
@@ -45,7 +46,7 @@
         VALUES (#{id}, #{nickname}, #{pw}, #{email}, #{agree}, 'USER', 0)
     </insert>
 
-    <!-- 카카오 회원 조회 (mb_uid = 'kakao_' || kakaoId) -->
+    <!-- [카카오 로그인] 카카오 회원 조회. mb_uid 형식: kakao_{카카오ID}. 기존 가입자면 로그인, 없으면 회원가입 처리. -->
     <select id="selectMemberByKakaoId" resultMap="MemberVOMap">
         SELECT mb_num, mb_uid, mb_nickname, mb_pw, mb_email, mb_rol, mb_score,
                mb_photo_ver, mb_agree, IFNULL(mb_provider, 'local') as mb_provider
@@ -54,7 +55,7 @@
         LIMIT 1
     </select>
 
-    <!-- 카카오 회원 가입 (비밀번호는 placeholder) -->
+    <!-- [카카오 로그인] 카카오 최초 로그인 시 자동 가입. 비밀번호는 사용 안 하므로 랜덤 BCrypt placeholder 저장. -->
     <insert id="insertMemberKakao">
         INSERT INTO member (mb_uid, mb_nickname, mb_pw, mb_email, mb_agree, mb_rol, mb_score, mb_provider)
         VALUES (#{id}, #{nickname}, #{pw}, #{email}, 'Y', 'USER', 0, 'kakao')

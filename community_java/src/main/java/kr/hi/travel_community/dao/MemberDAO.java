@@ -34,10 +34,10 @@ public interface MemberDAO {
      */
 	boolean insertMember(MemberSignUpDTO member);
 
-	/** 카카오 회원 조회 (mb_uid = 'kakao_' + kakaoId) */
+	/** [카카오 로그인] mb_uid='kakao_{카카오ID}' 형식으로 기존 회원 조회. 있으면 로그인, 없으면 회원가입. */
 	MemberVO selectMemberByKakaoId(@Param("kakaoUid") String kakaoUid);
 
-	/** 카카오 회원 가입 */
+	/** [카카오 로그인] 카카오 최초 로그인 시 신규 회원 저장. 비밀번호는 placeholder(사용 안 함). */
 	boolean insertMemberKakao(@Param("id") String id, @Param("nickname") String nickname,
 			@Param("pw") String pw, @Param("email") String email);
 

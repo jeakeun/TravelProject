@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 /**
- * 카카오 로그인 후 redirect URI. URL의 code를 백엔드에 전달하여 JWT 발급 후 로그인 완료.
+ * [카카오 로그인] 카카오 동의 후 redirect 되는 URI.
+ * URL의 code를 /auth/kakao에 전달 → JWT 수신 → localStorage 저장 → 메인으로 이동.
  */
 function KakaoCallback() {
   const [searchParams] = useSearchParams();
@@ -14,6 +15,7 @@ function KakaoCallback() {
     const code = searchParams.get("code");
     const errorParam = searchParams.get("error");
 
+    // 카카오 로그인 취소/거부 시 error 파라미터로 리다이렉트됨
     if (errorParam) {
       setError("카카오 로그인이 취소되었거나 실패했습니다.");
       setStatus("");
@@ -28,6 +30,7 @@ function KakaoCallback() {
 
     const doLogin = async () => {
       try {
+        // code를 백엔드에 전달하여 토큰 교환 및 회원 조회/생성 후 JWT 발급
         const res = await fetch("/auth/kakao", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -47,6 +50,7 @@ function KakaoCallback() {
         const accessToken = data?.accessToken;
         if (member && accessToken) {
           try {
+            // 일반 로그인과 동일하게 localStorage에 저장 후 메인으로 이동
             localStorage.setItem("user", JSON.stringify(member));
             localStorage.setItem("accessToken", accessToken);
           } catch (_) {}
