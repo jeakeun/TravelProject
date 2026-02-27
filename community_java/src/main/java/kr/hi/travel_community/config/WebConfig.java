@@ -12,7 +12,7 @@ import java.io.File;
 public class WebConfig implements WebMvcConfigurer {
 
     // application.properties에서 설정값을 읽어오되, 없으면 기본값 사용
-    @Value("${file.upload-dir:C:/travel_contents/uploads/pic/}")
+    @Value("${file.upload-dir:/home/uploads/}")
     private String uploadDir;
 
     @Override
@@ -33,13 +33,15 @@ public class WebConfig implements WebMvcConfigurer {
             }
         }
 
-        // 🚩 [핵심 수정] 리눅스와 윈도우 공용으로 가장 안정적인 file: 프로토콜 형식 사용
-        // file:/// 대신 file: 을 사용하고 절대 경로를 연결합니다.
-        String location = path.startsWith("/") ? "file:" + path : "file:/" + path;
+        // 🚩 [핵심 수정] 리눅스 환경(/home/uploads/)에 최적화된 경로 생성
+        // 리눅스는 'file:' 뒤에 바로 절대경로(/)가 붙어야 하므로 file:/home/uploads/ 형식이 됩니다.
+        String location = path.startsWith("/") ? "file:" + path : "file:///" + path;
 
         registry.addResourceHandler("/pic/**")
                 .addResourceLocations(location)
                 .setCachePeriod(3600); 
+
+        System.out.println("✅ [Mapping] /pic/** URL -> " + location);
     }
 
     @Override
@@ -49,12 +51,12 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOriginPatterns(
                     "http://localhost:3000", 
                     "http://127.0.0.1:3000",
-                    "http://3.37.160.108",    // 프론트엔드가 동작하는 실제 서버 IP 추가
-                    "http://3.37.160.108:*"   // 해당 IP의 모든 포트 허용
+                    "http://3.37.160.108",    
+                    "http://3.37.160.108:*"   
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)
-                .maxAge(3600);
+                .maxAge(3600); 
     }
 }

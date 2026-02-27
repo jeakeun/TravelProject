@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation, useOutletContext } from 'react-router-dom';
+import { useNavigate, useLocation, useOutletContext, useParams } from 'react-router-dom';
 import axios from 'axios';
 
 // 🚩 [유지] 상대 경로 설정을 통한 포트 차단 방지
 const API_BASE_URL = "";
 
-function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }) {
+function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType, isEdit: isEditProp }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { id } = useParams(); 
   
   const queryParams = new URLSearchParams(location.search);
   const boardParam = queryParams.get('board');
@@ -15,24 +16,81 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
   const { user: contextUser, loadPosts } = useOutletContext() || {};
   const currentUser = user || contextUser;
 
-  const isEdit = location.state?.mode === 'edit';
+  // 수정 모드 및 기존 데이터 확인
+  const isEdit = isEditProp || location.state?.mode === 'edit';
   const existingPost = location.state?.postData;
   const stateBoardType = location.state?.boardType;
 
   const [title, setTitle] = useState('');
   const [imageFiles, setImageFiles] = useState([]);      
+  const [isDataLoaded, setIsDataLoaded] = useState(false); 
   
   const editorRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // 카테고리 경로 결정 로직 (기존 디자인 및 로직 유지)
+  const getCategoryPath = () => {
+    const apiMap = {
+      '여행 추천 게시판': 'recommend',
+      '여행 후기 게시판': 'reviewboard',
+      '자유 게시판': 'freeboard',
+      '이벤트': 'event',
+      '이벤트 게시판': 'event',
+      '뉴스레터': 'newsletter',
+      '자주 묻는 질문': 'faq'
+    };
+    
+    const path = location.pathname;
+    let urlDerivedBoard = '';
+    if (path.includes('/newsletter')) urlDerivedBoard = 'newsletter';
+    else if (path.includes('/event')) urlDerivedBoard = 'event';
+    else if (path.includes('/recommend')) urlDerivedBoard = 'recommend';
+    else if (path.includes('/freeboard')) urlDerivedBoard = 'freeboard';
+    else if (path.includes('/faq')) urlDerivedBoard = 'faq';
+
+    let category = propsBoardType || stateBoardType || urlDerivedBoard || boardParam || apiMap[activeMenu] || 'freeboard';
+
+    if (category === '이벤트' || category === '이벤트 게시판') return 'event';
+    if (category === '뉴스레터') return 'newsletter';
+    if (category === '여행 추천 게시판') return 'recommend';
+    if (category === '자유 게시판') return 'freeboard';
+    if (category === '자주 묻는 질문') return 'faq';
+    return category;
+  };
+
+  const categoryPath = getCategoryPath();
+
+  // 🚩 [유지] 데이터 주입 로직
   useEffect(() => {
-    if (isEdit && existingPost) {
-      setTitle(existingPost.poTitle || existingPost.po_title || existingPost.title || '');
-      if (editorRef.current) {
-        editorRef.current.innerHTML = existingPost.poContent || existingPost.po_content || existingPost.content || '';
+    const fetchExistingPost = async () => {
+      if (!isEdit || isDataLoaded) return;
+
+      if (existingPost) {
+        setTitle(existingPost.poTitle || existingPost.po_title || existingPost.title || '');
+        if (editorRef.current) {
+          editorRef.current.innerHTML = existingPost.poContent || existingPost.po_content || existingPost.content || '';
+          setIsDataLoaded(true);
+        }
+      } 
+      else if (id) {
+        try {
+          const response = await axios.get(`${API_BASE_URL}/api/${categoryPath}/posts/${id}`);
+          if (response.data) {
+            setTitle(response.data.poTitle || response.data.po_title || '');
+            if (editorRef.current) {
+              editorRef.current.innerHTML = response.data.poContent || response.data.po_content || '';
+            }
+            setIsDataLoaded(true);
+          }
+        } catch (err) {
+          console.error("수정 데이터 로드 실패:", err);
+        }
       }
-    }
-  }, [isEdit, existingPost]);
+    };
+
+    const timer = setTimeout(fetchExistingPost, 100);
+    return () => clearTimeout(timer);
+  }, [isEdit, existingPost, id, categoryPath, isDataLoaded]);
 
   const insertImageAtCursor = (base64Data) => {
     if (!editorRef.current) return;
@@ -76,10 +134,18 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
     const authorNum = currentUser?.mbNum || currentUser?.mb_num || currentUser?.id || 1;
     const authorNick = currentUser?.mbNickname || currentUser?.mb_nickname || currentUser?.nickname || "익명 사용자";
 
-    formData.append('poTitle', title);
-    formData.append('poContent', htmlContent);
-    formData.append('poMbNum', String(authorNum));
-    formData.append('mbNickname', authorNick);
+    // 🚩 [수정] 400 에러 해결: 서버 컨트롤러의 @RequestParam 이름과 1:1 매칭
+    if (isEdit) {
+      // FreeBoardController.java의 update 메서드는 "title", "content"라는 이름으로 데이터를 받음
+      formData.append('title', title);
+      formData.append('content', htmlContent);
+    } else {
+      // 등록 시에는 컨트롤러 로직에 맞춰 poTitle, poContent 사용
+      formData.append('poTitle', title);
+      formData.append('poContent', htmlContent);
+      formData.append('poMbNum', String(authorNum));
+      formData.append('mbNickname', authorNick);
+    }
 
     if (imageFiles.length > 0) {
       imageFiles.forEach((file) => {
@@ -87,35 +153,9 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
       });
     }
 
-    const apiMap = {
-      '여행 추천 게시판': 'recommend',
-      '여행 후기 게시판': 'reviewboard',
-      '자유 게시판': 'freeboard',
-      '이벤트': 'event',
-      '이벤트 게시판': 'event',
-      '뉴스레터': 'newsletter',
-      '자주 묻는 질문': 'faq'
-    };
-    
-    const path = location.pathname;
-    let urlDerivedBoard = '';
-    if (path.includes('/newsletter')) urlDerivedBoard = 'newsletter';
-    else if (path.includes('/event')) urlDerivedBoard = 'event';
-    else if (path.includes('/recommend')) urlDerivedBoard = 'recommend';
-    else if (path.includes('/freeboard')) urlDerivedBoard = 'freeboard';
-    else if (path.includes('/faq')) urlDerivedBoard = 'faq';
-
-    let categoryPath = propsBoardType || stateBoardType || urlDerivedBoard || boardParam || apiMap[activeMenu] || 'freeboard';
-
-    // 최종 경로 보정
-    if (categoryPath === '이벤트' || categoryPath === '이벤트 게시판') categoryPath = 'event';
-    if (categoryPath === '뉴스레터') categoryPath = 'newsletter';
-    if (categoryPath === '여행 추천 게시판') categoryPath = 'recommend';
-    if (categoryPath === '자유 게시판') categoryPath = 'freeboard';
-    if (categoryPath === '자주 묻는 질문') categoryPath = 'faq';
-
+    const finalPostId = id || existingPost?.poNum || existingPost?.po_num || existingPost?.id;
     const apiUrl = isEdit 
-      ? `${API_BASE_URL}/api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.po_num || existingPost?.id}`
+      ? `${API_BASE_URL}/api/${categoryPath}/posts/${finalPostId}`
       : `${API_BASE_URL}/api/${categoryPath}/posts`;
 
     const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
@@ -126,17 +166,28 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
         url: apiUrl,
         data: formData,
         headers: { 
-          // 🚩 [수정] Content-Type을 명시하지 않아야 브라우저가 boundary를 포함한 형식을 자동으로 지정합니다.
+          'Content-Type': 'multipart/form-data',
           ...(token && { 'Authorization': `Bearer ${token}` })
         },
         withCredentials: true
       });
 
-      if (response.status === 200 || response.status === 201 || String(response.data).includes("Success")) {
+      if (response.status === 200 || response.status === 201 || (response.data && String(response.data).includes("Success"))) {
         alert(isEdit ? "글이 수정되었습니다!" : "글이 등록되었습니다!");
+        
         if (refreshPosts) await refreshPosts();
-        else if (loadPosts) await loadPosts();
-        navigate(-1); 
+        if (loadPosts) await loadPosts();
+
+        if (isEdit) {
+          let detailPath = `/community/${categoryPath}/${finalPostId}`;
+          if (categoryPath === 'newsletter') detailPath = `/news/newsletter/${finalPostId}`;
+          if (categoryPath === 'event') detailPath = `/news/event/${finalPostId}`;
+          if (categoryPath === 'faq') detailPath = `/cscenter/faq/posts/${finalPostId}`;
+          
+          navigate(detailPath, { replace: true });
+        } else {
+          navigate(-1); 
+        }
       }
     } catch (error) {
       console.error("저장 실패 상세:", error.response);
@@ -146,7 +197,7 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
           ? error.response.data 
           : (error.response.data.message || error.response.data.error || JSON.stringify(error.response.data));
       }
-      alert(`저장 실패: ${errorMsg}`);
+      alert(`저장 실패 (코드 ${error.response?.status}): ${errorMsg}`);
     }
   };
 

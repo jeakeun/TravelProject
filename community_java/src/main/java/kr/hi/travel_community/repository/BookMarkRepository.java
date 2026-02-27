@@ -3,6 +3,7 @@ package kr.hi.travel_community.repository;
 import kr.hi.travel_community.entity.BookMark; 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,17 +17,23 @@ public interface BookMarkRepository extends JpaRepository<BookMark, Integer> {
     // 2. 토글용 존재 확인
     Optional<BookMark> findByBmMbNumAndBmPoNumAndBmPoType(Integer bmMbNum, Integer bmPoNum, String bmPoType);
 
-    // 3. 존재 여부 확인 (MypageController 등에서 사용)
+    // 3. 존재 여부 확인
     boolean existsByBmMbNumAndBmPoNumAndBmPoType(Integer bmMbNum, Integer bmPoNum, String bmPoType);
 
     /**
-     * 🚩 [추가] RecommendPostService의 빨간 줄 해결을 위한 메서드
-     * 서비스에서 호출하는 이름과 매개변수 순서를 일치시켰습니다.
+     * 🚩 [추가] 토글 해제(삭제) 기능을 위한 메서드
+     * 서비스 레이어의 toggleBookmarkStatus에서 삭제 시 에러가 나지 않도록 추가했습니다.
+     */
+    @Transactional
+    void deleteByBmMbNumAndBmPoNumAndBmPoType(Integer bmMbNum, Integer bmPoNum, String bmPoType);
+
+    /**
+     * 🚩 RecommendPostService 등 타 서비스와의 호환을 위한 메서드
      */
     boolean existsByBmPoNumAndBmPoTypeAndBmMbNum(Integer bmPoNum, String bmPoType, Integer bmMbNum);
 
     /**
-     * 🚩 점수 계산을 위한 특정 게시글의 즐겨찾기 총 개수 조회
+     * 🚩 특정 게시글의 즐겨찾기 총 개수 조회
      */
     long countByBmPoNumAndBmPoType(Integer bmPoNum, String bmPoType);
 }

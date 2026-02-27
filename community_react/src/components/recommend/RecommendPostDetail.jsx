@@ -104,7 +104,7 @@ const RecommendPostDetail = () => {
             }
             setLoading(false);
         }
-    }, [id, navigate, isNumericId]);
+    }, [id, navigate, isNumericId, currentUserNum]); // ✅ currentUserNum 의존성 추가 완료
 
     useEffect(() => {
         const handleStorageChange = (e) => {

@@ -18,6 +18,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.hi.travel_community.entity.FreePost;
+import kr.hi.travel_community.entity.BookMark; // 🚩 추가: 북마크 엔티티 임포트
 import kr.hi.travel_community.mapper.LikeMapper;
 import kr.hi.travel_community.model.vo.MemberVO;
 import kr.hi.travel_community.repository.BookMarkRepository;
@@ -128,23 +129,53 @@ public class FreePostService {
 
     /**
      * 🚩 추천 토글
+     * FreeRepository에 추가된 벌크 연산 메서드를 사용하여 안전하게 처리
      */
     @Transactional
     public String toggleLikeStatus(Integer poNum, Integer mbNum) {
-        int count = likeMapper.checkLikeStatus(poNum, mbNum);
+        if (mbNum == null) return "error_login";
+
         FreePost post = postRepository.findByPoNumAndPoDel(poNum, "N")
                 .orElseThrow(() -> new RuntimeException("게시글 없음"));
 
+        int count = likeMapper.checkLikeStatus(poNum, mbNum);
+
         if (count == 0) {
             likeMapper.insertLikeLog(poNum, mbNum);
-            post.setPoUp((post.getPoUp() == null ? 0 : post.getPoUp()) + 1);
-            postRepository.save(post);
+            // 🚩 [수정] 레포지토리 벌크 연산 호출로 변경 (정합성 확보)
+            postRepository.increaseLikeCount(poNum);
             return "liked";
         } else {
             likeMapper.deleteLikeLog(poNum, mbNum);
-            post.setPoUp(Math.max(0, (post.getPoUp() == null ? 0 : post.getPoUp()) - 1));
-            postRepository.save(post);
+            // 🚩 [수정] 레포지토리 벌크 연산 호출로 변경
+            postRepository.decreaseLikeCount(poNum);
             return "unliked";
+        }
+    }
+
+    /**
+     * 🚩 즐겨찾기(북마크) 토글
+     * 제공받은 BookMark 엔티티와 빌더를 활용하여 실제 DB 저장/삭제 로직 구현
+     */
+    @Transactional
+    public String toggleBookmarkStatus(Integer poNum, Integer mbNum) {
+        if (mbNum == null) return "error_login";
+
+        boolean exists = bookMarkRepository.existsByBmMbNumAndBmPoNumAndBmPoType(mbNum, poNum, "FREE");
+
+        if (!exists) {
+            // 🚩 [수정] 북마크 엔티티를 생성하여 레포지토리에 저장
+            BookMark bookmark = BookMark.builder()
+                    .bmMbNum(mbNum)
+                    .bmPoNum(poNum)
+                    .bmPoType("FREE")
+                    .build();
+            bookMarkRepository.save(bookmark);
+            return "bookmarked";
+        } else {
+            // 🚩 [수정] 기존 북마크 삭제
+            bookMarkRepository.deleteByBmMbNumAndBmPoNumAndBmPoType(mbNum, poNum, "FREE");
+            return "unbookmarked";
         }
     }
 
@@ -156,11 +187,9 @@ public class FreePostService {
         FreePost post = postRepository.findByPoNumAndPoDel(id, "N")
                 .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
         
-        // 신고 수 증가 (NPE 방지 처리 포함)
         Integer currentReportCount = post.getPoReport();
         post.setPoReport((currentReportCount == null ? 0 : currentReportCount) + 1);
         
-        // 신고 저장은 엔티티 매핑을 통해 처리됨
         postRepository.save(post);
     }
 
@@ -196,7 +225,7 @@ public class FreePostService {
     }
 
     /**
-     * 엔티티 -> Map 변환 (신고 수 필드 포함)
+     * 엔티티 -> Map 변환
      */
     private Map<String, Object> convertToMap(FreePost p) {
         Map<String, Object> map = new HashMap<>();
@@ -206,10 +235,7 @@ public class FreePostService {
         map.put("poDate", p.getPoDate() != null ? p.getPoDate().toString() : "");
         map.put("poView", p.getPoView() != null ? p.getPoView() : 0);
         map.put("poUp", p.getPoUp() != null ? p.getPoUp() : 0);
-        
-        // 🚩 상세 페이지 등에서 실시간 반영을 위해 신고 수 필드 맵에 추가
         map.put("poReport", p.getPoReport() != null ? p.getPoReport() : 0);
-        
         map.put("poMbNum", p.getPoMbNum());
         map.put("commentCount", commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getPoNum(), "FREE", "N"));
         

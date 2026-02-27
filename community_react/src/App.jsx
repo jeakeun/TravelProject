@@ -42,7 +42,6 @@ import ChangePassword from './auth/ChangePassword';
 
 axios.defaults.withCredentials = true;
 
-// 🚩 API 기본 URL 설정 (환경 변수 혹은 공백)
 const API_BASE_URL = process.env.REACT_APP_API_URL || "";
 
 function OpenLoginModal({ openLogin }) {
@@ -176,19 +175,20 @@ function CommunityContainer({ posts, loadPosts, loading }) {
           {isCommunityGroup && (
             <>
               <Route path="recommend/write" element={<PostWrite activeMenu="여행 추천 게시판" boardType="recommend" refreshPosts={loadPosts} />} />
+              <Route path="recommend/edit/:id" element={<PostWrite activeMenu="여행 추천 게시판" boardType="recommend" refreshPosts={loadPosts} isEdit={true} />} />
               <Route path="recommend/:id" element={<RecommendPostDetail />} />
               <Route path="recommend" element={<RecommendMain posts={posts} />} />
 
               <Route path="freeboard/write" element={<PostWrite activeMenu="자유 게시판" boardType="freeboard" refreshPosts={loadPosts} />} />
+              <Route path="freeboard/edit/:id" element={<PostWrite activeMenu="자유 게시판" boardType="freeboard" refreshPosts={loadPosts} isEdit={true} />} />
               <Route path="freeboard/:id" element={<FreeBoardDetail />} />
               <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />
               
               <Route path="write" element={<PostWrite activeMenu={activeMenu} boardType={activeMenu === '여행 추천 게시판' ? 'recommend' : 'freeboard'} refreshPosts={loadPosts} />} />
-              
               <Route path="/" element={<Navigate to="freeboard" replace />} />
             </>
           )}
-        </Routes> community/recommend/
+        </Routes>
       </main>
     </div>
   );
@@ -217,15 +217,16 @@ function App() {
 
   const location = useLocation();
 
+  // 🚩 수정됨: 데이터 갱신 로직 보완
   const loadPosts = useCallback(async () => {
     const path = location.pathname;
-    const pathParts = path.split('/').filter(Boolean);
-    const lastPart = pathParts[pathParts.length - 1];
     
-    const isActionPage = ['write', 'edit', 'login', 'signup'].includes(lastPart) || (lastPart && !isNaN(lastPart));
+    // 수정 페이지나 작성 페이지 진입 시에는 '목록' 조회를 생략하여 충돌 방지
+    // 하지만 수정이 완료되어 목록이나 상세로 돌아왔을 때는 데이터가 갱신되어야 함
+    const isEditPage = path.includes('/edit/');
+    const isWritePage = path.includes('/write');
     
-    // 🚩 수정됨: 메인 경로('/')일 때 함수를 종료하지 않고 데이터를 불러오도록 처리
-    if (isActionPage) {
+    if (isEditPage || isWritePage) {
         setLoading(false);
         return;
     }
@@ -234,7 +235,6 @@ function App() {
       setLoading(true);
       let endpoint = ''; 
       
-      // 🚩 추가됨: 메인 경로('/')일 때 기본적으로 recommend 데이터를 가져옵니다.
       if (path === '/') endpoint = 'recommend';
       else if (path.includes('freeboard')) endpoint = 'freeboard';
       else if (path.includes('event')) endpoint = 'event';
@@ -256,25 +256,11 @@ function App() {
       const response = await axios.get(apiUrl);
       
       if (response.data && Array.isArray(response.data)) {
-        const storageChange = localStorage.getItem('bookmark_changed');
-        let syncData = null;
-        if (storageChange) {
-            try { syncData = JSON.parse(storageChange); } catch(e) {}
-        }
-
         const cleanData = response.data.map(post => {
           const pId = post.poNum || post.po_num || post.postId;
-          let isBookmarked = post.isBookmarked;
-          
-          if (syncData && Number(syncData.id) === Number(pId)) {
-            isBookmarked = syncData.state ? 'Y' : 'N';
-          }
-
           return {
             ...post,
             id: pId,
-            isBookmarked: isBookmarked,
-            // 🚩 Main.jsx에서 recommend 게시글만 골라내기 위해 타입 명시
             poBoardType: endpoint,
             authorNick: post.mbNickname || post.mb_nickname || post.mb_nick || post.mbNick || post.member?.mbNickname || post.member?.mb_nickname || `User ${post.poMbNum || post.po_mb_num}`
           };
@@ -295,6 +281,7 @@ function App() {
     loadPosts();
   }, [loadPosts]);
 
+  // 북마크/추천 동기화 이벤트 리스너
   useEffect(() => {
     const handleSync = (e) => {
       if (e.key === 'bookmark_changed' && e.newValue) {
@@ -319,11 +306,9 @@ function App() {
     axios.post(`${API_BASE_URL}/auth/refresh`, {}, { credentials: "include" })
       .then((res) => {
         const data = res.data;
-        if (!data?.member && !data?.accessToken) return;
-        const member = data.member;
-        if (member) {
-          setUser(member);
-          localStorage.setItem('user', JSON.stringify(member));
+        if (data?.member) {
+          setUser(data.member);
+          localStorage.setItem('user', JSON.stringify(data.member));
         }
         if (data.accessToken) localStorage.setItem('accessToken', data.accessToken);
       })
@@ -347,16 +332,12 @@ function App() {
   }, []);
 
   const openLogin = useCallback(() => {
-    setShowSignup(false);
-    setShowFindPw(false);
-    setShowResetPw(false);
+    setShowSignup(false); setShowFindPw(false); setShowResetPw(false);
     setShowLogin(true);
   }, []);
 
   const openSignup = useCallback(() => {
-    setShowLogin(false);
-    setShowFindPw(false);
-    setShowResetPw(false);
+    setShowLogin(false); setShowFindPw(false); setShowResetPw(false);
     setShowSignup(true);
   }, []);
 
