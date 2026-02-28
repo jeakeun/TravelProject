@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Kakaomap from './Kakaomap';
+import Kakaomap from './Kakaomap.jsx';
 
 function MainList({ photos = [], setPhotos, activeMenu = '', setActiveMenu, menuItems, goToDetail }) {
   const [inputValue, setInputValue] = useState('');
