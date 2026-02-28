@@ -296,6 +296,7 @@ public class MemberService {
             }
 
             // 신규 가입: placeholder 비밀번호 (사용 안 함)
+            // [카카오 로그인] 신규 가입 (탈퇴 후 재가입 가능): 비밀번호 미사용이므로 placeholder BCrypt 저장
             String placeholderPw = encoder.encode(java.util.UUID.randomUUID().toString());
             boolean inserted = memberDAO.insertMemberKakao(kakaoUid, nickname, placeholderPw, email);
             if (!inserted) return null;
