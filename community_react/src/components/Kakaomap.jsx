@@ -22,7 +22,7 @@ function Kakaomap({ category, keyword }) {
   // [기능] DB 데이터 불러오기 함수 (의존성 경고 방지를 위해 useCallback 사용)
   const fetchDbPlaces = useCallback(async (map) => {
     try {
-      const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:8080";
+      const baseUrl = process.env.REACT_APP_API_URL || "";
       const response = await axios.get(`${baseUrl}/api/map/places`).catch(err => {
         console.warn("데이터 로드 실패: 지도는 빈 상태로 유지됩니다.", err.message);
         return { data: [] };

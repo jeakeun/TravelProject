@@ -3,9 +3,8 @@ import React from 'react';
 const RecommendCard = ({ post, isMain, rank, onClick, getImageUrl, onBookmarkToggle }) => {
     if (!post) return null;
 
-    // 🚩 [수정] 환경 변수가 있으면 사용하고, 없으면 로컬 백엔드 기본 포트(8080)를 사용합니다.
-    // AWS 배포 환경과 로컬 환경 양쪽에서 이미지 404 에러를 방지합니다.
-    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+    
+    const SERVER_URL = process.env.REACT_APP_API_URL || "";
 
     // 🚩 ID 추출: poNum을 우선순위로 사용
     const postId = post.poNum || post.po_num || post.postId;
