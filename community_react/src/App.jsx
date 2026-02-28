@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Routes, Route, useNavigate, useLocation, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, useNavigate, useLocation, Outlet } from 'react-router-dom';
 import axios from 'axios';
 
 // 스타일 임포트
@@ -10,7 +10,7 @@ import "./App.css";
 // 컴포넌트 임포트
 import Main from "./pages/Main";
 import Header from "./components/Header"; 
-import MainList from './components/MainList';
+import MainList from './components/MainList'; // MainList.js 로드
 import PostWrite from './components/PostWrite';
 
 import FreeBoard from './components/freeboard/FreeBoardList'; 
@@ -23,7 +23,6 @@ import EventBoardDetail from './components/eventboard/EventBoardDetail';
 import NewsLetterList from './components/newsletter/NewsLetterList';
 import NewsLetterDetail from './components/newsletter/NewsLetterDetail';
 
-// FAQ 컴포넌트 추가
 import FAQList from './components/faq/FAQList';
 import FAQDetail from './components/faq/FAQDetail';
 
@@ -41,8 +40,9 @@ import ResetPassword from './auth/ResetPassword';
 import ChangePassword from './auth/ChangePassword';
 
 axios.defaults.withCredentials = true;
+const API_BASE_URL = process.env.REACT_APP_API_URL || `http://${window.location.hostname}:8080`;
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || "";
+
 
 function OpenLoginModal({ openLogin }) {
   const navigate = useNavigate();
@@ -62,7 +62,12 @@ function OpenSignupModal({ openSignup }) {
   return <Main />;
 }
 
-function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, openLogin, openSignup, showFindPw, setShowFindPw, showResetPw, setShowResetPw, resetUserId, setResetUserId, showChangePw, setShowChangePw, user, setUser, onLogin, onLogout, currentLang, setCurrentLang, posts, loadPosts, openChangePassword }) {
+function GlobalLayout({ 
+  showLogin, setShowLogin, showSignup, setShowSignup, openLogin, openSignup, 
+  showFindPw, setShowFindPw, showResetPw, setShowResetPw, resetUserId, setResetUserId, 
+  showChangePw, setShowChangePw, user, setUser, onLogin, onLogout, 
+  currentLang, setCurrentLang, posts, loadPosts, openChangePassword 
+}) {
   return (
     <div className="App">
       <Header 
@@ -111,7 +116,7 @@ function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, open
   );
 }
 
-function CommunityContainer({ posts, loadPosts, loading }) {
+function CommunityContainer({ posts, setPosts, loadPosts, loading }) {
   const [activeMenu, setActiveMenu] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
@@ -126,8 +131,9 @@ function CommunityContainer({ posts, loadPosts, loading }) {
     '자유 게시판': '/community/freeboard'
   }), []);
 
-  const isDestinationGroup = location.pathname.startsWith('/domestic') || location.pathname.startsWith('/foreigncountry');
-  const isCommunityGroup = location.pathname.startsWith('/community');
+  const pathname = location.pathname.toLowerCase();
+  const isDestinationGroup = pathname.startsWith('/domestic') || pathname.startsWith('/foreigncountry');
+  const isCommunityGroup = pathname.startsWith('/community');
 
   const currentGroup = useMemo(() => {
     if (isDestinationGroup) return destinationMenu;
@@ -138,56 +144,66 @@ function CommunityContainer({ posts, loadPosts, loading }) {
   useEffect(() => {
     if (currentGroup) {
       const foundMenu = Object.keys(currentGroup).find(key => {
-        return location.pathname === currentGroup[key] || location.pathname.startsWith(currentGroup[key] + '/');
+        return pathname === currentGroup[key] || pathname.startsWith(currentGroup[key] + '/');
       });
       if (foundMenu) setActiveMenu(foundMenu);
+      else setActiveMenu(Object.keys(currentGroup)[0] || '');
     }
-  }, [location.pathname, currentGroup]);
+  }, [pathname, currentGroup]);
+
+  if (loading && !pathname.includes('/domestic') && !pathname.includes('/foreigncountry')) {
+    return <div style={{ textAlign: 'center', marginTop: '100px' }}>로딩 중...</div>;
+  }
 
   if (!currentGroup) return <Outlet />; 
-  if (loading) return <div style={{ textAlign: 'center', marginTop: '100px' }}>로딩 중...</div>;
 
   return (
-    <div className="container">
+    <div className="container" style={{ display: 'flex', width: '100%' }}>
       <aside className="sidebar">
         <ul>
           {Object.keys(currentGroup).map(item => (
             <li 
               key={item} 
               className={activeMenu === item ? 'active' : ''} 
-              onClick={() => navigate(currentGroup[item])}
+              onClick={() => {
+                navigate(currentGroup[item]);
+                setActiveMenu(item);
+              }}
             >
               {item}
             </li>
           ))}
         </ul>
       </aside>
-      <main className="main-content">
+
+      <main className="main-content" style={{ flex: 1 }}>
         <Routes>
-          {isDestinationGroup && (
-            <Route path="/" element={
-              location.pathname.startsWith('/domestic') 
-              ? <MainList photos={posts} activeMenu="국내여행" goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />
-              : <Main /> 
-            } />
-          )}
+          {/* 🚩 [핵심 수정] 주소창에 /domestic 또는 /foreigncountry 만 쳤을 때 MainList가 나오도록 설정 */}
+          <Route index element={
+            pathname.startsWith('/domestic') 
+              ? <MainList photos={posts} setPhotos={setPosts} activeMenu="국내여행" />
+              : <MainList photos={posts} setPhotos={setPosts} activeMenu="해외여행" goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />
+          } />
 
-          {isCommunityGroup && (
-            <>
-              <Route path="recommend/write" element={<PostWrite activeMenu="여행 추천 게시판" boardType="recommend" refreshPosts={loadPosts} />} />
-              <Route path="recommend/edit/:id" element={<PostWrite activeMenu="여행 추천 게시판" boardType="recommend" refreshPosts={loadPosts} isEdit={true} />} />
-              <Route path="recommend/:id" element={<RecommendPostDetail />} />
-              <Route path="recommend" element={<RecommendMain posts={posts} />} />
+          {/* 하위 게시판 경로들 */}
+          <Route path="recommend" element={<RecommendMain posts={posts} />} />
+          <Route path="recommend/write" element={<PostWrite activeMenu="여행 추천 게시판" boardType="recommend" refreshPosts={loadPosts} />} />
+          <Route path="recommend/edit/:id" element={<PostWrite activeMenu="여행 추천 게시판" boardType="recommend" refreshPosts={loadPosts} isEdit={true} />} />
+          <Route path="recommend/:id" element={<RecommendPostDetail />} />
 
-              <Route path="freeboard/write" element={<PostWrite activeMenu="자유 게시판" boardType="freeboard" refreshPosts={loadPosts} />} />
-              <Route path="freeboard/edit/:id" element={<PostWrite activeMenu="자유 게시판" boardType="freeboard" refreshPosts={loadPosts} isEdit={true} />} />
-              <Route path="freeboard/:id" element={<FreeBoardDetail />} />
-              <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />
-              
-              <Route path="write" element={<PostWrite activeMenu={activeMenu} boardType={activeMenu === '여행 추천 게시판' ? 'recommend' : 'freeboard'} refreshPosts={loadPosts} />} />
-              <Route path="/" element={<Navigate to="freeboard" replace />} />
-            </>
-          )}
+          <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />
+          <Route path="freeboard/write" element={<PostWrite activeMenu="자유 게시판" boardType="freeboard" refreshPosts={loadPosts} />} />
+          <Route path="freeboard/edit/:id" element={<PostWrite activeMenu="자유 게시판" boardType="freeboard" refreshPosts={loadPosts} isEdit={true} />} />
+          <Route path="freeboard/:id" element={<FreeBoardDetail />} />
+
+          <Route path="write" element={<PostWrite activeMenu={activeMenu} boardType={activeMenu === '여행 추천 게시판' ? 'recommend' : 'freeboard'} refreshPosts={loadPosts} />} />
+
+          {/* 🚩 [핵심 수정] 어떤 하위 경로도 매칭되지 않을 때 기본 지도를 띄워주는 폴백 설정 */}
+          <Route path="*" element={
+            pathname.includes('/domestic') 
+              ? <MainList photos={posts} setPhotos={setPosts} activeMenu="국내여행" />
+              : <MainList photos={posts} setPhotos={setPosts} activeMenu="해외여행" goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />
+          } />
         </Routes>
       </main>
     </div>
@@ -196,37 +212,39 @@ function CommunityContainer({ posts, loadPosts, loading }) {
 
 function App() {
   const [showLogin, setShowLogin] = useState(false);
-  const [showSignup, setShowSignup] = useState(false);
+  const [showSignup, setShowSignup, ] = useState(false);
   const [showFindPw, setShowFindPw] = useState(false);
   const [showResetPw, setShowResetPw] = useState(false);
   const [showChangePw, setShowChangePw] = useState(false);
   const [resetUserId, setResetUserId] = useState('');
   const [currentLang, setCurrentLang] = useState("KR");
   const [posts, setPosts] = useState([]); 
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(false); 
   const [user, setUser] = useState(() => {
     const saved = localStorage.getItem('user');
     if (!saved) return null;
     try {
       const parsed = JSON.parse(saved);
       return parsed?.member ?? parsed;
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   });
 
   const location = useLocation();
 
   // 🚩 수정됨: 데이터 갱신 로직 보완
   const loadPosts = useCallback(async () => {
-    const path = location.pathname;
+    const path = location.pathname.toLowerCase();
     
-    // 수정 페이지나 작성 페이지 진입 시에는 '목록' 조회를 생략하여 충돌 방지
-    // 하지만 수정이 완료되어 목록이나 상세로 돌아왔을 때는 데이터가 갱신되어야 함
-    const isEditPage = path.includes('/edit/');
-    const isWritePage = path.includes('/write');
+    if (path === '/domestic' || path === '/foreigncountry') {
+        setLoading(false);
+        return;
+    }
+
+    const pathParts = path.split('/').filter(Boolean);
+    const lastPart = pathParts[pathParts.length - 1];
+    const isActionPage = ['write', 'edit', 'login', 'signup'].includes(lastPart) || (lastPart && !isNaN(lastPart));
     
-    if (isEditPage || isWritePage) {
+    if (isActionPage && path !== '/') {
         setLoading(false);
         return;
     }
@@ -241,7 +259,6 @@ function App() {
       else if (path.includes('newsletter')) endpoint = 'newsletter';
       else if (path.includes('recommend')) endpoint = 'recommend';
       else if (path.includes('faq')) endpoint = 'faq';
-      else if (path.includes('domestic')) endpoint = 'freeboard'; 
       else if (path.includes('notice')) endpoint = 'notice';
 
       if (!endpoint) {
@@ -257,10 +274,16 @@ function App() {
       
       if (response.data && Array.isArray(response.data)) {
         const cleanData = response.data.map(post => {
-          const pId = post.poNum || post.po_num || post.postId;
+          const pId = post.poNum || post.po_num || post.postId || post.id;
+          let isBookmarked = post.isBookmarked || post.is_bookmarked || post.bookmarked || 'N';
+          if (syncData && Number(syncData.id) === Number(pId)) {
+            isBookmarked = syncData.state ? 'Y' : 'N';
+          }
+
           return {
             ...post,
             id: pId,
+            isBookmarked: isBookmarked,
             poBoardType: endpoint,
             authorNick: post.mbNickname || post.mb_nickname || post.mb_nick || post.mbNick || post.member?.mbNickname || post.member?.mb_nickname || `User ${post.poMbNum || post.po_mb_num}`
           };
@@ -302,17 +325,29 @@ function App() {
 
   useEffect(() => {
     const saved = localStorage.getItem('user');
-    if (saved) return; 
-    axios.post(`${API_BASE_URL}/auth/refresh`, {}, { credentials: "include" })
-      .then((res) => {
+    if (saved) {
+      setLoading(false);
+      return;
+    }
+
+    const checkAuth = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true });
         const data = res.data;
         if (data?.member) {
           setUser(data.member);
           localStorage.setItem('user', JSON.stringify(data.member));
         }
-        if (data.accessToken) localStorage.setItem('accessToken', data.accessToken);
-      })
-      .catch(() => {});
+        if (data?.accessToken) localStorage.setItem('accessToken', data.accessToken);
+      } catch (err) {
+        console.log("로그인 세션 없음:", err.response?.status);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
   }, []);
 
   const handleLogin = useCallback((userData) => {
@@ -328,17 +363,15 @@ function App() {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('accessToken');
-    axios.post(`${API_BASE_URL}/auth/logout`, {}, { credentials: "include" }).catch(() => {});
+    axios.post(`${API_BASE_URL}/auth/logout`, {}, { withCredentials: true }).catch(() => {});
   }, []);
 
   const openLogin = useCallback(() => {
-    setShowSignup(false); setShowFindPw(false); setShowResetPw(false);
-    setShowLogin(true);
+    setShowSignup(false); setShowFindPw(false); setShowResetPw(false); setShowLogin(true);
   }, []);
 
   const openSignup = useCallback(() => {
-    setShowLogin(false); setShowFindPw(false); setShowResetPw(false);
-    setShowSignup(true);
+    setShowLogin(false); setShowFindPw(false); setShowResetPw(false); setShowSignup(true);
   }, []);
 
   const openChangePassword = useCallback(() => {
@@ -364,11 +397,10 @@ function App() {
       }>
         <Route path="/" element={<Main />} />
         
-        <Route path="/domestic/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
-        <Route path="/foreigncountry/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
-        <Route path="/Domestic" element={<Navigate to="/domestic" replace />} />
-
-        <Route path="/community/*" element={<CommunityContainer posts={posts} loadPosts={loadPosts} loading={loading} />} />
+        {/* 주소창에 직접 입력 시 대응하는 최상위 라우트 */}
+        <Route path="/domestic/*" element={<CommunityContainer posts={posts} setPosts={setPosts} loadPosts={loadPosts} loading={loading} />} />
+        <Route path="/foreigncountry/*" element={<CommunityContainer posts={posts} setPosts={setPosts} loadPosts={loadPosts} loading={loading} />} />
+        <Route path="/community/*" element={<CommunityContainer posts={posts} setPosts={setPosts} loadPosts={loadPosts} loading={loading} />} />
 
         <Route path="/news/event" element={<EventBoardList posts={posts} />} />
         <Route path="/news/event/write" element={<PostWrite activeMenu="이벤트 게시판" boardType="event" refreshPosts={loadPosts} />} />

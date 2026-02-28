@@ -6,7 +6,7 @@ import api from '../../api/axios';
 import './Recommend.css';
 
 const RecommendMain = ({ posts: initialPosts = [] }) => {
-    // 🚩 로컬 상태로 posts 관리 (즐겨찾기 토글 시 즉시 반영)
+    // 🚩 로컬 상태로 posts 관리
     const [posts, setPosts] = useState(initialPosts);
     const [currentPage, setCurrentPage] = useState(1);
     const [searchTerm, setSearchTerm] = useState('');
@@ -21,7 +21,7 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
         setPosts(initialPosts);
     }, [initialPosts]);
 
-    // 🚩 [유지] 상세 페이지에서 즐겨찾기 누르고 돌아왔을 때 즉시 반영하는 로직
+    // 🚩 상세 페이지 공유 로직 유지
     useEffect(() => {
         const handleStorageChange = (e) => {
             if (e.key === 'bookmark_changed' || e.key === 'last_bookmark_update') {
@@ -49,8 +49,7 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
         return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
-    // 🚩 [수정] 8080 포트 차단을 피하기 위해 SERVER_URL을 빈 문자열로 설정합니다.
-    const SERVER_URL = "";
+    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
     const goToDetail = (id) => {
         if (!id) return;
@@ -58,13 +57,12 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
     };
 
     /**
-     * 🚩 즐겨찾기 핸들러: 서버 통신 후 로컬 상태 즉시 업데이트
+     * 🚩 즐겨찾기 핸들러
      */
     const handleBookmarkToggle = async (e, post) => {
         if (e && e.stopPropagation) e.stopPropagation(); 
         const postId = post.poNum || post.po_num;
         
-        // 즐겨찾기 상태 판단
         const isCurrentlyBookmarked = post.isBookmarked === 'Y' || post.isBookmarked === true || post.isBookmarkedByMe || post.favorited;
 
         try {
@@ -81,7 +79,6 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
                 alert("즐겨찾기에 등록되었습니다.");
             }
 
-            // 🚩 리스트 상태 즉시 업데이트
             setPosts(prevPosts => prevPosts.map(p => {
                 const pId = p.poNum || p.po_num;
                 if (Number(pId) === Number(postId)) {
@@ -95,7 +92,6 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
                 return p;
             }));
 
-            // 전역 상태 전파 (상세페이지와 공유용)
             localStorage.setItem('bookmark_changed', JSON.stringify({ id: postId, state: newState, time: Date.now() }));
 
         } catch (err) {
@@ -113,18 +109,30 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
         return monday;
     };
 
+    /**
+     * 🚩 [수정됨] 상단 랭킹 정렬 로직
+     * 조회수 정렬 방식에서 백엔드 점수(score) 기반 정렬로 변경되었습니다.
+     */
     const sortedPosts = useMemo(() => {
         if (!Array.isArray(posts)) return [];
         const monday = getThisMonday();
+        
+        // 이번 주 게시글 필터링
         let targetPosts = posts.filter(post => {
             const postDate = post?.poDate || post?.po_date;
             return postDate && new Date(postDate) >= monday;
         });
+        
+        // 이번 주 글이 없으면 전체 데이터 사용
         if (targetPosts.length === 0) targetPosts = posts;
         
-        return [...targetPosts].sort((a, b) => 
-            ((b.poView || b.po_view || 0)) - ((a.poView || a.po_view || 0))
-        );
+        // 점수(score) 내림차순 정렬 (점수가 같으면 poNum 최신순)
+        return [...targetPosts].sort((a, b) => {
+            const scoreA = a.score || 0;
+            const scoreB = b.score || 0;
+            if (scoreB !== scoreA) return scoreB - scoreA;
+            return (b.poNum || b.po_num || 0) - (a.poNum || a.po_num || 0);
+        });
     }, [posts]);
 
     const listData = useMemo(() => {
@@ -143,8 +151,7 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
             if (!term) return true;
             const title = (p.poTitle || p.po_title || "").toLowerCase();
             const content = (p.poContent || p.po_content || "").toLowerCase();
-            // 🚩 [수정] 검색 시 mbNickname 필드 포함
-            const authorNick = (p.mbNickname || p.mb_nickname || p.mb_nick || p.mbNick || p.member?.mbNickname || p.member?.mbNick || p.member?.mb_nickname || `user ${p.poMbNum || p.po_mb_num}`).toLowerCase();
+            const authorNick = (p.mbNickname || p.mb_nickname || p.mb_nick || p.mbNick || p.member?.mbNickname || p.member?.mb_nickname || `user ${p.poMbNum}`).toLowerCase();
             
             if (searchCategory === 'title') return title.includes(term);
             if (searchCategory === 'content') return content.includes(term);
@@ -168,11 +175,13 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
         if (!post) return defaultImg;
         const { poImg, po_img, fileName, fileUrl, image, poContent, po_content } = post;
         const targetUrl = poImg || po_img || fileName || fileUrl || image;
+        
         if (targetUrl && String(targetUrl) !== "null" && String(targetUrl).trim() !== "") {
             if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
             const extractedName = String(targetUrl).split(/[\\/]/).pop();
             return `${SERVER_URL}/pic/${extractedName}`;
         }
+        
         const content = poContent || po_content;
         if (content && typeof content === 'string') {
             const imgRegex = /<img[^>]+src=["']([^"']+)["']/;
@@ -181,6 +190,7 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
                 const src = match[1];
                 if (src.startsWith('/pic/')) return `${SERVER_URL}${src}`;
                 if (src.startsWith('pic/')) return `${SERVER_URL}/${src}`;
+                if (src.startsWith('http')) return src;
                 return src;
             }
         }
@@ -200,6 +210,7 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
         <div className="recommend-page-root">
             <div className="top-combined-section">
                 <div className="main-cards-area">
+                    {/* 1~3위 게시물 카드 영역 */}
                     {sortedPosts[0] && (
                         <RecommendCard 
                             post={sortedPosts[0]} 
@@ -233,7 +244,7 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
                         )}
                     </div>
                 </div>
-                {/* 🚩 RankingSidebar에 onBookmarkToggle 핸들러 연결 */}
+                {/* 4~10위 게시물 사이드바 영역 */}
                 <RankingSidebar 
                     ranking={sortedPosts.slice(3, 10)} 
                     startRank={4} 
@@ -267,6 +278,7 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
                         {currentItems.length > 0 ? (
                             currentItems.map((post, idx) => {
                                 const postId = post.poNum || post.po_num;
+                                const isLiked = post.isLikedByMe === true || post.isLiked === 'Y' || post.liked === true;
                                 const isFavorited = post.isBookmarked === 'Y' || post.isBookmarked === true || post.isBookmarkedByMe || post.favorited;
                                 // 🚩 목록 출력 시 mbNickname 필드 우선 순위 적용
                                 const authorNick = post.mbNickname || post.mb_nickname || post.mb_nick || post.mbNick || post.member?.mbNickname || post.member?.mb_nickname || post.member?.mbNick || `User ${post.poMbNum || post.po_mb_num}`;
@@ -292,9 +304,21 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
                                                     <span style={{ fontSize: '12px' }}>💬</span>
                                                     <span>{post.commentCount || post.co_count || 0}</span>
                                                 </div>
-                                                <div className="stat-item" style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#e74c3c' }}>
-                                                    <span style={{ fontSize: '12px' }}>❤️</span>
-                                                    <span>{post.poUp || post.po_up || 0}</span>
+                                                <div className="stat-item" 
+                                                     style={{ 
+                                                         display: 'flex', 
+                                                         alignItems: 'center', 
+                                                         gap: '3px', 
+                                                         padding: '2px 8px',
+                                                         borderRadius: '12px',
+                                                         backgroundColor: isLiked ? '#e74c3c' : 'transparent', 
+                                                         color: isLiked ? '#ffffff' : '#e74c3c',
+                                                         border: '1px solid #e74c3c',
+                                                         transition: 'all 0.2s'
+                                                     }}
+                                                >
+                                                    <span style={{ fontSize: '12px' }}>{isLiked ? '❤️' : '🤍'}</span>
+                                                    <span style={{ fontWeight: 'bold' }}>{post.poUp || post.po_up || 0}</span>
                                                 </div>
                                                 <div 
                                                     className="stat-item" 

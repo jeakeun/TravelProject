@@ -663,7 +663,7 @@ function MyPage() {
                         >
                           <span className="mypage-post-board">{r.rbName} #{r.rbId}</span>
                           <span className="mypage-post-title">{(r.rbContent || "").slice(0, 40)}{(r.rbContent || "").length > 40 ? "..." : ""}</span>
-                          <span className="mypage-post-date">{getReportStatusLabel(r)}</span>
+                          <span className="mypage-post-date">{(r.rbReply && String(r.rbReply).trim()) ? "답변완료" : r.rbManage === "Y" ? "처리완료" : r.rbManage === "D" ? "삭제됨" : r.rbManage === "H" ? "보류" : "대기"}</span>
                         </li>
                       ))}
                     </ul>
@@ -717,7 +717,7 @@ function MyPage() {
                     <p>{detailModal.data.rbReply}</p>
                   </div>
                 )}
-                <p><strong>상태:</strong> {getReportStatusLabel(detailModal.data)}</p>
+                <p><strong>상태:</strong> {(detailModal.data.rbReply && String(detailModal.data.rbReply).trim()) ? "답변완료" : detailModal.data.rbManage === "Y" ? "처리완료" : detailModal.data.rbManage === "D" ? "삭제됨" : detailModal.data.rbManage === "H" ? "보류" : "대기"}</p>
               </div>
             ) : (
               <div className="mypage-detail-body">

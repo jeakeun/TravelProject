@@ -40,14 +40,14 @@ body {
     padding: 0 60px;
     position: relative;
     z-index: 1;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .App .nav-area header.scrolled {
     background: linear-gradient(135deg, #145a22, #1a7a28);
     height: 60px;
     --header-height: 60px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
 
 .App .nav-area .logo {
@@ -147,7 +147,7 @@ body {
     transition: height 0.4s ease, visibility 0.4s;
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
     visibility: hidden;
-    border-top: 1px solid rgba(0,0,0,0.05);
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
     z-index: 9998;
     pointer-events: none;
 }
@@ -223,7 +223,7 @@ body {
 }
 
 .App .nav-area .menu-column .nav-sub-item:hover {
-    color: rgba(255,255,255,0.9);
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .App .nav-area .user-menu {
@@ -240,7 +240,7 @@ body {
     font-size: 14px;
     font-weight: 500;
     color: #ffffff !important;
-    min-width: 50px; 
+    min-width: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -250,7 +250,7 @@ body {
 /* 호버 시 트리거↔드롭다운 사이 갭 제거 - 레이아웃 영향 없이 마우스 이동 시 드롭다운 유지 */
 .App .nav-area .lang-arrow {
     font-size: 10px;
-    color: rgba(255,255,255,0.9);
+    color: rgba(255, 255, 255, 0.9);
     line-height: 1;
 }
 
@@ -274,7 +274,7 @@ body {
     list-style: none;
     width: 130px;
     border-radius: 8px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
     padding: 8px 0;
     z-index: 10001;
     animation: fadeInDown 0.3s ease;
@@ -286,6 +286,7 @@ body {
         opacity: 0;
         transform: translate(-50%, -10px);
     }
+
     to {
         opacity: 1;
         transform: translate(-50%, 0);
@@ -333,7 +334,7 @@ body {
     height: 28px;
     border-radius: 50%;
     object-fit: cover;
-    border: 1px solid rgba(255,255,255,0.5);
+    border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 .App .nav-area .user-name-text {
@@ -344,7 +345,7 @@ body {
 
 .App .nav-area .user-name-arrow {
     font-size: 10px;
-    color: rgba(255,255,255,0.9);
+    color: rgba(255, 255, 255, 0.9);
     line-height: 1;
     padding: 0 2px;
     user-select: none;
@@ -375,7 +376,7 @@ body {
     list-style: none;
     min-width: 120px;
     border-radius: 8px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
     padding: 8px 0;
     z-index: 10001;
     animation: fadeInDown 0.2s ease;
@@ -414,7 +415,7 @@ body {
 }
 
 /* 전체 사이트: 헤더 아래 본문이 겹치지 않도록 상단 여백 (main만 적용, 중첩 .main-content 제외) */
-.App > main.main-content {
+.App>main.main-content {
     padding-top: var(--header-height);
     min-height: calc(100vh - var(--header-height));
 }
@@ -466,9 +467,15 @@ body {
 }
 
 @keyframes bounce {
-    0%, 20%, 50%, 80%, 100% {
+
+    0%,
+    20%,
+    50%,
+    80%,
+    100% {
         transform: translateY(0);
     }
+
     40% {
         transform: translateY(-6px);
     }
@@ -531,7 +538,7 @@ body {
     border-radius: 16px;
     overflow: hidden;
     transition: all 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
-    box-shadow: 0 16px 40px rgba(0,0,0,0.18);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
 }
 
 .carousel-item img {
@@ -547,12 +554,14 @@ body {
     opacity: 1;
 }
 
+/* 🚩 수정: 기존 -320px에서 +320px로 변경 (2위가 왼쪽으로 오도록 부호 반전) */
 .carousel-item.prev {
     transform: translate3d(-320px, 0, -160px) rotateY(30deg);
     z-index: 5;
     opacity: 0.5;
 }
 
+/* 🚩 수정: 기존 320px에서 -320px로 변경 (3위가 오른쪽으로 오도록 부호 반전) */
 .carousel-item.next {
     transform: translate3d(320px, 0, -160px) rotateY(-30deg);
     z-index: 5;
@@ -566,13 +575,20 @@ body {
     left: 0;
     width: 100%;
     padding: 16px 20px;
-    background: linear-gradient(transparent, rgba(0,0,0,0.85));
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.85));
     color: #fff;
     text-align: left;
 }
 
-.item-info h3 { font-size: 1rem; margin-bottom: 4px; }
-.item-info p { font-size: 0.85rem; opacity: 0.9; }
+.item-info h3 {
+    font-size: 1rem;
+    margin-bottom: 4px;
+}
+
+.item-info p {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
 
 .carousel-btn {
     position: absolute;
@@ -586,7 +602,7 @@ body {
     cursor: pointer;
     z-index: 100;
     font-size: 18px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transition: 0.3s;
 }
 
@@ -611,10 +627,12 @@ body {
         max-width: 1020px;
         padding: 0 48px;
     }
+
     .carousel-container {
         max-width: 920px;
         height: 320px;
     }
+
     .carousel-item {
         width: 300px;
         height: 200px;
@@ -622,20 +640,32 @@ body {
         margin-top: -100px;
         border-radius: 14px;
     }
+
     .carousel-item.active {
         transform: translate3d(0, 0, 220px);
     }
+
+    /* 🚩 반응형 부호 수정 */
     .carousel-item.prev {
         transform: translate3d(-260px, 0, -140px) rotateY(30deg);
     }
+
     .carousel-item.next {
         transform: translate3d(260px, 0, -140px) rotateY(-30deg);
     }
+
     .item-info {
         padding: 12px 16px;
     }
-    .item-info h3 { font-size: 0.95rem; }
-    .item-info p { font-size: 0.8rem; }
+
+    .item-info h3 {
+        font-size: 0.95rem;
+    }
+
+    .item-info p {
+        font-size: 0.8rem;
+    }
+
     .carousel-btn {
         width: 40px;
         height: 40px;
@@ -649,10 +679,12 @@ body {
         max-width: 1320px;
         padding: 0 60px;
     }
+
     .carousel-container {
         max-width: 1200px;
         height: 400px;
     }
+
     .carousel-item {
         width: 400px;
         height: 267px;
@@ -660,20 +692,32 @@ body {
         margin-top: -133px;
         border-radius: 18px;
     }
+
     .carousel-item.active {
         transform: translate3d(0, 0, 300px);
     }
+
+    /* 🚩 반응형 부호 수정 */
     .carousel-item.prev {
         transform: translate3d(-360px, 0, -180px) rotateY(30deg);
     }
+
     .carousel-item.next {
         transform: translate3d(360px, 0, -180px) rotateY(-30deg);
     }
+
     .item-info {
         padding: 18px 22px;
     }
-    .item-info h3 { font-size: 1.1rem; }
-    .item-info p { font-size: 0.9rem; }
+
+    .item-info h3 {
+        font-size: 1.1rem;
+    }
+
+    .item-info p {
+        font-size: 0.9rem;
+    }
+
     .carousel-btn {
         width: 48px;
         height: 48px;
@@ -687,10 +731,12 @@ body {
         max-width: 1520px;
         padding: 0 72px;
     }
+
     .carousel-container {
         max-width: 1380px;
         height: 460px;
     }
+
     .carousel-item {
         width: 460px;
         height: 307px;
@@ -698,20 +744,31 @@ body {
         margin-top: -153px;
         border-radius: 20px;
     }
+
     .carousel-item.active {
         transform: translate3d(0, 0, 340px);
     }
+
+    /* 🚩 반응형 부호 수정 */
     .carousel-item.prev {
         transform: translate3d(-420px, 0, -200px) rotateY(30deg);
     }
+
     .carousel-item.next {
         transform: translate3d(420px, 0, -200px) rotateY(-30deg);
     }
+
     .item-info {
         padding: 20px 26px;
     }
-    .item-info h3 { font-size: 1.15rem; }
-    .item-info p { font-size: 0.95rem; }
+
+    .item-info h3 {
+        font-size: 1.15rem;
+    }
+
+    .item-info p {
+        font-size: 0.95rem;
+    }
 }
 
 /* 푸터: 검은색, 크기·색 유지. 위치는 두 번째 섹션 바로 아래(조금만 스크롤하면 보임) */

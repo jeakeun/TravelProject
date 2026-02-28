@@ -3,9 +3,9 @@ import React from 'react';
 const RecommendCard = ({ post, isMain, rank, onClick, getImageUrl, onBookmarkToggle }) => {
     if (!post) return null;
 
-    // 🚩 [수정] 8080 포트 차단을 피하기 위해 빈 문자열("")로 설정합니다.
-    // 이렇게 하면 현재 접속 중인 80 포트를 통해 이미지를 안전하게 가져옵니다.
-    const SERVER_URL = "";
+    // 🚩 [수정] 환경 변수가 있으면 사용하고, 없으면 로컬 백엔드 기본 포트(8080)를 사용합니다.
+    // AWS 배포 환경과 로컬 환경 양쪽에서 이미지 404 에러를 방지합니다.
+    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
 
     // 🚩 ID 추출: poNum을 우선순위로 사용
     const postId = post.poNum || post.po_num || post.postId;
@@ -46,13 +46,15 @@ const RecommendCard = ({ post, isMain, rank, onClick, getImageUrl, onBookmarkTog
         }
     };
 
-    // 🚩 [수정] 노란 줄 방지: SERVER_URL을 실제 경로 판단 로직에 활용
+    // 🚩 [수정] 노란 줄 방지 및 경로 보정 로직
     const finalImageUrl = (() => {
         const url = getImageUrl(post);
         // 기본 이미지이거나 이미 완성된 URL(http...)인 경우 그대로 반환
         if (url.includes('placehold.co') || url.startsWith('http')) return url;
-        // 상대 경로인 경우 SERVER_URL과 결합 (노란 줄 제거용)
-        return `${SERVER_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+        
+        // 상대 경로인 경우 SERVER_URL과 결합
+        const separator = url.startsWith('/') ? '' : '/';
+        return `${SERVER_URL}${separator}${url}`;
     })();
 
     return (

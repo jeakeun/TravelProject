@@ -96,7 +96,7 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType, 
     if (!editorRef.current) return;
     editorRef.current.focus();
     const imgHtml = `
-      <div style="text-align:center; margin: 20px 0;" contenteditable="false">
+      <div class="img-container" style="text-align:center; margin: 20px 0;">
         <img src="${base64Data}" style="max-width:100%; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1);" />
       </div>
       <p><br></p>
@@ -116,7 +116,7 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType, 
         };
         reader.readAsDataURL(file);
       });
-      e.target.value = '';
+      e.target.value = ''; 
     }
   };
 
@@ -154,12 +154,19 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType, 
       });
     }
 
-    const finalPostId = id || existingPost?.poNum || existingPost?.po_num || existingPost?.id;
+    let categoryPath = getCategoryPath();
+    const correctionMap = {
+      '이벤트': 'event', '이벤트 게시판': 'event',
+      '뉴스레터': 'newsletter', '여행 추천 게시판': 'recommend',
+      '자유 게시판': 'freeboard', '자주 묻는 질문': 'faq'
+    };
+    categoryPath = correctionMap[categoryPath] || categoryPath;
+
     const apiUrl = isEdit 
-      ? `${API_BASE_URL}/api/${categoryPath}/posts/${finalPostId}`
+      ? `${API_BASE_URL}/api/${categoryPath}/posts/${id || statePostData?.poNum || statePostData?.id}`
       : `${API_BASE_URL}/api/${categoryPath}/posts`;
 
-    const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
 
     try {
       const response = await axios({

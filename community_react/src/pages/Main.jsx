@@ -31,13 +31,12 @@ const carouselTranslations = {
 };
 
 function Main() {
-  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselIndex, setCarouselIndex] = useState(1); // 중앙 1위
   const navigate = useNavigate();
   const outletContext = useOutletContext() || {};
   
   // outletContext에서 posts와 currentLang을 가져옵니다.
   const { currentLang, posts = [] } = outletContext;
-
   const t = carouselTranslations[currentLang] || carouselTranslations["KR"];
   const SERVER_URL = "";
 
@@ -71,13 +70,11 @@ function Main() {
       const extractedName = firstFile.split(/[\\/]/).pop();
       return `${SERVER_URL}/pic/${extractedName}`;
     }
-
     if (post.poContent && typeof post.poContent === 'string') {
       const imgRegex = /<img[^>]+src=["']([^"']+)["']/;
       const match = post.poContent.match(imgRegex);
       if (match && match[1]) return match[1];
     }
-    
     return defaultImg; 
   };
 
@@ -96,12 +93,6 @@ function Main() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const getCarouselClass = (idx) => {
-    if (idx === carouselIndex) return "carousel-item active";
-    if (idx === (carouselIndex + 1) % 3) return "carousel-item next";
-    return "carousel-item prev";
-  };
 
   const scrollToRanking = useCallback(() => {
     const el = document.getElementById("ranking");
@@ -127,18 +118,16 @@ function Main() {
         </button>
       </section>
 
-      {/* ===== 랭킹 카러셀 섹션 ===== */}
       <section id="ranking">
         <h2>{t.rank_main_title}</h2>
         <div className="carousel-outer">
           <button type="button" className="carousel-btn prev-btn" onClick={handlePrev} aria-label="이전">❮</button>
           <div className="carousel-container">
             <div className="carousel-wrapper">
-              {[0, 1, 2].map((idx) => {
-                const post = topThree[idx];
-                // 서버 데이터 구조(po_num 또는 poNum)에 맞춰 ID 추출
+              {topThree.map((post, idx) => {
                 const postId = post?.poNum || post?.po_num || post?.id;
                 const displayTitle = post?.poTitle || post?.po_title || t[`dest${idx + 1}_name`];
+                const rankNumber = getRankNumber(idx);
 
                 return (
                   <div 
@@ -154,7 +143,7 @@ function Main() {
                       onError={(e) => { e.target.src = "https://placehold.co/1200x800?text=No+Image"; }}
                     />
                     <div className="item-info">
-                      <h3>{post ? `0${idx + 1}. ${displayTitle}` : displayTitle}</h3>
+                      <h3>{post ? `0${rankNumber}. ${displayTitle}` : displayTitle}</h3>
                       <p>
                         {post 
                           ? (post.poContent?.replace(/<[^>]*>?/gm, '').substring(0, 40) + "...") 
