@@ -1,6 +1,7 @@
 package kr.hi.travel_community.config;
 
 import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -9,7 +10,6 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -17,18 +17,15 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import kr.hi.travel_community.security.filter.JwtAuthenticationFilter;
 import kr.hi.travel_community.security.jwt.JwtTokenProvider;
 import kr.hi.travel_community.service.MemberDetailService;
+import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final MemberDetailService memberDetailService;
-
-    public SecurityConfig(JwtTokenProvider jwtTokenProvider, MemberDetailService memberDetailService) {
-        this.jwtTokenProvider = jwtTokenProvider;
-        this.memberDetailService = memberDetailService;
-    }
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
@@ -41,8 +38,19 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                // 🚩 모든 경로에 대해 보안 검사를 우회하도록 설정 (현재 에러 해결 최우선)
-                .requestMatchers(new AntPathRequestMatcher("/**")).permitAll()
+                // 1. 로그인, 회원가입, 토큰 갱신 등 인증 관련 경로 허용 (401 에러 해결 핵심)
+                .requestMatchers("/auth/**").permitAll()
+                
+                // 2. 리액트 정적 리소스 및 기본 경로 허용
+                .requestMatchers("/", "/index.html", "/static/**", "/favicon.ico", "/manifest.json", "/logo*.png").permitAll()
+                
+                // 3. 지도 API 및 모든 API, 이미지 경로 허용
+                .requestMatchers("/api/**", "/pic/**").permitAll()
+                
+                // 4. 리액트 라우터의 모든 페이지 경로 허용 (새로고침 시 403/404 방지)
+                .requestMatchers("/login", "/signup", "/community/**", "/news/**", "/domestic/**", "/foreigncountry/**", "/cscenter/**", "/mypage", "/admin", "/inquiry").permitAll()
+                
+                // 나머지 모든 요청 허용 (permitAll을 마지막에 배치)
                 .anyRequest().permitAll()
             )
             .addFilterBefore(
@@ -56,13 +64,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-            "http://3.37.160.108:3000"
-        )); 
+        // 리액트 포트와 통신 허용
+        configuration.setAllowedOrigins(List.of("http://localhost:3000")); 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
+        // 쿠키 및 인증 헤더 허용 (axios.withCredentials 대응)
         configuration.setAllowCredentials(true);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

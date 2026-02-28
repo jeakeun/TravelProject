@@ -5,9 +5,6 @@ function ResetPassword({ onClose, onBackToFindPw, userId }) {
   const [newPw, setNewPw] = useState("");
   const [newPw2, setNewPw2] = useState("");
 
-  // 🚩 [수정] 배포 서버 주소 설정
-  const API_BASE_URL = "http://localhost:8080";
-
   const submitHandler = async (e) => {
     e.preventDefault();
 
@@ -21,8 +18,7 @@ function ResetPassword({ onClose, onBackToFindPw, userId }) {
     }
 
     try {
-      // 🚩 [수정] localhost -> 배포 서버 IP로 변경
-      const res = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+      const res = await fetch("/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: userId, newPw }),
@@ -42,7 +38,7 @@ function ResetPassword({ onClose, onBackToFindPw, userId }) {
   };
 
   return (
-    <div className="modalStyle" onClick={onClose}>
+    <div className="modalStyle">
       <div className="modalContentStyle" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="modal-close-btn" onClick={onClose}>
           &times;

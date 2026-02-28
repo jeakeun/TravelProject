@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -13,27 +12,32 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import kr.hi.travel_community.entity.NoticePost; // 🚩 NoticePost로 임포트 변경
-import kr.hi.travel_community.mapper.LikeMapper;
-import kr.hi.travel_community.model.vo.MemberVO;
-import kr.hi.travel_community.repository.MemberRepository;
+import kr.hi.travel_community.entity.NoticePost;
+import kr.hi.travel_community.repository.CommentRepository;
 import kr.hi.travel_community.repository.NoticeRepository;
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class NoticeBoardService {
+public class NoticePostService {
 
     private final NoticeRepository postRepository;
-    private final MemberRepository memberRepository; // 🚩 닉네임 조회를 위해 추가
-    private final LikeMapper likeMapper; 
+    private final CommentRepository commentRepository;
 
+    /**
+     * 🚩 삭제되지 않은 공지사항 전체 목록 조회
+     */
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getRealAllPosts() {
+        // nn_del = 'N' 데이터만 조회
         return postRepository.findByNnDelOrderByNnNumDesc("N").stream()
-                .map(this::convertToMap).collect(Collectors.toList());
+                .map(this::convertToMap)
+                .collect(Collectors.toList());
     }
 
+    /**
+     * 🚩 조회수 증가 (쿠키 이용)
+     */
     @Transactional
     public void increaseViewCount(Integer id, HttpServletRequest request, HttpServletResponse response) {
         Cookie[] cookies = request.getCookies();
@@ -54,42 +58,47 @@ public class NoticeBoardService {
         }
     }
 
+    /**
+     * 🚩 공지사항 상세 조회
+     */
     @Transactional(readOnly = true)
     public Map<String, Object> getPostDetail(Integer id, Integer mbNum) {
         return postRepository.findByNnNumAndNnDel(id, "N").map(p -> {
             Map<String, Object> map = convertToMap(p);
-            
-            int likeCheck = (mbNum != null) ? likeMapper.checkLikeStatus(id, mbNum) : 0;
-            map.put("isLikedByMe", likeCheck > 0);
-
-            int scrapCheck = (mbNum != null) ? likeMapper.checkScrapStatus(id, mbNum) : 0; 
-            map.put("isScrappedByMe", scrapCheck > 0);
-            
+            // 공지사항용 댓글 조회 (type="NOTICE")
+            map.put("comments", commentRepository.findByCoPoNumAndCoPoTypeAndCoDelOrderByCoDateAsc(id, "NOTICE", "N"));
             return map;
         }).orElse(null);
     }
 
+    /**
+     * 🚩 게시글 저장
+     */
     @Transactional
-    public void savePost(NoticePost post) { // 🚩 타입 변경
+    public void savePost(NoticePost post) {
         post.setNnDate(LocalDateTime.now());
         post.setNnView(0);
         post.setNnUp(0);
         post.setNnDel("N");
-        if (post.getNnMbNum() == null) {
-            post.setNnMbNum(1); 
-        }
         postRepository.save(post);
     }
 
+    /**
+     * 🚩 게시글 수정
+     */
     @Transactional
     public void updatePost(Integer id, String title, String content) {
-        NoticePost post = postRepository.findByNnNumAndNnDel(id, "N") // 🚩 타입 변경
+        NoticePost post = postRepository.findByNnNumAndNnDel(id, "N")
                 .orElseThrow(() -> new RuntimeException("게시글 없음"));
         post.setNnTitle(title);
         post.setNnContent(content);
+        // JPA 영속성 컨텍스트에 의해 save를 호출하지 않아도 변경 감지(Dirty Checking)로 업데이트되지만, 명시적으로 추가 가능
         postRepository.save(post);
     }
 
+    /**
+     * 🚩 게시글 논리 삭제
+     */
     @Transactional
     public void deletePost(Integer id) {
         postRepository.findByNnNumAndNnDel(id, "N").ifPresent(p -> {
@@ -98,39 +107,10 @@ public class NoticeBoardService {
         });
     }
 
-    @Transactional
-    public String toggleLikeStatus(Integer nnNum, Integer mbNum) {
-        int count = likeMapper.checkLikeStatus(nnNum, mbNum);
-        NoticePost post = postRepository.findByNnNumAndNnDel(nnNum, "N") // 🚩 타입 변경
-                .orElseThrow(() -> new RuntimeException("공지사항 없음"));
-
-        if (count == 0) {
-            likeMapper.insertLikeLog(nnNum, mbNum);
-            post.setNnUp((post.getNnUp() == null ? 0 : post.getNnUp()) + 1);
-            postRepository.save(post);
-            return "liked";
-        } else {
-            likeMapper.deleteLikeLog(nnNum, mbNum);
-            post.setNnUp(Math.max(0, (post.getNnUp() == null ? 0 : post.getNnUp()) - 1));
-            postRepository.save(post);
-            return "unliked";
-        }
-    }
-
-    @Transactional
-    public String toggleScrapStatus(Integer nnNum, Integer mbNum) {
-        int count = likeMapper.checkScrapStatus(nnNum, mbNum);
-        
-        if (count == 0) {
-            likeMapper.insertScrapLog(nnNum, mbNum);
-            return "scrapped";
-        } else {
-            likeMapper.deleteScrapLog(nnNum, mbNum);
-            return "unscrapped";
-        }
-    }
-
-    private Map<String, Object> convertToMap(NoticePost p) { // 🚩 타입 변경
+    /**
+     * 🚩 엔티티를 프론트엔드용 Map으로 변환
+     */
+    private Map<String, Object> convertToMap(NoticePost p) {
         Map<String, Object> map = new HashMap<>();
         map.put("nnNum", p.getNnNum());
         map.put("nnTitle", p.getNnTitle());
@@ -139,22 +119,7 @@ public class NoticeBoardService {
         map.put("nnView", p.getNnView() != null ? p.getNnView() : 0);
         map.put("nnUp", p.getNnUp() != null ? p.getNnUp() : 0);
         map.put("nnMbNum", p.getNnMbNum());
-
-        // 🚩 작성자(관리자) 닉네임 매핑 로직 (타입 에러 방어)
-        String nickname = "관리자";
-        try {
-            Optional<?> result = memberRepository.findById(p.getNnMbNum());
-            if (result.isPresent()) {
-                Object obj = result.get();
-                if (obj instanceof MemberVO) {
-                    nickname = ((MemberVO) obj).getMb_nickname();
-                }
-            }
-        } catch (Exception e) {
-            // 에러 시 기본값 "관리자" 유지
-        }
-        map.put("mbNickname", nickname);
-
+        map.put("commentCount", commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getNnNum(), "NOTICE", "N"));
         return map;
     }
 }

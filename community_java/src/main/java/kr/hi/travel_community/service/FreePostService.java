@@ -18,6 +18,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.hi.travel_community.entity.FreePost;
+import kr.hi.travel_community.entity.BookMark; // 🚩 추가: 북마크 엔티티 임포트
 import kr.hi.travel_community.mapper.LikeMapper;
 import kr.hi.travel_community.model.vo.MemberVO;
 import kr.hi.travel_community.repository.BookMarkRepository;
@@ -82,16 +83,27 @@ public class FreePostService {
         }).orElse(null);
     }
 
+    /**
+     * 🚩 게시글 등록
+     */
     @Transactional
     public void savePost(FreePost post, List<MultipartFile> images) throws Exception {
         post.setPoDate(LocalDateTime.now());
         post.setPoView(0);
         post.setPoUp(0);
-        post.setPoDel("N");
+        post.setPoDel("N"); 
+        
+        if (post.getPoMbNum() == null || post.getPoMbNum() == 0) {
+            post.setPoMbNum(1); 
+        }
+
         handleImages(post, images);
         postRepository.save(post);
     }
 
+    /**
+     * 🚩 게시글 수정
+     */
     @Transactional
     public void updatePost(Integer id, String title, String content, List<MultipartFile> images) throws Exception {
         FreePost post = postRepository.findByPoNumAndPoDel(id, "N")
@@ -104,30 +116,86 @@ public class FreePostService {
         postRepository.save(post);
     }
 
+    /**
+     * 🚩 게시글 삭제 (논리 삭제)
+     */
     @Transactional
     public void deletePost(Integer id) {
-        postRepository.findByPoNumAndPoDel(id, "N").ifPresent(p -> p.setPoDel("Y"));
+        postRepository.findByPoNumAndPoDel(id, "N").ifPresent(p -> {
+            p.setPoDel("Y");
+            postRepository.save(p); 
+        });
     }
 
+    /**
+     * 🚩 추천 토글
+     * FreeRepository에 추가된 벌크 연산 메서드를 사용하여 안전하게 처리
+     */
     @Transactional
     public String toggleLikeStatus(Integer poNum, Integer mbNum) {
-        int count = likeMapper.checkLikeStatus(poNum, mbNum);
+        if (mbNum == null) return "error_login";
+
         FreePost post = postRepository.findByPoNumAndPoDel(poNum, "N")
                 .orElseThrow(() -> new RuntimeException("게시글 없음"));
 
+        int count = likeMapper.checkLikeStatus(poNum, mbNum);
+
         if (count == 0) {
             likeMapper.insertLikeLog(poNum, mbNum);
-            post.setPoUp((post.getPoUp() == null ? 0 : post.getPoUp()) + 1);
-            postRepository.save(post);
+            // 🚩 [수정] 레포지토리 벌크 연산 호출로 변경 (정합성 확보)
+            postRepository.increaseLikeCount(poNum);
             return "liked";
         } else {
             likeMapper.deleteLikeLog(poNum, mbNum);
-            post.setPoUp(Math.max(0, (post.getPoUp() == null ? 0 : post.getPoUp()) - 1));
-            postRepository.save(post);
+            // 🚩 [수정] 레포지토리 벌크 연산 호출로 변경
+            postRepository.decreaseLikeCount(poNum);
             return "unliked";
         }
     }
 
+    /**
+     * 🚩 즐겨찾기(북마크) 토글
+     * 제공받은 BookMark 엔티티와 빌더를 활용하여 실제 DB 저장/삭제 로직 구현
+     */
+    @Transactional
+    public String toggleBookmarkStatus(Integer poNum, Integer mbNum) {
+        if (mbNum == null) return "error_login";
+
+        boolean exists = bookMarkRepository.existsByBmMbNumAndBmPoNumAndBmPoType(mbNum, poNum, "FREE");
+
+        if (!exists) {
+            // 🚩 [수정] 북마크 엔티티를 생성하여 레포지토리에 저장
+            BookMark bookmark = BookMark.builder()
+                    .bmMbNum(mbNum)
+                    .bmPoNum(poNum)
+                    .bmPoType("FREE")
+                    .build();
+            bookMarkRepository.save(bookmark);
+            return "bookmarked";
+        } else {
+            // 🚩 [수정] 기존 북마크 삭제
+            bookMarkRepository.deleteByBmMbNumAndBmPoNumAndBmPoType(mbNum, poNum, "FREE");
+            return "unbookmarked";
+        }
+    }
+
+    /**
+     * 🚩 신고 처리 로직
+     */
+    @Transactional
+    public void reportPost(Integer id, Integer mbNum, String category, String reason) {
+        FreePost post = postRepository.findByPoNumAndPoDel(id, "N")
+                .orElseThrow(() -> new RuntimeException("게시글을 찾을 수 없습니다."));
+        
+        Integer currentReportCount = post.getPoReport();
+        post.setPoReport((currentReportCount == null ? 0 : currentReportCount) + 1);
+        
+        postRepository.save(post);
+    }
+
+    /**
+     * 이미지 처리 공통 메서드
+     */
     private void handleImages(FreePost post, List<MultipartFile> images) throws Exception {
         if (images == null || images.isEmpty()) return;
 
@@ -139,8 +207,10 @@ public class FreePostService {
 
         List<String> savedNames = new ArrayList<>();
         for (MultipartFile file : images) {
-            if (!file.isEmpty()) {
+            if (file != null && !file.isEmpty()) {
                 String originalFileName = file.getOriginalFilename();
+                if (originalFileName == null || !originalFileName.contains(".")) continue;
+                
                 String extension = originalFileName.substring(originalFileName.lastIndexOf("."));
                 String fileName = UUID.randomUUID().toString() + extension;
 
@@ -149,9 +219,14 @@ public class FreePostService {
                 savedNames.add(fileName);
             }
         }
-        if (!savedNames.isEmpty()) post.setFileUrl(String.join(",", savedNames));
+        if (!savedNames.isEmpty()) {
+            post.setFileUrl(String.join(",", savedNames));
+        }
     }
 
+    /**
+     * 엔티티 -> Map 변환
+     */
     private Map<String, Object> convertToMap(FreePost p) {
         Map<String, Object> map = new HashMap<>();
         map.put("poNum", p.getPoNum());
@@ -160,26 +235,28 @@ public class FreePostService {
         map.put("poDate", p.getPoDate() != null ? p.getPoDate().toString() : "");
         map.put("poView", p.getPoView() != null ? p.getPoView() : 0);
         map.put("poUp", p.getPoUp() != null ? p.getPoUp() : 0);
+        map.put("poReport", p.getPoReport() != null ? p.getPoReport() : 0);
         map.put("poMbNum", p.getPoMbNum());
         map.put("commentCount", commentRepository.countByCoPoNumAndCoPoTypeAndCoDel(p.getPoNum(), "FREE", "N"));
         
-        // 🚩 [최종 해결] 
-        // 람다식 내부의 형변환에서 에러가 날 경우, Optional을 직접 꺼내서 타입 추론을 피합니다.
         String nickname = "알 수 없는 사용자";
-        try {
-            // memberRepository가 Generic 타입 문제로 MemberVO를 못 찾을 때를 대비해
-            // 결과물을 Object로 받은 뒤 런타임에 처리합니다.
-            Object result = memberRepository.findById(p.getPoMbNum()).orElse(null);
-            if (result instanceof MemberVO) {
-                nickname = ((MemberVO) result).getMb_nickname();
-            }
-        } catch (Exception e) {
-            // 에러 시 기본값 유지
+        if (p.getMember() != null) {
+            nickname = p.getMember().getMbNickname(); 
+        } else if (p.getPoMbNum() != null) {
+            try {
+                memberRepository.findById(p.getPoMbNum()).ifPresent(m -> {
+                    map.put("mbNickname", m.getMbNickname());
+                });
+                if(map.get("mbNickname") != null) nickname = (String) map.get("mbNickname");
+            } catch (Exception e) {}
         }
-        map.put("mbNickname", nickname);
         
-        if (p.getFileUrl() != null && !p.getFileUrl().trim().isEmpty()) {
-            String firstImg = p.getFileUrl().split(",")[0].trim();
+        map.put("mbNickname", nickname);
+        map.put("member", p.getMember());
+        
+        String imgPath = p.getFileUrl();
+        if (imgPath != null && !imgPath.trim().isEmpty()) {
+            String firstImg = imgPath.split(",")[0].trim();
             map.put("fileUrl", SERVER_URL + firstImg);
             map.put("poImg", SERVER_URL + firstImg); 
         } else {

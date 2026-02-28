@@ -1,57 +1,94 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import "./Main.css";
 import { useOutletContext, useNavigate } from "react-router-dom";
-
+import NavigationBar from "./NavigationBar";
 
 const carouselTranslations = {
-  KR: { rank_main_title: "이달의 여행지 랭킹" },
-  EN: { rank_main_title: "Monthly Rankings" },
-  JP: { rank_main_title: "今月の旅行先ランキング" },
-  CH: { rank_main_title: "本月目的地排名" }
+  KR: {
+    rank_main_title: "이달의 여행지 랭킹",
+    dest1_name: "01. 여행지 정보 없음", dest1_desc: "추천 게시글이 없습니다.",
+    dest2_name: "02. 여행지 정보 없음", dest2_desc: "추천 게시글이 없습니다.",
+    dest3_name: "03. 여행지 정보 없음", dest3_desc: "추천 게시글이 없습니다."
+  },
+  EN: {
+    rank_main_title: "Monthly Rankings",
+    dest1_name: "01. No Info", dest1_desc: "No recommended posts.",
+    dest2_name: "02. No Info", dest2_desc: "No recommended posts.",
+    dest3_name: "03. No Info", dest3_desc: "No recommended posts."
+  },
+  JP: {
+    rank_main_title: "今月の旅行先ランキング",
+    dest1_name: "01. 情報なし", dest1_desc: "おすすめの投稿がありません。",
+    dest2_name: "02. 情報なし", dest2_desc: "おすすめの投稿がありません。",
+    dest3_name: "03. 情報なし", dest3_desc: "おすすめの投稿がありません。"
+  },
+  CH: {
+    rank_main_title: "本月目的地排名",
+    dest1_name: "01. 无信息", dest1_desc: "暂无推荐帖子。",
+    dest2_name: "02. 无信息", dest2_desc: "暂无推荐帖子。",
+    dest3_name: "03. 无信息", dest3_desc: "暂无推荐帖子。"
+  }
 };
 
 function Main() {
-  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselIndex, setCarouselIndex] = useState(1); // 중앙 1위
   const navigate = useNavigate();
   const outletContext = useOutletContext() || {};
   
   const { currentLang, posts = [] } = outletContext;
-
   const t = carouselTranslations[currentLang] || carouselTranslations["KR"];
   const SERVER_URL = "";
 
-  // 🚩 [데이터 로직] DB 점수 기준 1~3위 추출
+  // 🔹 topThree 순서: 2위-1위-3위
   const topThree = useMemo(() => {
     if (!Array.isArray(posts)) return [];
-    return posts.slice(0, 3);
+    const recommendPosts = posts.filter(p => 
+      p.poBoardType === 'recommend' || 
+      p.boardType === 'recommend' || 
+      p.category === 'recommend'
+    ).slice(0, 3);
+
+    if (recommendPosts.length === 3) {
+      return [recommendPosts[1], recommendPosts[0], recommendPosts[2]]; // 2위-1위-3위
+    }
+    return recommendPosts;
   }, [posts]);
 
-  // 🚩 [이미지 로직] 게시글 이미지 가져오기
   const getImageUrl = (post) => {
     const defaultImg = "https://placehold.co/1200x800?text=No+Image";
     if (!post) return defaultImg;
-    
-    const targetUrl = post.poImg || post.po_img || post.fileName || post.fileUrl || post.image;
-
+    const targetUrl = post.poImg || post.po_img || post.fileName;
     if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null") {
       if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
       const firstFile = String(targetUrl).split(',')[0].trim();
       const extractedName = firstFile.split(/[\\/]/).pop();
       return `${SERVER_URL}/pic/${extractedName}`;
     }
-
-    const content = post.poContent || post.po_content;
-    if (content && typeof content === 'string') {
+    if (post.poContent && typeof post.poContent === 'string') {
       const imgRegex = /<img[^>]+src=["']([^"']+)["']/;
-      const match = content.match(imgRegex);
+      const match = post.poContent.match(imgRegex);
       if (match && match[1]) return match[1];
     }
-    
     return defaultImg; 
   };
 
   const handlePrev = () => setCarouselIndex((prev) => (prev === 0 ? 2 : prev - 1));
   const handleNext = () => setCarouselIndex((prev) => (prev === 2 ? 0 : prev + 1));
+
+  // 🔹 CSS 클래스 배치 그대로 유지
+  const getCarouselClass = (idx) => {
+    if (idx === carouselIndex) return "carousel-item active";
+    const prevIdx = (carouselIndex + 1) % 3;
+    if (idx === prevIdx) return "carousel-item prev";
+    return "carousel-item next";
+  };
+
+  // 🔹 화면 위치 기준 실제 순위 번호
+  const getRankNumber = (idx) => {
+    if (idx === carouselIndex) return 1; // 중앙 1위
+    if (idx === (carouselIndex + 1) % 3) return 2; // 왼쪽(prev) 2위
+    return 3; // 오른쪽(next) 3위
+  };
 
   useEffect(() => {
     const header = document.querySelector('.App .nav-area header');
@@ -64,12 +101,6 @@ function Main() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const getCarouselClass = (idx) => {
-    if (idx === carouselIndex) return "carousel-item active";
-    if (idx === (carouselIndex + 1) % 3) return "carousel-item next";
-    return "carousel-item prev";
-  };
-
   const scrollToRanking = useCallback(() => {
     const el = document.getElementById("ranking");
     if (!el) return;
@@ -79,7 +110,7 @@ function Main() {
 
   return (
     <div className="main-container">
-      {/* ===== 메인 비디오 ===== */}
+      <NavigationBar />
       <section id="main-video">
         <iframe 
           src="https://www.youtube.com/embed/1La4QzGeaaQ?autoplay=1&mute=1&controls=0&loop=1&playlist=1La4QzGeaaQ" 
@@ -87,47 +118,41 @@ function Main() {
           allow="autoplay; fullscreen" 
           title="video"
         ></iframe>
-        <button type="button" className="scroll-down" onClick={scrollToRanking} aria-label="두 번째 화면으로">
+        <button type="button" className="scroll-down" onClick={scrollToRanking} aria-label="랭킹으로 이동">
           <span className="scroll-down-arrow">⬇</span>
         </button>
       </section>
 
-      {/* ===== 랭킹 카러셀 ===== */}
       <section id="ranking">
         <h2>{t.rank_main_title}</h2>
         <div className="carousel-outer">
           <button type="button" className="carousel-btn prev-btn" onClick={handlePrev} aria-label="이전">❮</button>
           <div className="carousel-container">
             <div className="carousel-wrapper">
-              {[0, 1, 2].map((idx) => {
-                const post = topThree[idx];
-                // 🚩 데이터가 있을 때만 렌더링하도록 조건부 처리
-                if (!post) return <div key={idx} className={getCarouselClass(idx)}></div>;
-
-                const postId = post.poNum || post.po_num || post.postId;
-                const displayTitle = post.poTitle || post.po_title;
-                const displayContent = (post.poContent || post.po_content || "")
-                  .replace(/<[^>]*>?/gm, '') // HTML 태그 제거
-                  .substring(0, 40) + "...";
+              {topThree.map((post, idx) => {
+                const postId = post?.poNum || post?.po_num || post?.id;
+                const displayTitle = post?.poTitle || post?.po_title || t[`dest${idx + 1}_name`];
+                const rankNumber = getRankNumber(idx);
 
                 return (
                   <div 
-                    key={postId || idx} 
+                    key={idx} 
                     className={getCarouselClass(idx)}
-                    onClick={() => navigate(`/community/recommend/${postId}`)}
-                    style={{ cursor: 'pointer' }}
+                    onClick={() => post && navigate(`/community/recommend/${postId}`)}
+                    style={{ cursor: post ? 'pointer' : 'default' }}
                   >
-                    {/* 🚩 랭킹 배지 추가 (No.1, No.2, No.3) */}
-                    <span className="rank-badge">No.{idx + 1}</span>
-
                     <img 
                       src={getImageUrl(post)} 
                       alt={displayTitle} 
                       onError={(e) => { e.target.src = "https://placehold.co/1200x800?text=No+Image"; }}
                     />
                     <div className="item-info">
-                      <h3>0{idx + 1}. {displayTitle}</h3>
-                      <p>{displayContent}</p>
+                      <h3>{post ? `0${rankNumber}. ${displayTitle}` : displayTitle}</h3>
+                      <p>
+                        {post 
+                          ? (post.poContent?.replace(/<[^>]*>?/gm, '').substring(0, 40) + "...") 
+                          : t[`dest${idx + 1}_desc`]}
+                      </p>
                     </div>
                   </div>
                 );
@@ -138,7 +163,7 @@ function Main() {
         </div>
       </section>
 
-      <footer>김진영 진짜 그만 아프다고 해라~</footer>
+      <footer>© 2026 Travel Recommendation</footer>
     </div>
   );
 }

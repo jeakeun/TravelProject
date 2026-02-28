@@ -6,9 +6,6 @@ function ChangePassword({ onClose, userId }) {
   const [newPw, setNewPw] = useState("");
   const [newPw2, setNewPw2] = useState("");
 
-  // 🚩 [수정] 배포 서버 주소 설정
-  const API_BASE_URL = "http://localhost:8080";
-
   const submitHandler = async (e) => {
     e.preventDefault();
 
@@ -30,8 +27,7 @@ function ChangePassword({ onClose, userId }) {
     }
 
     try {
-      // 🚩 [수정] localhost -> 배포 서버 IP로 변경
-      const res = await fetch(`${API_BASE_URL}/auth/change-password`, {
+      const res = await fetch("/auth/change-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -57,7 +53,7 @@ function ChangePassword({ onClose, userId }) {
   };
 
   return (
-    <div className="modalStyle" onClick={onClose}>
+    <div className="modalStyle">
       <div className="modalContentStyle" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="modal-close-btn" onClick={onClose}>
           &times;

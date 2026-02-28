@@ -1,14 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation, useOutletContext } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate, useLocation, useOutletContext, useParams } from 'react-router-dom';
 import axios from 'axios';
 
-// 🚩 [수정] 8080 포트 차단을 피하기 위해 상대 경로("")로 변경합니다.
-// 이렇게 하면 현재 접속 중인 80포트를 통해 백엔드로 요청이 전달됩니다.
-const API_BASE_URL = "";
+const API_BASE_URL = process.env.REACT_APP_API_URL || "";
 
 function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { id } = useParams(); 
   
   const queryParams = new URLSearchParams(location.search);
   const boardParam = queryParams.get('board');
@@ -16,8 +15,8 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
   const { user: contextUser, loadPosts } = useOutletContext() || {};
   const currentUser = user || contextUser;
 
-  const isEdit = location.state?.mode === 'edit';
-  const existingPost = location.state?.postData;
+  const isEdit = location.pathname.includes('/edit/') || location.state?.mode === 'edit';
+  const statePostData = location.state?.postData;
   const stateBoardType = location.state?.boardType;
 
   const [title, setTitle] = useState('');
@@ -26,20 +25,61 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
   const editorRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  const getCategoryPath = useCallback(() => {
+    const path = location.pathname;
+    if (propsBoardType) return propsBoardType;
+    if (stateBoardType) return stateBoardType;
+    if (path.includes('/newsletter')) return 'newsletter';
+    if (path.includes('/event')) return 'event';
+    if (path.includes('/recommend')) return 'recommend';
+    if (path.includes('/freeboard')) return 'freeboard';
+    if (path.includes('/faq')) return 'faq';
+    if (boardParam) return boardParam;
+    
+    const apiMap = {
+      '이벤트': 'event',
+      '이벤트 게시판': 'event',
+      '뉴스레터': 'newsletter',
+      '여행 추천 게시판': 'recommend',
+      '자유 게시판': 'freeboard',
+      '자주 묻는 질문': 'faq'
+    };
+    return apiMap[activeMenu] || 'freeboard';
+  }, [location.pathname, propsBoardType, stateBoardType, boardParam, activeMenu]);
+
   useEffect(() => {
-    if (isEdit && existingPost) {
-      setTitle(existingPost.poTitle || existingPost.po_title || existingPost.title || '');
-      if (editorRef.current) {
-        editorRef.current.innerHTML = existingPost.poContent || existingPost.po_content || existingPost.content || '';
+    const fetchPostData = async () => {
+      if (statePostData) {
+        setTitle(statePostData.poTitle || statePostData.title || '');
+        if (editorRef.current) {
+          editorRef.current.innerHTML = statePostData.poContent || statePostData.content || '';
+        }
+        return;
       }
-    }
-  }, [isEdit, existingPost]);
+
+      if (isEdit && id) {
+        try {
+          const category = getCategoryPath();
+          const response = await axios.get(`${API_BASE_URL}/api/${category}/posts/${id}`);
+          const data = response.data;
+          setTitle(data.poTitle || data.title || '');
+          if (editorRef.current) {
+            editorRef.current.innerHTML = data.poContent || data.content || '';
+          }
+        } catch (error) {
+          console.error("기존 글 로딩 실패:", error);
+        }
+      }
+    };
+
+    fetchPostData();
+  }, [isEdit, id, statePostData, getCategoryPath]);
 
   const insertImageAtCursor = (base64Data) => {
     if (!editorRef.current) return;
     editorRef.current.focus();
     const imgHtml = `
-      <div style="text-align:center; margin: 20px 0;" contenteditable="false">
+      <div class="img-container" style="text-align:center; margin: 20px 0;">
         <img src="${base64Data}" style="max-width:100%; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1);" />
       </div>
       <p><br></p>
@@ -59,7 +99,7 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
         };
         reader.readAsDataURL(file);
       });
-      e.target.value = '';
+      e.target.value = ''; 
     }
   };
 
@@ -73,46 +113,35 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
       return;
     }
 
+    const rawAuthorNum = currentUser?.mbNum || currentUser?.mb_num || currentUser?.id;
+    const authorNum = rawAuthorNum ? Number(rawAuthorNum) : null;
+
+    // 🚩 [수정] 서버 DTO 규격에 맞춰 필드명 보정 (poTitle, poContent 등)
     const formData = new FormData();
-    const authorNum = currentUser?.mbNum || currentUser?.mb_num || currentUser?.id || 1;
+    formData.append('poTitle', title);          // title -> poTitle
+    formData.append('poContent', htmlContent);    // content -> poContent
+    formData.append('poMbNum', authorNum || 1);   // mbNum -> poMbNum
 
-    formData.append('poTitle', title);
-    formData.append('poContent', htmlContent);
-    formData.append('poMbNum', String(authorNum));
-
+    // 파일이 있을 경우 'images'가 아닌 'files' 또는 서버 규격 키값 확인 필요 (일반적으로 multipartFile)
     if (imageFiles.length > 0) {
       imageFiles.forEach((file) => {
         formData.append('images', file); 
       });
     }
 
-    const apiMap = {
-      '여행 추천 게시판': 'recommend',
-      '여행 후기 게시판': 'reviewboard',
-      '자유 게시판': 'freeboard',
-      '이벤트': 'event',
-      '뉴스레터': 'newsletter'
+    let categoryPath = getCategoryPath();
+    const correctionMap = {
+      '이벤트': 'event', '이벤트 게시판': 'event',
+      '뉴스레터': 'newsletter', '여행 추천 게시판': 'recommend',
+      '자유 게시판': 'freeboard', '자주 묻는 질문': 'faq'
     };
-    
-    const path = location.pathname;
-    let urlDerivedBoard = '';
-    if (path.includes('/newsletter')) urlDerivedBoard = 'newsletter';
-    else if (path.includes('/event')) urlDerivedBoard = 'event';
-    else if (path.includes('/recommend')) urlDerivedBoard = 'recommend';
-    else if (path.includes('/freeboard')) urlDerivedBoard = 'freeboard';
-
-    let categoryPath = propsBoardType || stateBoardType || urlDerivedBoard || boardParam || apiMap[activeMenu] || 'freeboard';
-
-    if (categoryPath === '이벤트' || categoryPath === '이벤트 게시판') categoryPath = 'event';
-    if (categoryPath === '뉴스레터') categoryPath = 'newsletter';
-    if (categoryPath === '여행 추천 게시판') categoryPath = 'recommend';
-    if (categoryPath === '자유 게시판') categoryPath = 'freeboard';
+    categoryPath = correctionMap[categoryPath] || categoryPath;
 
     const apiUrl = isEdit 
-      ? `${API_BASE_URL}/api/${categoryPath}/posts/${existingPost?.poNum || existingPost?.po_num || existingPost?.id}`
+      ? `${API_BASE_URL}/api/${categoryPath}/posts/${id || statePostData?.poNum || statePostData?.id}`
       : `${API_BASE_URL}/api/${categoryPath}/posts`;
 
-    const token = localStorage.getItem('token') || localStorage.getItem('accessToken');
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
 
     try {
       const response = await axios({
@@ -126,20 +155,17 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
         withCredentials: true
       });
 
-      if (response.status === 200 || response.status === 201 || String(response.data).includes("Success")) {
+      if (response.status >= 200 && response.status < 300) {
         alert(isEdit ? "글이 수정되었습니다!" : "글이 등록되었습니다!");
         if (refreshPosts) await refreshPosts();
-        else if (loadPosts) await loadPosts();
+        if (loadPosts) await loadPosts();
         navigate(-1); 
       }
     } catch (error) {
       console.error("저장 실패 상세:", error.response);
-      let errorMsg = "서버와 통신 중 오류가 발생했습니다.";
-      if (error.response?.data) {
-        errorMsg = typeof error.response.data === 'string' 
-          ? error.response.data 
-          : (error.response.data.message || error.response.data.error || JSON.stringify(error.response.data));
-      }
+      // 서버에서 전달한 에러 메시지가 있다면 표시
+      const errorData = error.response?.data;
+      const errorMsg = typeof errorData === 'string' ? errorData : (errorData?.message || errorData?.error || "서버 규격 오류(400)가 발생했습니다.");
       alert(`저장 실패: ${errorMsg}`);
     }
   };
@@ -159,7 +185,7 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
   return (
     <div className="post-write-wrapper" style={{ padding: '0 20px' }}>
       <h2 style={{ marginBottom: '20px', color: '#2c3e50', fontSize: '1.2rem', fontWeight: '800' }}>
-        {activeMenu || (location.pathname.includes('newsletter') ? '뉴스레터' : location.pathname.includes('event') ? '이벤트 게시판' : boardParam)} {isEdit ? '수정하기' : '글쓰기'}
+        {activeMenu || (location.pathname.includes('newsletter') ? '뉴스레터' : location.pathname.includes('event') ? '이벤트 게시판' : location.pathname.includes('faq') ? '자주 묻는 질문' : boardParam)} {isEdit ? '수정하기' : '글쓰기'}
       </h2>
 
       <div style={{ background: '#fff', padding: '40px', borderRadius: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>

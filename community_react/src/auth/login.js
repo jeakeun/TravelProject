@@ -6,10 +6,6 @@ function Login({ onClose, onLogin, onOpenSignup, onOpenFindPw }) {
   const [pw, setPw] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
-  // 🚩 [확인] 모든 로그인 요청은 배포된 서버 IP인 3.37.160.108을 향하도록 고정합니다.
-  //const API_BASE_URL = "http://localhost:8080";
-  const API_BASE_URL = "http://localhost:8080";
-
   const submitHandler = async (e) => {
     e.preventDefault();
 
@@ -20,8 +16,7 @@ function Login({ onClose, onLogin, onOpenSignup, onOpenFindPw }) {
     if (!cleanedPw) return alert("비밀번호를 입력하세요.");
 
     try {
-      // 🚩 fetch 경로에 오타나 localhost가 섞이지 않도록 API_BASE_URL을 사용합니다.
-      const response = await fetch(`${API_BASE_URL}/login`, {
+      const response = await fetch("/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include", // ✅ refreshToken 쿠키 받기/보내기
@@ -40,21 +35,24 @@ function Login({ onClose, onLogin, onOpenSignup, onOpenFindPw }) {
       const data = await response.json();
       // ✅ 서버 응답 형태: { member: {...}, accessToken: "..." }
 
+      // 1) onLogin이 (member, token) 받는 버전이면 둘 다 넘김
+      // 2) onLogin이 member만 받는 버전이면 member만 써도 됨
+      // -> 둘 다 호환되게 안전 처리:
       if (typeof onLogin === "function") {
-        // App에서 member와 accessToken을 모두 활용할 수 있도록 data 전체 전달
-        onLogin(data);
+        // 보통 App에서 handleLogin(userData) 형태면 member만 넘기면 됨
+        // 자동로그인 토큰도 쓰려면 App에서 (data) 통으로 받게 바꾸는 걸 추천
+        onLogin(data); // ✅ 가장 안전: data 전체 전달 (member+accessToken)
       }
 
       // ✅ 모달 닫기
       onClose?.();
     } catch (error) {
-      console.error("로그인 에러:", error);
       alert("서버와 통신 중 오류가 발생했습니다.");
     }
   };
 
   return (
-    <div className="modalStyle" onClick={onClose}>
+    <div className="modalStyle">
       <div className="modalContentStyle" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="modal-close-btn" onClick={onClose}>
           &times;

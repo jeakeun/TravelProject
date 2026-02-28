@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "notice_post")
 @Data
-public class Notice {
+public class NoticePost { // 🚩 [수정] 서비스 계층에서 참조하는 클래스명과 일치시킴
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

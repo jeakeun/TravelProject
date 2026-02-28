@@ -5,9 +5,6 @@ function FindPassword({ onClose, onBackToLogin, onGoResetPassword }) {
   const [id, setId] = useState("");
   const [email, setEmail] = useState("");
 
-  // 🚩 [수정] 배포 서버 주소 설정
-  const API_BASE_URL = "http://localhost:8080";
-
   const submitHandler = async (e) => {
     e.preventDefault();
 
@@ -26,8 +23,7 @@ function FindPassword({ onClose, onBackToLogin, onGoResetPassword }) {
     const payload = { id: trimmedId, email: trimmedEmail };
 
     try {
-      // 🚩 [수정] localhost -> 배포 서버 IP로 변경
-      const res = await fetch(`${API_BASE_URL}/auth/verify-user`, {
+      const res = await fetch("/auth/verify-user", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -48,7 +44,7 @@ function FindPassword({ onClose, onBackToLogin, onGoResetPassword }) {
   };
 
   return (
-    <div className="modalStyle" onClick={onClose}>
+    <div className="modalStyle">
       <div className="modalContentStyle" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="modal-close-btn" onClick={onClose}>
           &times;

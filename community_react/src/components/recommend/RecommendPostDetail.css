@@ -98,7 +98,6 @@
     gap: 8px;
     padding: 12px 28px;
     border-radius: 30px;
-    /* 완벽한 알약 모양 */
     font-weight: bold;
     font-size: 14px;
     cursor: pointer;
@@ -107,20 +106,24 @@
     background-color: #fff;
 }
 
-/* 추천 버튼 (레드 포인트) */
 .btn-like-action {
     border-color: #ff4d4f;
     color: #ff4d4f;
+    background-color: #ffffff;
 }
 
-.btn-like-action.active,
+.btn-like-action.active {
+    background-color: #ff4d4f !important;
+    color: #fff !important;
+    border-color: #ff4d4f !important;
+}
+
 .btn-like-action:hover {
     background-color: #ff4d4f;
     color: #fff;
     border-color: #ff4d4f;
 }
 
-/* 신고 버튼 (기존 레드에서 차분한 톤으로 변경 권장하나 요청대로 유지) */
 .btn-report-action {
     border-color: #ff4d4f;
     color: #ff4d4f;
@@ -147,24 +150,21 @@
     cursor: default;
 }
 
-/* 목록으로 돌아가기 버튼 (리스트 페이지 테마 컬러 적용) */
 .btn-list-return {
-    background-color: #2c3e50;
-    color: #fff;
-    border: none;
-    padding: 14px 60px;
-    border-radius: 30px;
-    /* 알약 모양 */
+    background-color: #f8f9fa;
+    color: #333;
+    border: 1px solid #dbdbdb;
+    padding: 10px 40px;
+    border-radius: 4px;
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .btn-list-return:hover {
-    background-color: #1a252f;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background-color: #e2e6ea;
+    border-color: #ccc;
 }
 
 /* [5. 댓글 영역] */
@@ -193,7 +193,6 @@
     padding: 18px;
     border: 1px solid #e0e0e0;
     border-radius: 12px;
-    /* 라운드 증가 */
     resize: none;
     font-family: inherit;
     outline: none;
@@ -204,7 +203,6 @@
     border-color: #2c3e50;
 }
 
-/* 댓글 등록 버튼 */
 .btn-comment-submit {
     width: 110px;
     background-color: #2c3e50;
@@ -220,7 +218,6 @@
     background-color: #1a252f;
 }
 
-/* 댓글 리스트 단위 */
 .comment-unit {
     border-bottom: 1px solid #f9f9f9;
     padding: 25px 0;
@@ -245,4 +242,12 @@
 .comment-btns span:hover {
     text-decoration: underline;
     color: #2c3e50;
+}
+
+/* 🚩 [추가] 리스트 통계 영역 테두리 제거 및 상태 유지 */
+.list-data-table .stat-item {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
 }

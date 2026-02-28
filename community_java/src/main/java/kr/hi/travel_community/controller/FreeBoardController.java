@@ -3,11 +3,9 @@ package kr.hi.travel_community.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.hi.travel_community.entity.FreePost;
-import kr.hi.travel_community.entity.BookMark;
 import kr.hi.travel_community.model.util.CustomUser;
 import kr.hi.travel_community.model.vo.MemberVO;
 import kr.hi.travel_community.service.FreePostService;
-import kr.hi.travel_community.service.BookMarkService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,32 +17,26 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/freeboard")
-// 🚩 [유지] 다른 PC 및 리액트 접속 허용
 @CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"}, allowCredentials = "true")
 @RequiredArgsConstructor
 public class FreeBoardController {
 
     private final FreePostService freePostService;
-    private final BookMarkService bookMarkService; // 🚩 즐겨찾기 서비스 주입
 
-    // 🚩 게시글 리스트 조회 (작성자 닉네임 포함 데이터)
     @GetMapping("/posts")
     public List<Map<String, Object>> getList() {
         return freePostService.getRealAllPosts();
     }
 
-    // 🚩 게시글 상세 조회 (작성자 닉네임 포함 데이터)
     @GetMapping("/posts/{id}")
     public ResponseEntity<?> getDetail(@PathVariable("id") Integer id,
                                        @RequestParam(value = "mbNum", required = false) Integer mbNum,
                                        HttpServletRequest request,
                                        HttpServletResponse response) {
         
-        // ✅ 조회수 증가 (서비스에 선언된 쿠키 방어 로직 호출)
+        // 조회수 증가 처리 (쿠키 기반)
         freePostService.increaseViewCount(id, request, response);
         
-        // 상세 데이터 조회 (좋아요 상태 확인을 위해 mbNum 전달)
-        // 로그인 정보가 없으면 기본값으로 1을 사용하거나 null 처리를 서비스 로직에 따름
         Integer currentUserNum = (mbNum != null) ? mbNum : 1;
         Map<String, Object> postData = freePostService.getPostDetailWithImage(id, currentUserNum);
         
@@ -55,7 +47,6 @@ public class FreeBoardController {
 
     /**
      * 🚩 게시글 등록
-     * 🚩 로그인 여부 체크 및 Multipart 이미지 처리
      */
     @PostMapping("/posts")
     public ResponseEntity<?> create(Authentication authentication,
@@ -65,15 +56,13 @@ public class FreeBoardController {
                                     @RequestParam(value = "poContent", required = false) String poContent,
                                     @RequestParam(value = "mbNum", required = false) Integer requestMbNum,
                                     @RequestParam(value = "poMbNum", required = false) Integer requestPoMbNum,
-                                    @RequestParam(value = "image", required = false) MultipartFile image) {
+                                    @RequestParam(value = "images", required = false) List<MultipartFile> images) {
         
-        // 1. 로그인 여부 확인
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "로그인이 필요한 서비스입니다."));
         }
 
         try {
-            // 요청 파라미터 유연한 처리 (title vs poTitle / content vs poContent)
             String finalTitle = (title != null && !title.isEmpty()) ? title : poTitle;
             String finalContent = (content != null && !content.isEmpty()) ? content : poContent;
             
@@ -81,18 +70,15 @@ public class FreeBoardController {
                 return ResponseEntity.badRequest().body(Map.of("error", "제목과 내용을 입력하세요."));
             }
             
-            // 2. 인증 객체에서 mbNum 추출
             int mbNum = resolveMbNum(authentication, requestMbNum != null ? requestMbNum : requestPoMbNum);
             
-            // 3. 엔티티 생성 및 서비스 호출
             FreePost post = new FreePost();
             post.setPoTitle(finalTitle);
             post.setPoContent(finalContent);
             post.setPoMbNum(mbNum);
             
-            // 이미지가 존재할 경우 리스트로 변환하여 서비스에 전달
-            List<MultipartFile> images = (image != null) ? List.of(image) : Collections.emptyList();
-            freePostService.savePost(post, images);
+            List<MultipartFile> finalImages = (images != null) ? images : Collections.emptyList();
+            freePostService.savePost(post, finalImages);
             
             return ResponseEntity.ok("Success");
         } catch (Exception e) {
@@ -101,26 +87,25 @@ public class FreeBoardController {
     }
 
     /**
-     * 🚩 사용자 번호(mbNum) 추출 로직
+     * 작성자 번호 확인 유틸리티
      */
     private int resolveMbNum(Authentication authentication, Integer requestMbNum) {
         if (authentication != null && authentication.getPrincipal() instanceof CustomUser) {
-            // CustomUser에서 MemberVO를 꺼내어 mb_num을 안전하게 참조
             MemberVO member = ((CustomUser) authentication.getPrincipal()).getMember();
             if (member != null) return member.getMb_num();
         }
-        // 인증 정보가 없으면 요청 파라미터의 번호를 사용하고, 그마저 없으면 기본값 1 반환
         return requestMbNum != null ? requestMbNum : 1;
     }
 
-    // 🚩 게시글 수정
+    /**
+     * 🚩 게시글 수정
+     */
     @PutMapping("/posts/{id}")
     public ResponseEntity<?> update(@PathVariable("id") Integer id,
                                     @RequestParam("title") String title,
                                     @RequestParam("content") String content,
-                                    @RequestParam(value = "image", required = false) MultipartFile image) {
+                                    @RequestParam(value = "images", required = false) List<MultipartFile> images) {
         try {
-            List<MultipartFile> images = (image != null) ? List.of(image) : null;
             freePostService.updatePost(id, title, content, images);
             return ResponseEntity.ok("Updated Success");
         } catch (Exception e) {
@@ -128,7 +113,9 @@ public class FreeBoardController {
         }
     }
 
-    // 🚩 게시글 삭제
+    /**
+     * 🚩 게시글 삭제
+     */
     @DeleteMapping("/posts/{id}")
     public ResponseEntity<?> delete(@PathVariable("id") Integer id) {
         try {
@@ -139,39 +126,74 @@ public class FreeBoardController {
         }
     }
 
-    // 🚩 추천(좋아요) 기능
+    /**
+     * 🚩 추천(좋아요) 기능 (보정 완료)
+     */
     @PostMapping("/posts/{id}/like")
-    public ResponseEntity<?> toggleLike(@PathVariable("id") Integer id, @RequestBody Map<String, Object> data) {
-        Object mbNumObj = data.get("mbNum");
-        int mbNum = (mbNumObj != null) ? Integer.parseInt(mbNumObj.toString()) : 1;
+    public ResponseEntity<?> toggleLike(@PathVariable("id") Integer id, 
+                                        @RequestBody(required = false) Map<String, Object> data,
+                                        Authentication authentication) {
+        // 인증 정보가 있다면 인증 정보 우선, 없다면 data에서 mbNum 추출
+        Integer mbNum = null;
+        if (authentication != null && authentication.isAuthenticated()) {
+            mbNum = resolveMbNum(authentication, null);
+        } else if (data != null && data.get("mbNum") != null) {
+            mbNum = Integer.parseInt(data.get("mbNum").toString());
+        }
+
+        if (mbNum == null) return ResponseEntity.status(401).body("Login Required");
+
         String status = freePostService.toggleLikeStatus(id, mbNum);
         return ResponseEntity.ok(Map.of("status", status));
     }
 
-    // 🚩 즐겨찾기(북마크) 토글 기능 추가
+    /**
+     * 🚩 북마크 기능 (FreePostService 통합 버전으로 수정)
+     */
     @PostMapping("/posts/{id}/bookmark")
     public ResponseEntity<?> toggleBookmark(@PathVariable("id") Integer id, 
-                                            @RequestBody Map<String, Object> data,
+                                            @RequestBody(required = false) Map<String, Object> data,
                                             Authentication authentication) {
-        // 북마크도 로그인이 필요함
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "로그인이 필요한 서비스입니다."));
         }
 
-        Object mbNumObj = data.get("mbNum");
-        int mbNum = resolveMbNum(authentication, (mbNumObj != null) ? Integer.parseInt(mbNumObj.toString()) : null);
+        Integer mbNum = resolveMbNum(authentication, (data != null && data.get("mbNum") != null) 
+                        ? Integer.parseInt(data.get("mbNum").toString()) : null);
         
-        BookMark bookMark = BookMark.builder()
-                .bmPoNum(id)
-                .bmPoType("FREE") // 자유게시판 타입 지정
-                .bmMbNum(mbNum)
-                .build();
+        // FreePostService에 만들어둔 토글 로직 사용
+        String result = freePostService.toggleBookmarkStatus(id, mbNum);
         
-        boolean isAdded = bookMarkService.toggleBookMark(bookMark);
+        boolean isBookmarked = result.equals("bookmarked");
         
         return ResponseEntity.ok(Map.of(
-            "status", isAdded ? "ADDED" : "REMOVED",
-            "isBookmarked", isAdded
+            "status", isBookmarked ? "ADDED" : "REMOVED",
+            "isBookmarked", isBookmarked
         ));
+    }
+
+    /**
+     * 🚩 게시글 신고 기능
+     */
+    @PostMapping("/posts/{id}/report")
+    public ResponseEntity<?> reportPost(@PathVariable("id") Integer id, 
+                                        @RequestBody Map<String, Object> data,
+                                        Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "로그인이 필요한 서비스입니다."));
+        }
+
+        try {
+            Object mbNumObj = data.get("mbNum");
+            int mbNum = resolveMbNum(authentication, (mbNumObj != null) ? Integer.parseInt(mbNumObj.toString()) : null);
+            String category = (String) data.get("category");
+            String reason = (String) data.get("reason");
+
+            freePostService.reportPost(id, mbNum, category, reason);
+            
+            return ResponseEntity.ok(Map.of("msg", "신고가 정상적으로 접수되었습니다."));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "신고 실패: " + e.getMessage()));
+        }
     }
 }

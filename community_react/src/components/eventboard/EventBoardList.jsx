@@ -12,7 +12,7 @@ const EventBoardList = ({ posts = [] }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const postsPerPage = 6; 
 
-    const SERVER_URL = "http://localhost:8080";
+    const SERVER_URL = "";
     const fallbackImage = "https://placehold.co/300x200?text=No+Image";
 
     const isAdmin = user && (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN' || user.mbLevel >= 10);

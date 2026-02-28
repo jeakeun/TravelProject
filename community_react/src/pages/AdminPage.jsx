@@ -113,7 +113,9 @@ function AdminPage() {
       });
       setReports((prev) =>
         prev.map((r) =>
-          r.rbNum === expandedReport ? { ...r, rbReply: reportReply } : r
+          r.rbNum === expandedReport
+            ? { ...r, rbReply: reportReply, rbManage: reportReply?.trim() ? "Y" : r.rbManage }
+            : r
         )
       );
       alert("답변이 저장되었습니다.");

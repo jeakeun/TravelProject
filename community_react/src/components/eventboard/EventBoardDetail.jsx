@@ -16,7 +16,7 @@ const EventBoardDetail = () => {
     const [isLiked, setIsLiked] = useState(false);
 
     const isLoggedIn = !!user; 
-    const SERVER_URL = "http://localhost:8080";
+    const SERVER_URL = "";
 
     const currentUserNum = user ? (user.mb_num || user.mbNum) : null; 
     const isAdmin = user ? (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN' || user.mbLevel >= 10) : false; 

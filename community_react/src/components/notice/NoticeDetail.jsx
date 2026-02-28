@@ -21,7 +21,7 @@ const NoticeDetail = () => {
     // 🚩 관리자 여부 확인 (mb_rol이 'ADMIN'인지 체크)
     const isAdmin = isLoggedIn && user.mbRol === 'ADMIN';
 
-    const SERVER_URL = "http://localhost:8080";
+    const SERVER_URL = "";
 
     const formatContent = (content) => {
         if (!content) return "";

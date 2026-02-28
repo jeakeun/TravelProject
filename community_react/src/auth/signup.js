@@ -9,10 +9,6 @@ function Signup({ onClose }) {
   const [agree, setAgree] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
 
-  // 🚩 [수정] 배포 서버 주소 설정
-  const API_BASE_URL = "http://localhost:8080";
-
-  // 노란 줄(Warning) 해결: 이 함수를 아래 버튼에서 호출하도록 연결함
   const fillRandom = () => {
     const rand = Math.random().toString(36).substring(2, 8);
     setId("test_" + rand);
@@ -47,7 +43,7 @@ function Signup({ onClose }) {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/signup`, {
+      const response = await fetch("/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id, pw, email, agree }),
@@ -67,7 +63,7 @@ function Signup({ onClose }) {
   };
 
   return (
-    <div className="modalStyle" onClick={onClose}>
+    <div className="modalStyle">
       <div className="modalContentStyle" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="modal-close-btn" onClick={onClose}>&times;</button>
         <h2>회원가입</h2>
@@ -129,8 +125,6 @@ function Signup({ onClose }) {
           )}
           <div className="modal-btn-group">
             <button type="submit" className="btn-primary">회원가입</button>
-            {/* 🚩 fillRandom 경고 해결을 위해 테스트용 버튼으로 연결 */}
-            <button type="button" className="btn-secondary" onClick={fillRandom} style={{ marginTop: "10px" }}>자동 입력(테스트)</button>
             <button type="button" className="btn-kakao">카카오톡으로 회원가입</button>
           </div>
         </form>
@@ -139,4 +133,9 @@ function Signup({ onClose }) {
   );
 }
 
+
 export default Signup;
+
+
+
+

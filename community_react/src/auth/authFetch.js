@@ -1,7 +1,4 @@
 export async function authFetch(url, options = {}) {
-  // 🚩 [수정] 배포 서버 주소 설정
-  const API_BASE_URL = "http://localhost:8080";
-
   let res = await fetch(url, {
     ...options,
     credentials: "include",
@@ -12,8 +9,7 @@ export async function authFetch(url, options = {}) {
   });
 
   if (res.status === 401) {
-    // 🚩 [수정] localhost -> 배포 서버 IP로 변경
-    const refresh = await fetch(`${API_BASE_URL}/auth/refresh`, {
+    const refresh = await fetch("/auth/refresh", {
       method: "POST",
       credentials: "include",
     });
@@ -23,7 +19,6 @@ export async function authFetch(url, options = {}) {
     const data = await refresh.json();
     localStorage.setItem("accessToken", data.accessToken);
 
-    // 원래 요청 재시도
     return authFetch(url, options);
   }
 

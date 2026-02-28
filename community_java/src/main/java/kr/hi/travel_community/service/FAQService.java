@@ -94,14 +94,17 @@ public class FAQService {
     }
 
     /**
-     * 🚩 FAQ 게시글 수정
+     * 🚩 FAQ 게시글 수정 (🚩 컨트롤러 변경에 맞춰 파라미터명 명확화)
      */
     @Transactional
-    public void updatePost(Integer id, String title, String content) {
+    public void updatePost(Integer id, String poTitle, String poContent) {
         FAQ post = postRepository.findByPoNumAndPoDel(id, "N")
                 .orElseThrow(() -> new RuntimeException("게시글 없음"));
-        post.setPoTitle(title);
-        post.setPoContent(content);
+        
+        // 데이터가 있을 경우에만 업데이트 (Null 체크 권장)
+        if (poTitle != null) post.setPoTitle(poTitle);
+        if (poContent != null) post.setPoContent(poContent);
+        
         postRepository.save(post);
     }
 
@@ -170,11 +173,13 @@ public class FAQService {
         // 작성자 닉네임 매핑
         String nickname = "관리자";
         try {
-            Optional<?> result = memberRepository.findById(p.getPoMbNum());
-            if (result.isPresent()) {
-                Object obj = result.get();
-                if (obj instanceof MemberVO) {
-                    nickname = ((MemberVO) obj).getMb_nickname();
+            if (p.getPoMbNum() != null) {
+                Optional<?> result = memberRepository.findById(p.getPoMbNum());
+                if (result.isPresent()) {
+                    Object obj = result.get();
+                    if (obj instanceof MemberVO) {
+                        nickname = ((MemberVO) obj).getMb_nickname();
+                    }
                 }
             }
         } catch (Exception e) {

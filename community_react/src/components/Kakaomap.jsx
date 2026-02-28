@@ -1,0 +1,197 @@
+import React, { useEffect, useRef, useMemo, useCallback } from 'react';
+import axios from 'axios';
+
+// 1. 카테고리 코드 정의
+const CATEGORY_CODES = {
+  '식당': 'FD6',
+  '카페': 'CE7',
+  '숙박': 'AD5',
+  '관광지': 'AT4'
+};
+
+function Kakaomap({ category, keyword }) {
+  const mapContainer = useRef(null);
+  const mapInstance = useRef(null);
+  const searchMarkersRef = useRef([]); // 검색 결과 마커 관리
+  const dbMarkersRef = useRef([]);     // DB 데이터 마커 관리
+  const infowindowRef = useRef(null);
+  const resizeHandlerRef = useRef(null);
+
+  const codes = useMemo(() => CATEGORY_CODES, []);
+
+  // [기능] DB 데이터 불러오기 함수 (의존성 경고 방지를 위해 useCallback 사용)
+  const fetchDbPlaces = useCallback(async (map) => {
+    try {
+      const baseUrl = process.env.REACT_APP_API_URL || "http://localhost:8080";
+      const response = await axios.get(`${baseUrl}/api/map/places`).catch(err => {
+        console.warn("데이터 로드 실패: 지도는 빈 상태로 유지됩니다.", err.message);
+        return { data: [] };
+      });
+
+      const dbPlaces = response.data;
+      if (!dbPlaces || !Array.isArray(dbPlaces)) return;
+
+      // 기존 DB 마커 제거
+      dbMarkersRef.current.forEach(m => m.setMap(null));
+      dbMarkersRef.current = [];
+
+      dbPlaces.forEach(place => {
+        const lat = place.kmLat ?? place.lat;
+        const lng = place.kmLng ?? place.lng;
+        if (lat == null || lng == null) return;
+
+        const marker = new window.kakao.maps.Marker({
+          map: map,
+          position: new window.kakao.maps.LatLng(lat, lng),
+        });
+
+        window.kakao.maps.event.addListener(marker, 'click', () => {
+          const content = `
+            <div style="padding:15px; font-size:13px; min-width:200px; line-height:1.6; border:none;">
+              <strong style="color:#007bff;">[우리 추천] ${place.kmName || place.placeName || '장소'}</strong><br/>
+              <small>📍 ${place.kmAddress || place.address || '주소 정보 없음'}</small><br/>
+              <span style="font-size:11px; color:#666;">🏷️ ${place.kmCategory || place.category || ''}</span>
+            </div>`;
+          if (infowindowRef.current) {
+            infowindowRef.current.setContent(content);
+            infowindowRef.current.open(map, marker);
+          }
+        });
+
+        dbMarkersRef.current.push(marker);
+      });
+    } catch (err) {
+      console.error("DB 데이터 처리 중 에러 발생:", err);
+    }
+  }, []);
+
+  // [기능 1] 지도 초기화 및 DB 데이터 불러오기
+  useEffect(() => {
+    const { kakao } = window;
+
+    if (!kakao || !kakao.maps) {
+      console.warn("카카오 지도 SDK 로딩 대기 중...");
+      return;
+    }
+
+    kakao.maps.load(() => {
+      if (!mapContainer.current) return;
+
+      try {
+        if (!mapInstance.current) {
+          const options = {
+            center: new kakao.maps.LatLng(37.5665, 126.9780),
+            level: 8
+          };
+          const map = new kakao.maps.Map(mapContainer.current, options);
+          mapInstance.current = map;
+          infowindowRef.current = new kakao.maps.InfoWindow({ zIndex: 5 });
+          
+          fetchDbPlaces(map);
+        }
+
+        setTimeout(() => {
+          if (mapInstance.current) {
+            mapInstance.current.relayout();
+            if (!keyword && !category) {
+              mapInstance.current.setCenter(new kakao.maps.LatLng(37.5665, 126.9780));
+            }
+          }
+        }, 100);
+
+      } catch (fatalError) {
+        console.error("지도 초기화 치명적 오류:", fatalError);
+      }
+    });
+
+    const currentResizeHandler = () => {
+      if (mapInstance.current) mapInstance.current.relayout();
+    };
+    resizeHandlerRef.current = currentResizeHandler;
+    window.addEventListener('resize', currentResizeHandler);
+
+    return () => {
+      window.removeEventListener('resize', currentResizeHandler);
+    };
+  }, [fetchDbPlaces, category, keyword]); // 경고 방지를 위해 필요한 의존성 추가
+
+  // [기능 2] 키워드 및 카테고리 실시간 검색 로직
+  useEffect(() => {
+    const { kakao } = window;
+    if (!kakao || !kakao.maps || !mapInstance.current) return;
+
+    kakao.maps.load(() => {
+      const map = mapInstance.current;
+      const ps = new kakao.maps.services.Places();
+      const infowindow = infowindowRef.current;
+
+      const removeSearchMarkers = () => {
+        searchMarkersRef.current.forEach(m => m.setMap(null));
+        searchMarkersRef.current = [];
+        if (infowindow) infowindow.close();
+      };
+
+      const displayInfoWindow = (marker, place) => {
+        const detailUrl = `https://place.map.kakao.com/${place.id}`;
+        const content = `
+          <div style="padding:15px; font-size:13px; border-radius:10px; min-width:200px; line-height:1.6;">
+            <strong style="display:block; margin-bottom:6px; color:#333;">${place.place_name}</strong>
+            <span style="display:block; font-size:11px; color:#666;">📍 ${place.address_name}</span>
+            <a href="${detailUrl}" target="_blank" style="display:inline-block; margin-top:10px; background:#333; color:#fff; padding:4px 10px; border-radius:4px; text-decoration:none; font-size:11px;">상세보기</a>
+          </div>`;
+        infowindow.setContent(content);
+        infowindow.open(map, marker);
+      };
+
+      const placesSearchCB = (data, status) => {
+        if (status === kakao.maps.services.Status.OK) {
+          removeSearchMarkers();
+          const bounds = new kakao.maps.LatLngBounds();
+
+          data.forEach(place => {
+            const marker = new kakao.maps.Marker({
+              map: map,
+              position: new kakao.maps.LatLng(place.y, place.x)
+            });
+
+            kakao.maps.event.addListener(marker, 'click', () => {
+              displayInfoWindow(marker, place);
+              map.panTo(new kakao.maps.LatLng(place.y, place.x));
+            });
+
+            searchMarkersRef.current.push(marker);
+            bounds.extend(new kakao.maps.LatLng(place.y, place.x));
+          });
+
+          if (keyword) map.setBounds(bounds);
+        }
+      };
+
+      if (keyword) {
+        ps.keywordSearch(keyword, placesSearchCB);
+      } else if (category && codes[category]) {
+        ps.categorySearch(codes[category], placesSearchCB, { useMapBounds: true });
+      }
+    });
+  }, [category, keyword, codes]);
+
+  return (
+    <div 
+      ref={mapContainer} 
+      style={{ 
+        width: '100%', 
+        height: '500px', 
+        minHeight: '500px', 
+        borderRadius: '15px', 
+        border: '1px solid #ddd', 
+        boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+        overflow: 'hidden',
+        position: 'relative',
+        backgroundColor: '#f9f9f9',
+        zIndex: 1
+      }} 
+    />
+  );
+}
+
+export default Kakaomap;
