@@ -118,8 +118,8 @@ function Login({ onClose, onLogin, onOpenSignup, onOpenFindPw }) {
               className="btn-kakao"
               onClick={() => {
                 if (window.Kakao?.Auth?.authorize) {
+                  sessionStorage.setItem("kakao_signup", "false");
                   window.Kakao.Auth.authorize({
-                    // 추가 동의 항목(scope) 없이 기본 동의만 요청
                     redirectUri: `${window.location.origin}/kakao-callback`,
                   });
                 } else {

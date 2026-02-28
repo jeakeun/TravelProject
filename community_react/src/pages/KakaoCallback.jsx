@@ -28,14 +28,16 @@ function KakaoCallback() {
       return;
     }
 
-    const doLogin = async () => {
+    const fromSignup = sessionStorage.getItem("kakao_signup") === "true";
+
+    const doAuth = async (signup) => {
       try {
-        // code를 백엔드에 전달하여 토큰 교환 및 회원 조회/생성 후 JWT 발급
+        sessionStorage.removeItem("kakao_signup");
         const res = await fetch("/auth/kakao", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ code }),
+          body: JSON.stringify({ code, signup }),
         });
 
         const data = await res.json().catch(() => ({}));
@@ -50,11 +52,10 @@ function KakaoCallback() {
         const accessToken = data?.accessToken;
         if (member && accessToken) {
           try {
-            // 일반 로그인과 동일하게 localStorage에 저장 후 메인으로 이동
             localStorage.setItem("user", JSON.stringify(member));
             localStorage.setItem("accessToken", accessToken);
           } catch (_) {}
-          setStatus("로그인 성공! 메인으로 이동합니다...");
+          setStatus(signup ? "회원가입이 완료되었습니다. 메인으로 이동합니다..." : "로그인 성공! 메인으로 이동합니다...");
           window.location.href = "/";
           return;
         }
@@ -67,7 +68,7 @@ function KakaoCallback() {
       }
     };
 
-    doLogin();
+    doAuth(fromSignup);
   }, [searchParams]);
 
   if (error) {

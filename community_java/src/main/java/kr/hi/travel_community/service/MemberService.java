@@ -275,12 +275,13 @@ public class MemberService {
     }
 
     /**
-     * [카카오 로그인] 카카오 인증 코드로 로그인 또는 자동 회원가입.
-     * 기존 카카오 회원이면 로그인, 없으면 신규 가입 후 반환.
+     * [카카오 로그인] 카카오 인증 코드로 로그인 또는 회원가입.
+     * @param code 카카오 인증 코드
+     * @param fromSignup true면 회원가입 버튼에서 진입 → 항상 회원가입 처리 후 로그인, false면 로그인 버튼 → 기존 회원이면 로그인만
      * @return 로그인된 회원 정보 (없으면 null)
      */
     @Transactional
-    public MemberVO kakaoLoginOrSignup(String code) {
+    public MemberVO kakaoLoginOrSignup(String code, boolean fromSignup) {
         try {
             if (code == null || code.trim().isEmpty()) return null;
             String accessToken = kakaoAuthService.exchangeCodeForToken(code.trim());
@@ -292,16 +293,27 @@ public class MemberService {
 
             String kakaoUid = "kakao_" + kakaoId;
             MemberVO existing = memberDAO.selectMemberByKakaoId(kakaoUid);
+
+            if (fromSignup) {
+                // 회원가입 버튼에서 온 경우: 기존 회원이 있어도 회원가입(갱신) 후 로그인
+                memberDAO.deleteMemberById(kakaoUid);
+                String placeholderPw = encoder.encode(java.util.UUID.randomUUID().toString());
+                boolean inserted = memberDAO.insertMemberKakao(kakaoUid, nickname, placeholderPw, email);
+                if (!inserted) return null;
+                MemberVO created = memberDAO.selectMemberByKakaoId(kakaoUid);
+                if (created != null) created.setMb_pw(null);
+                return created;
+            }
+
+            // 로그인 버튼에서 온 경우: 기존 회원이면 로그인, 없으면 신규 가입 후 로그인
             if (existing != null) {
                 existing.setMb_pw(null);
                 return existing;
             }
-
-            // [카카오 로그인] 신규 가입 (탈퇴 후 재가입 가능): 비밀번호 미사용이므로 placeholder BCrypt 저장
+            memberDAO.deleteMemberById(kakaoUid);
             String placeholderPw = encoder.encode(java.util.UUID.randomUUID().toString());
             boolean inserted = memberDAO.insertMemberKakao(kakaoUid, nickname, placeholderPw, email);
             if (!inserted) return null;
-
             MemberVO created = memberDAO.selectMemberByKakaoId(kakaoUid);
             if (created != null) created.setMb_pw(null);
             return created;

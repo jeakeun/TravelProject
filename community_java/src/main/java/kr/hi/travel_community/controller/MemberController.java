@@ -360,12 +360,13 @@ public class MemberController {
      * 로그인/회원가입이 동일 엔드포인트로 처리됨 (카카오 첫 로그인 시 자동 가입).
      */
     @PostMapping("/auth/kakao")
-    public ResponseEntity<?> kakaoAuth(@RequestBody Map<String, String> body) {
-        String code = body != null ? body.get("code") : null;
-        if (code == null || code.trim().isEmpty()) {
+    public ResponseEntity<?> kakaoAuth(@RequestBody Map<String, Object> body) {
+        String code = body != null && body.get("code") != null ? body.get("code").toString().trim() : null;
+        if (code == null || code.isEmpty()) {
             return ResponseEntity.badRequest().body("카카오 인증 코드가 없습니다.");
         }
-        MemberVO member = memberService.kakaoLoginOrSignup(code.trim());
+        boolean fromSignup = body != null && Boolean.TRUE.equals(body.get("signup"));
+        MemberVO member = memberService.kakaoLoginOrSignup(code, fromSignup);
         if (member == null) {
             return ResponseEntity.badRequest().body("카카오 로그인에 실패했습니다.");
         }
