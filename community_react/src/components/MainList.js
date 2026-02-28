@@ -10,9 +10,7 @@ function MainList({ photos = [], setPhotos, activeMenu = '', setActiveMenu, menu
   const navigate = useNavigate();
   const location = useLocation();
 
-  
-
-  // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정 (공백일 경우 현재 도메인 기준)
+  // 🚩 [수정] .env의 설정을 가져오되, 없을 경우 상대경로 처리를 위해 빈 문자열 유지
   const SERVER_URL = process.env.REACT_APP_API_URL || "";
 
   // 지도 관련 상태 관리
@@ -29,7 +27,7 @@ function MainList({ photos = [], setPhotos, activeMenu = '', setActiveMenu, menu
 
   const FALLBACK_IMAGE = "https://placehold.co/300x200?text=No+Image";
 
-  // 🚩 [유지] 경로 판정 로직: 경로에 'domestic'이 포함되어 있으면 무조건 true 강제
+  // 🚩 [유지] 경로 판정 로직
   const isDomesticMode = useMemo(() => {
     const path = location.pathname.toLowerCase();
     const menuStr = (typeof activeMenu === 'string') ? activeMenu : (activeMenu?.name || '');
@@ -149,10 +147,6 @@ function MainList({ photos = [], setPhotos, activeMenu = '', setActiveMenu, menu
     <div className="main-content-inner" style={{ width: '100%', minHeight: '600px' }}>
       {isDomesticMode ? (
         <div style={{ display: 'flex', padding: '20px', gap: '20px', alignItems: 'flex-start' }}>
-          
-          {/* 🚩 사이드바 영역 삭제됨 (디자인 유지를 위해 본문 영역만 렌더링) */}
-
-          {/* 🚩 본문(지도) 영역 */}
           <div className="map-section" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
             <div style={{ display: 'flex', gap: '15px', marginBottom: '20px' }}>
               {['식당', '카페', '관광지', '숙박'].map(cat => (
@@ -193,7 +187,6 @@ function MainList({ photos = [], setPhotos, activeMenu = '', setActiveMenu, menu
               backgroundColor: '#f9f9f9',
               position: 'relative'
             }}>
-              {/* 카카오맵 렌더링 - window 객체 체크 강화 */}
               {window.kakao && window.kakao.maps ? (
                 <Kakaomap category={selectedCategory} keyword={mapKeyword} />
               ) : (
@@ -218,7 +211,6 @@ function MainList({ photos = [], setPhotos, activeMenu = '', setActiveMenu, menu
         </div>
       ) : (
         <div style={{ padding: '20px' }}>
-          {/* 해외여행 갤러리 섹션 */}
           <div className="gallery-grid">
             {currentItems.length > 0 ? (
               currentItems.map((photo, idx) => {
@@ -226,12 +218,19 @@ function MainList({ photos = [], setPhotos, activeMenu = '', setActiveMenu, menu
                 const postId = photo.poNum || photo.po_num || photo.postId || photo.id;
                 const displayTitle = photo.poTitle || photo.po_title || photo.title;
 
+                // 🚩 [수정 핵심] 이미지 경로 구성 로직 최적화
                 let displayImg = FALLBACK_IMAGE;
                 if (photo.fileUrl) {
                   displayImg = photo.fileUrl;
-                } else if (photo.poImg) {
-                  const firstImgName = photo.poImg.split(',')[0].trim();
-                  displayImg = `${SERVER_URL}/pic/${firstImgName}`;
+                } else if (photo.poImg || photo.fileName) {
+                  // poImg가 있으면 그것을 쓰고, 없으면 fileName을 확인
+                  const targetImg = photo.poImg || photo.fileName;
+                  const firstImgName = String(targetImg).split(',')[0].trim();
+                  
+                  // http로 시작하면 그대로 쓰고, 아니면 SERVER_URL/pic/ 경로를 붙임
+                  displayImg = firstImgName.startsWith('http') 
+                    ? firstImgName 
+                    : `${SERVER_URL}/pic/${firstImgName}`;
                 }
 
                 return (
@@ -277,7 +276,6 @@ function MainList({ photos = [], setPhotos, activeMenu = '', setActiveMenu, menu
             )}
           </div>
 
-          {/* 페이지네이션 및 검색 섹션 */}
           <div className="page-buttons" style={{ marginTop: '24px' }}>
             <button className="pagination-btn" disabled={currentPage === 1} onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}>&lt;</button>
             {[...Array(totalPages)].map((_, i) => (
