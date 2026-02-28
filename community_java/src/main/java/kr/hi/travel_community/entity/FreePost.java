@@ -41,7 +41,7 @@ public class FreePost {
 
     @Builder.Default
     @Column(name = "po_report", nullable = false)
-    private Integer poReport = 0; // 🚩 신고 수 필드 확인됨
+    private Integer poReport = 0;
 
     @Builder.Default
     @Column(name = "po_del", nullable = false, length = 1)
@@ -57,13 +57,30 @@ public class FreePost {
     @Column(name = "po_img", length = 1000)
     private String fileUrl;
 
+    /**
+     * 🚩 데이터 저장 전 실행되는 로직
+     * 서비스에서 깜빡하고 세팅하지 않은 기본값들을 한 번 더 검증함
+     */
     @PrePersist
     public void prePersist() {
-        if (this.poDate == null) this.poDate = LocalDateTime.now();
+        if (this.poDate == null) {
+            this.poDate = LocalDateTime.now();
+        }
         if (this.poView == null) this.poView = 0;
         if (this.poUp == null) this.poUp = 0;
         if (this.poDown == null) this.poDown = 0;
         if (this.poReport == null) this.poReport = 0;
         if (this.poDel == null) this.poDel = "N";
+    }
+
+    /**
+     * 🚩 데이터 수정 시 실행 (선택 사항)
+     * 수정 시에도 null 값이 들어오지 않도록 방어
+     */
+    @PreUpdate
+    public void preUpdate() {
+        if (this.poView == null) this.poView = 0;
+        if (this.poUp == null) this.poUp = 0;
+        if (this.poReport == null) this.poReport = 0;
     }
 }

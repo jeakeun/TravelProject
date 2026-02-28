@@ -3,11 +3,9 @@ package kr.hi.travel_community.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.hi.travel_community.entity.FreePost;
-import kr.hi.travel_community.entity.BookMark;
 import kr.hi.travel_community.model.util.CustomUser;
 import kr.hi.travel_community.model.vo.MemberVO;
 import kr.hi.travel_community.service.FreePostService;
-import kr.hi.travel_community.service.BookMarkService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,7 +22,6 @@ import java.util.*;
 public class FreeBoardController {
 
     private final FreePostService freePostService;
-    private final BookMarkService bookMarkService;
 
     @GetMapping("/posts")
     public List<Map<String, Object>> getList() {
@@ -130,48 +127,48 @@ public class FreeBoardController {
     }
 
     /**
-     * 🚩 추천(좋아요) 기능
+     * 🚩 추천(좋아요) 기능 (보정 완료)
      */
     @PostMapping("/posts/{id}/like")
-    public ResponseEntity<?> toggleLike(@PathVariable("id") Integer id, @RequestBody(required = false) Map<String, Object> data) {
-        int mbNum = 1; 
-        if (data != null && data.get("mbNum") != null) {
-            try {
-                mbNum = Integer.parseInt(data.get("mbNum").toString());
-            } catch (Exception e) {
-                mbNum = 1;
-            }
+    public ResponseEntity<?> toggleLike(@PathVariable("id") Integer id, 
+                                        @RequestBody(required = false) Map<String, Object> data,
+                                        Authentication authentication) {
+        // 인증 정보가 있다면 인증 정보 우선, 없다면 data에서 mbNum 추출
+        Integer mbNum = null;
+        if (authentication != null && authentication.isAuthenticated()) {
+            mbNum = resolveMbNum(authentication, null);
+        } else if (data != null && data.get("mbNum") != null) {
+            mbNum = Integer.parseInt(data.get("mbNum").toString());
         }
-        
+
+        if (mbNum == null) return ResponseEntity.status(401).body("Login Required");
+
         String status = freePostService.toggleLikeStatus(id, mbNum);
         return ResponseEntity.ok(Map.of("status", status));
     }
 
     /**
-     * 🚩 북마크 기능
+     * 🚩 북마크 기능 (FreePostService 통합 버전으로 수정)
      */
     @PostMapping("/posts/{id}/bookmark")
     public ResponseEntity<?> toggleBookmark(@PathVariable("id") Integer id, 
-                                            @RequestBody Map<String, Object> data,
+                                            @RequestBody(required = false) Map<String, Object> data,
                                             Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "로그인이 필요한 서비스입니다."));
         }
 
-        Object mbNumObj = data.get("mbNum");
-        int mbNum = resolveMbNum(authentication, (mbNumObj != null) ? Integer.parseInt(mbNumObj.toString()) : null);
+        Integer mbNum = resolveMbNum(authentication, (data != null && data.get("mbNum") != null) 
+                        ? Integer.parseInt(data.get("mbNum").toString()) : null);
         
-        BookMark bookMark = BookMark.builder()
-                .bmPoNum(id)
-                .bmPoType("FREE")
-                .bmMbNum(mbNum)
-                .build();
+        // FreePostService에 만들어둔 토글 로직 사용
+        String result = freePostService.toggleBookmarkStatus(id, mbNum);
         
-        boolean isAdded = bookMarkService.toggleBookMark(bookMark);
+        boolean isBookmarked = result.equals("bookmarked");
         
         return ResponseEntity.ok(Map.of(
-            "status", isAdded ? "ADDED" : "REMOVED",
-            "isBookmarked", isAdded
+            "status", isBookmarked ? "ADDED" : "REMOVED",
+            "isBookmarked", isBookmarked
         ));
     }
 
@@ -192,7 +189,6 @@ public class FreeBoardController {
             String category = (String) data.get("category");
             String reason = (String) data.get("reason");
 
-            // 서비스의 reportPost 메서드 호출 (서비스에 public void reportPost가 구현되어 있어야 함)
             freePostService.reportPost(id, mbNum, category, reason);
             
             return ResponseEntity.ok(Map.of("msg", "신고가 정상적으로 접수되었습니다."));

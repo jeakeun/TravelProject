@@ -16,7 +16,8 @@ import java.io.File;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @Value("${file.upload-dir:C:/travel_contents/uploads/pic/}")
+    // application.properties에서 설정값을 읽어오되, 없으면 기본값 사용
+    @Value("${file.upload-dir:/home/uploads/}")
     private String uploadDir;
 
     @Override
@@ -32,33 +33,15 @@ public class WebConfig implements WebMvcConfigurer {
             directory.mkdirs();
         }
 
-        String location = path.startsWith("/") ? "file:" + path : "file:/" + path;
+        // 🚩 [핵심 수정] 리눅스 환경(/home/uploads/)에 최적화된 경로 생성
+        // 리눅스는 'file:' 뒤에 바로 절대경로(/)가 붙어야 하므로 file:/home/uploads/ 형식이 됩니다.
+        String location = path.startsWith("/") ? "file:" + path : "file:///" + path;
 
         registry.addResourceHandler("/pic/**")
                 .addResourceLocations(location)
-                .setCachePeriod(3600);
+                .setCachePeriod(3600); 
 
-        // 2. 리액트 정적 파일 및 SPA 경로 설정 (핵심 수정)
-        // index.html이 resources 바로 아래에 있으므로 classpath:/ 를 추가하고
-        // ClassPathResource의 경로에서 static/을 제거했습니다.
-        registry.addResourceHandler("/**")
-                .addResourceLocations("classpath:/static/", "classpath:/")
-                .setCachePeriod(0)
-                .resourceChain(true)
-                .addResolver(new PathResourceResolver() {
-                    @Override
-                    protected Resource getResource(String resourcePath, Resource location) throws IOException {
-                        Resource requestedResource = location.createRelative(resourcePath);
-                        
-                        // 요청한 리소스가 존재하면 해당 리소스 반환
-                        if (requestedResource.exists() && requestedResource.isReadable()) {
-                            return requestedResource;
-                        }
-
-                        // 요청한 리소스가 없으면 resources 바로 아래의 index.html 반환 (static/ 제거됨)
-                        return new ClassPathResource("index.html");
-                    }
-                });
+        System.out.println("✅ [Mapping] /pic/** URL -> " + location);
     }
 
     @Override
@@ -67,13 +50,13 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOriginPatterns(
                     "http://localhost:3000", 
                     "http://127.0.0.1:3000",
-                    "http://localhost:8080",
-                    "http://3.37.160.108*"
+                    "http://3.37.160.108",    
+                    "http://3.37.160.108:*"   
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .exposedHeaders("Set-Cookie")
                 .allowCredentials(true)
-                .maxAge(3600);
+                .maxAge(3600); 
     }
 }
