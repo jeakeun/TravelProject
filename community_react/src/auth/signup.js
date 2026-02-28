@@ -132,8 +132,8 @@ function Signup({ onClose }) {
               onClick={() => {
                 if (window.Kakao?.Auth?.authorize) {
                   window.Kakao.Auth.authorize({
+                    // 추가 동의 항목 없이 기본 동의만 요청
                     redirectUri: `${window.location.origin}/kakao-callback`,
-                    scope: "account_email,profile_nickname",
                   });
                 } else {
                   alert("카카오 로그인을 사용할 수 없습니다. 페이지를 새로고침 후 다시 시도하세요.");

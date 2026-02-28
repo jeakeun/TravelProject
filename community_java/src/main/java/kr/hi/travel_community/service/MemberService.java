@@ -259,7 +259,6 @@ public class MemberService {
             if (member == null) return false;
 
             if ("kakao".equalsIgnoreCase(member.getMb_provider())) {
-                // [카카오 로그인] 카카오 유저는 비밀번호를 쓰지 않으므로 검증 생략 후 탈퇴
                 int deleted = memberDAO.deleteMemberById(id.trim());
                 return deleted > 0;
             }
@@ -298,7 +297,7 @@ public class MemberService {
                 return existing;
             }
 
-            // [카카오 로그인] 신규 가입: 비밀번호 미사용이므로 placeholder BCrypt 저장
+            // [카카오 로그인] 신규 가입 (탈퇴 후 재가입 가능): 비밀번호 미사용이므로 placeholder BCrypt 저장
             String placeholderPw = encoder.encode(java.util.UUID.randomUUID().toString());
             boolean inserted = memberDAO.insertMemberKakao(kakaoUid, nickname, placeholderPw, email);
             if (!inserted) return null;

@@ -430,38 +430,38 @@ function MyPage() {
               <span className="mypage-info-label">아이디</span>
               <span className="mypage-info-text">{getUserId(user)}</span>
             </div>
-            <div className="mypage-info-row">
-              <span className="mypage-info-icon" aria-hidden>✉</span>
-              <span className="mypage-info-label">이메일</span>
-              {!isEditingEmail ? (
-                <>
-                  <span className="mypage-info-text">{email}</span>
-                  {/* [카카오 로그인] 카카오 유저는 이메일이 API 연동 데이터이므로 수정 버튼 숨김 */}
-                  {!isKakaoUser && (
+            {/* [카카오 로그인] 카카오 유저는 이메일/비밀번호를 사용하지 않으므로 완전히 숨김 */}
+            {!isKakaoUser && (
+              <div className="mypage-info-row">
+                <span className="mypage-info-icon" aria-hidden>✉</span>
+                <span className="mypage-info-label">이메일</span>
+                {!isEditingEmail ? (
+                  <>
+                    <span className="mypage-info-text">{email}</span>
                     <button type="button" className="mypage-info-btn" onClick={startEditEmail}>
                       수정
                     </button>
-                  )}
-                </>
-              ) : (
-                <div className="mypage-email-edit">
-                  <input
-                    type="email"
-                    className="mypage-email-input"
-                    value={editEmailValue}
-                    onChange={(e) => setEditEmailValue(e.target.value)}
-                    placeholder="이메일 입력"
-                    aria-label="이메일"
-                  />
-                  <button type="button" className="mypage-info-btn" onClick={saveEmail} disabled={emailSaving}>
-                    {emailSaving ? "저장 중..." : "저장"}
-                  </button>
-                  <button type="button" className="mypage-info-btn mypage-email-cancel" onClick={cancelEditEmail} disabled={emailSaving}>
-                    취소
-                  </button>
-                </div>
-              )}
-            </div>
+                  </>
+                ) : (
+                  <div className="mypage-email-edit">
+                    <input
+                      type="email"
+                      className="mypage-email-input"
+                      value={editEmailValue}
+                      onChange={(e) => setEditEmailValue(e.target.value)}
+                      placeholder="이메일 입력"
+                      aria-label="이메일"
+                    />
+                    <button type="button" className="mypage-info-btn" onClick={saveEmail} disabled={emailSaving}>
+                      {emailSaving ? "저장 중..." : "저장"}
+                    </button>
+                    <button type="button" className="mypage-info-btn mypage-email-cancel" onClick={cancelEditEmail} disabled={emailSaving}>
+                      취소
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             {/* [카카오 로그인] 카카오 유저는 비밀번호를 사용하지 않으므로 비밀번호 영역 숨김 */}
             {!isKakaoUser && (
               <div className="mypage-info-row">

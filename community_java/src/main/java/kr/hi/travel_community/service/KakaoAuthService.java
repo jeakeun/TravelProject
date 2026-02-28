@@ -30,6 +30,10 @@ public class KakaoAuthService {
     @Value("${kakao.redirect-uri:http://localhost:3000/kakao-callback}")
     private String redirectUri;
 
+    /** Client Secret(콘솔에서 사용 설정 시 토큰 교환에 필수). 비어 있으면 생략. */
+    @Value("${kakao.client-secret:}")
+    private String clientSecret;
+
     private final HttpClient httpClient = HttpClient.newBuilder().build();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -45,6 +49,9 @@ public class KakaoAuthService {
                 + "&client_id=" + URLEncoder.encode(restApiKey, StandardCharsets.UTF_8)
                 + "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8)
                 + "&code=" + URLEncoder.encode(code, StandardCharsets.UTF_8);
+        if (clientSecret != null && !clientSecret.isBlank()) {
+            body += "&client_secret=" + URLEncoder.encode(clientSecret, StandardCharsets.UTF_8);
+        }
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("https://kauth.kakao.com/oauth/token"))
