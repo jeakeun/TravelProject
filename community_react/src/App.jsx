@@ -40,7 +40,9 @@ import ResetPassword from './auth/ResetPassword';
 import ChangePassword from './auth/ChangePassword';
 
 axios.defaults.withCredentials = true;
-const API_BASE_URL = process.env.REACT_APP_API_URL || `http://${window.location.hostname}:8080`;
+
+// 🚩 [수정] 환경변수가 있으면 쓰고, 없으면 현재 호스트의 8080 포트를 바라봄 (상대 경로 대응)
+const API_BASE_URL = process.env.REACT_APP_API_URL || "";
 
 function OpenLoginModal({ openLogin }) {
   const navigate = useNavigate();
@@ -176,14 +178,12 @@ function CommunityContainer({ posts, setPosts, loadPosts, loading }) {
 
       <main className="main-content" style={{ flex: 1 }}>
         <Routes>
-          {/* 🚩 [핵심 수정] 주소창에 /domestic 또는 /foreigncountry 만 쳤을 때 MainList가 나오도록 설정 */}
           <Route index element={
             pathname.startsWith('/domestic') 
               ? <MainList photos={posts} setPhotos={setPosts} activeMenu="국내여행" />
               : <MainList photos={posts} setPhotos={setPosts} activeMenu="해외여행" goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />
           } />
 
-          {/* 하위 게시판 경로들 */}
           <Route path="recommend" element={<RecommendMain posts={posts} />} />
           <Route path="recommend/write" element={<PostWrite activeMenu="여행 추천 게시판" boardType="recommend" refreshPosts={loadPosts} />} />
           <Route path="recommend/edit/:id" element={<PostWrite activeMenu="여행 추천 게시판" boardType="recommend" refreshPosts={loadPosts} isEdit={true} />} />
@@ -196,7 +196,6 @@ function CommunityContainer({ posts, setPosts, loadPosts, loading }) {
 
           <Route path="write" element={<PostWrite activeMenu={activeMenu} boardType={activeMenu === '여행 추천 게시판' ? 'recommend' : 'freeboard'} refreshPosts={loadPosts} />} />
 
-          {/* 🚩 [핵심 수정] 어떤 하위 경로도 매칭되지 않을 때 기본 지도를 띄워주는 폴백 설정 */}
           <Route path="*" element={
             pathname.includes('/domestic') 
               ? <MainList photos={posts} setPhotos={setPosts} activeMenu="국내여행" />
@@ -263,6 +262,7 @@ function App() {
         return;
       }
 
+      // 🚩 [수정] API 주소를 생성할 때 API_BASE_URL (빈 문자열 가능)을 사용
       const apiUrl = endpoint === 'recommend' 
         ? `${API_BASE_URL}/api/recommend/posts/all`
         : `${API_BASE_URL}/api/${endpoint}/posts`;
@@ -399,7 +399,6 @@ function App() {
       }>
         <Route path="/" element={<Main />} />
         
-        {/* 주소창에 직접 입력 시 대응하는 최상위 라우트 */}
         <Route path="/domestic/*" element={<CommunityContainer posts={posts} setPosts={setPosts} loadPosts={loadPosts} loading={loading} />} />
         <Route path="/foreigncountry/*" element={<CommunityContainer posts={posts} setPosts={setPosts} loadPosts={loadPosts} loading={loading} />} />
         <Route path="/community/*" element={<CommunityContainer posts={posts} setPosts={setPosts} loadPosts={loadPosts} loading={loading} />} />

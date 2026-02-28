@@ -18,9 +18,9 @@ const carouselTranslations = {
   },
   JP: {
     rank_main_title: "今月の旅行先ランキング",
-    dest1_name: "01. 情報なし", dest1_desc: "おすすめの投稿がありません。",
-    dest2_name: "02. 情報なし", dest2_desc: "おすすめの投稿がありません。",
-    dest3_name: "03. 情報なし", dest3_desc: "おすすめの投稿がありません。"
+    dest1_name: "01. 정보なし", dest1_desc: "おすすめの投稿がありません。",
+    dest2_name: "02. 정보なし", dest2_desc: "おすすめの投稿가ありません。",
+    dest3_name: "03. 정보なし", dest3_desc: "おすすめの投稿가ありません。"
   },
   CH: {
     rank_main_title: "本月目的地排名",
@@ -30,6 +30,20 @@ const carouselTranslations = {
   }
 };
 
+// 🚩 [수정] ESLint 에러 방지를 위해 함수를 컴포넌트 외부로 이동하고 필요한 값을 인자로 받음
+const getCarouselClass = (idx, carouselIndex) => {
+  if (idx === carouselIndex) return "carousel-item active";
+  const prevIdx = (carouselIndex + 1) % 3;
+  if (idx === prevIdx) return "carousel-item prev";
+  return "carousel-item next";
+};
+
+const getRankNumber = (idx, carouselIndex) => {
+  if (idx === carouselIndex) return 1; // 중앙 1위
+  if (idx === (carouselIndex + 1) % 3) return 2; // 왼쪽(prev) 2위
+  return 3; // 오른쪽(next) 3위
+};
+
 function Main() {
   const [carouselIndex, setCarouselIndex] = useState(1); // 중앙 1위
   const navigate = useNavigate();
@@ -37,7 +51,9 @@ function Main() {
   
   const { currentLang, posts = [] } = outletContext;
   const t = carouselTranslations[currentLang] || carouselTranslations["KR"];
-  const SERVER_URL = "";
+  
+  // 🚩 [수정] 하드코딩된 빈 문자열 대신 환경변수 적용
+  const SERVER_URL = process.env.REACT_APP_API_URL || "";
 
   // 🔹 topThree 순서: 2위-1위-3위
   const topThree = useMemo(() => {
@@ -74,21 +90,6 @@ function Main() {
 
   const handlePrev = () => setCarouselIndex((prev) => (prev === 0 ? 2 : prev - 1));
   const handleNext = () => setCarouselIndex((prev) => (prev === 2 ? 0 : prev + 1));
-
-  // 🔹 CSS 클래스 배치 그대로 유지
-  const getCarouselClass = (idx) => {
-    if (idx === carouselIndex) return "carousel-item active";
-    const prevIdx = (carouselIndex + 1) % 3;
-    if (idx === prevIdx) return "carousel-item prev";
-    return "carousel-item next";
-  };
-
-  // 🔹 화면 위치 기준 실제 순위 번호
-  const getRankNumber = (idx) => {
-    if (idx === carouselIndex) return 1; // 중앙 1위
-    if (idx === (carouselIndex + 1) % 3) return 2; // 왼쪽(prev) 2위
-    return 3; // 오른쪽(next) 3위
-  };
 
   useEffect(() => {
     const header = document.querySelector('.App .nav-area header');
@@ -132,12 +133,14 @@ function Main() {
               {topThree.map((post, idx) => {
                 const postId = post?.poNum || post?.po_num || post?.id;
                 const displayTitle = post?.poTitle || post?.po_title || t[`dest${idx + 1}_name`];
-                const rankNumber = getRankNumber(idx);
+                
+                // 🚩 [수정] 외부로 분리된 함수를 인자와 함께 호출
+                const rankNumber = getRankNumber(idx, carouselIndex);
 
                 return (
                   <div 
                     key={idx} 
-                    className={getCarouselClass(idx)}
+                    className={getCarouselClass(idx, carouselIndex)}
                     onClick={() => post && navigate(`/community/recommend/${postId}`)}
                     style={{ cursor: post ? 'pointer' : 'default' }}
                   >
