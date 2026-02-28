@@ -130,9 +130,10 @@ function Signup({ onClose }) {
               className="btn-kakao"
               onClick={() => {
                 if (window.Kakao?.Auth?.authorize) {
+                  sessionStorage.setItem("kakao_signup", "true");
                   window.Kakao.Auth.authorize({
-                    // 추가 동의 항목 없이 기본 동의만 요청
                     redirectUri: `${window.location.origin}/kakao-callback`,
+                    prompt: "login",
                   });
                 } else {
                   alert("카카오 로그인을 사용할 수 없습니다. 페이지를 새로고침 후 다시 시도하세요.");
