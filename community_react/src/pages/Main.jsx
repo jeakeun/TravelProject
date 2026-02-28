@@ -19,8 +19,8 @@ const carouselTranslations = {
   JP: {
     rank_main_title: "今月の旅行先ランキング",
     dest1_name: "01. 情報なし", dest1_desc: "おすすめの投稿がありません。",
-    dest2_name: "02. 정보 없음", dest2_desc: "おすすめ의 게시글이 없습니다.",
-    dest3_name: "03. 정보 없음", dest3_desc: "おすすめ의 게시글이 없습니다."
+    dest2_name: "02. 情報なし", dest2_desc: "おすすめの投稿がありません。",
+    dest3_name: "03. 情報なし", dest3_desc: "おすすめの投稿がありません。"
   },
   CH: {
     rank_main_title: "本月目的地排名",
@@ -35,35 +35,29 @@ function Main() {
   const navigate = useNavigate();
   const outletContext = useOutletContext() || {};
   
-  // outletContext에서 posts와 currentLang을 가져옵니다.
   const { currentLang, posts = [] } = outletContext;
   const t = carouselTranslations[currentLang] || carouselTranslations["KR"];
   const SERVER_URL = "";
 
-  // 🚩 [데이터 로직] 서버에서 이미 계산되어 내려온 순서를 유지하며 recommend 데이터 상위 3개 추출
+  // 🔹 topThree 순서: 2위-1위-3위
   const topThree = useMemo(() => {
     if (!Array.isArray(posts)) return [];
-    
-    // 1. recommend 게시판 데이터만 필터링 (poBoardType이나 엔드포인트에서 구분된 데이터 기반)
-    // 서버 응답 데이터 구조에 맞게 'recommend' 게시글만 필터링합니다.
     const recommendPosts = posts.filter(p => 
       p.poBoardType === 'recommend' || 
       p.boardType === 'recommend' || 
       p.category === 'recommend'
-    );
+    ).slice(0, 3);
 
-    // 2. 서버에서 랭킹순으로 보내주므로 별도 sort 없이 상위 3개만 선택
-    return recommendPosts.slice(0, 3);
+    if (recommendPosts.length === 3) {
+      return [recommendPosts[1], recommendPosts[0], recommendPosts[2]]; // 2위-1위-3위
+    }
+    return recommendPosts;
   }, [posts]);
 
-  // 🚩 [이미지 로직] DB 필드 대응 및 첫 번째 이미지 추출
   const getImageUrl = (post) => {
     const defaultImg = "https://placehold.co/1200x800?text=No+Image";
     if (!post) return defaultImg;
-    
-    // DB 컬럼명 po_img 또는 poImg 대응
     const targetUrl = post.poImg || post.po_img || post.fileName;
-
     if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null") {
       if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
       const firstFile = String(targetUrl).split(',')[0].trim();
@@ -78,11 +72,24 @@ function Main() {
     return defaultImg; 
   };
 
-  // 카러셀 제어 로직
   const handlePrev = () => setCarouselIndex((prev) => (prev === 0 ? 2 : prev - 1));
   const handleNext = () => setCarouselIndex((prev) => (prev === 2 ? 0 : prev + 1));
 
-  // 스크롤 시 헤더 스타일 변경 이벤트
+  // 🔹 CSS 클래스 배치 그대로 유지
+  const getCarouselClass = (idx) => {
+    if (idx === carouselIndex) return "carousel-item active";
+    const prevIdx = (carouselIndex + 1) % 3;
+    if (idx === prevIdx) return "carousel-item prev";
+    return "carousel-item next";
+  };
+
+  // 🔹 화면 위치 기준 실제 순위 번호
+  const getRankNumber = (idx) => {
+    if (idx === carouselIndex) return 1; // 중앙 1위
+    if (idx === (carouselIndex + 1) % 3) return 2; // 왼쪽(prev) 2위
+    return 3; // 오른쪽(next) 3위
+  };
+
   useEffect(() => {
     const header = document.querySelector('.App .nav-area header');
     if (!header) return;
@@ -103,9 +110,7 @@ function Main() {
 
   return (
     <div className="main-container">
-      {/* 네이게이션바 */}
       <NavigationBar />
-      {/* ===== 메인 비디오 섹션 ===== */}
       <section id="main-video">
         <iframe 
           src="https://www.youtube.com/embed/1La4QzGeaaQ?autoplay=1&mute=1&controls=0&loop=1&playlist=1La4QzGeaaQ" 
@@ -133,7 +138,6 @@ function Main() {
                   <div 
                     key={idx} 
                     className={getCarouselClass(idx)}
-                    // 🚩 클릭 시 상세페이지로 이동: /community/recommend/:id
                     onClick={() => post && navigate(`/community/recommend/${postId}`)}
                     style={{ cursor: post ? 'pointer' : 'default' }}
                   >
