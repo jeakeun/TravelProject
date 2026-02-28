@@ -42,8 +42,6 @@ import ChangePassword from './auth/ChangePassword';
 axios.defaults.withCredentials = true;
 const API_BASE_URL = process.env.REACT_APP_API_URL || `http://${window.location.hostname}:8080`;
 
-
-
 function OpenLoginModal({ openLogin }) {
   const navigate = useNavigate();
   useEffect(() => {
@@ -231,7 +229,6 @@ function App() {
 
   const location = useLocation();
 
-  // 🚩 수정됨: 데이터 갱신 로직 보완
   const loadPosts = useCallback(async () => {
     const path = location.pathname.toLowerCase();
     
@@ -273,6 +270,12 @@ function App() {
       const response = await axios.get(apiUrl);
       
       if (response.data && Array.isArray(response.data)) {
+        const storageChange = localStorage.getItem('bookmark_changed');
+        let syncData = null;
+        if (storageChange) {
+            try { syncData = JSON.parse(storageChange); } catch(e) {}
+        }
+
         const cleanData = response.data.map(post => {
           const pId = post.poNum || post.po_num || post.postId || post.id;
           let isBookmarked = post.isBookmarked || post.is_bookmarked || post.bookmarked || 'N';
@@ -304,7 +307,6 @@ function App() {
     loadPosts();
   }, [loadPosts]);
 
-  // 북마크/추천 동기화 이벤트 리스너
   useEffect(() => {
     const handleSync = (e) => {
       if (e.key === 'bookmark_changed' && e.newValue) {
