@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../api/axios'; 
 import './Recommend.css'; 
 
-// 🚩 [수정] 배포 서버 주소 설정 (포트 8080 유지)
+// 🚩 배포 서버 주소 설정
 const API_BASE_URL = "";
 const SERVER_URL = `${API_BASE_URL}/pic/`;
 
@@ -18,12 +18,13 @@ const RecommendPostList = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const postsPerPage = 10;
 
-    // 데이터 패칭 함수
-    const fetchPosts = useCallback(async (type = "", keyword = "") => {
+    /**
+     * 1. 데이터 패칭 함수 (추천/즐겨찾기 상태 표시 포함)
+     */
+    const fetchPosts = useCallback(async (type = searchType, keyword = searchKeyword) => {
         setLoading(true);
         try {
-            // 🚩 [수정] 주소 체계에 맞춰 경로 수정 (/api/recommend/posts/all -> /api/recommend)
-            let url = `${API_BASE_URL}/api/recommend`;
+            let url = `/api/recommend`;
             if (keyword) {
                 url += `?type=${type}&keyword=${encodeURIComponent(keyword)}`;
             }
@@ -118,12 +119,10 @@ const RecommendPostList = () => {
                     <tbody>
                         {currentPosts.length > 0 ? (
                             currentPosts.map((post) => {
-                                const postId = post.poNum || post.po_num || post.postId;
-                                // 🚩 즐겨찾기 상태 판단 로직 강화
-                                const isFavorited = post.isBookmarkedByMe || post.isBookmarked === 'Y' || post.favorited;
-                                
-                                // 🚩 [수정] 작성자 닉네임 필드 매핑 보강
-                                const authorNick = post.mbNickname || post.mb_nickname || post.mb_nick || post.mbNick || post.member?.mbNickname || post.member?.mb_nickname || post.member?.mbNick || post.member?.mb_nick || post.mb_id || `User ${post.poMbNum || post.po_mb_num}`;
+                                const postId = post.postId;
+                                const isFavorited = post.isBookmarkedByMe;
+                                const isLiked = post.isLikedByMe;
+                                const authorNick = post.mbNickname || post.mb_nickname || post.mb_nick || post.mbNick || post.member?.mbNickname || "User";
                                 
                                 return (
                                     <tr key={postId} onClick={() => navigate(`/community/recommend/${postId}`)} style={{ cursor: 'pointer' }}>
