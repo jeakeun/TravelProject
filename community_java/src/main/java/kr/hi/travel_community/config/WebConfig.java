@@ -5,7 +5,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.core.io.Resource;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.web.servlet.resource.PathResourceResolver;
 
+import java.io.IOException;
 import java.io.File;
 
 @Configuration
@@ -17,20 +22,15 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 1. 경로 정규화 (역슬래시를 슬래시로 변경)
+        // 1. 업로드된 이미지(pic) 처리
         String path = uploadDir.replace("\\", "/");
-        
-        // 2. 경로 끝에 슬래시가 누락되었다면 추가
         if (!path.endsWith("/")) {
             path += "/";
         }
 
-        // 3. 서버 실행 시 업로드 폴더가 물리적으로 존재하는지 확인 및 생성
         File directory = new File(path);
         if (!directory.exists()) {
-            if (directory.mkdirs()) {
-                System.out.println("🚩 [System] 업로드 디렉토리가 생성되었습니다: " + path);
-            }
+            directory.mkdirs();
         }
 
         // 🚩 [핵심 수정] 리눅스 환경(/home/uploads/)에 최적화된 경로 생성
@@ -46,7 +46,6 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // 리액트 및 실제 서버 IP 주소에서의 API 요청 허용
         registry.addMapping("/**")
                 .allowedOriginPatterns(
                     "http://localhost:3000", 
@@ -56,6 +55,7 @@ public class WebConfig implements WebMvcConfigurer {
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
+                .exposedHeaders("Set-Cookie")
                 .allowCredentials(true)
                 .maxAge(3600); 
     }
