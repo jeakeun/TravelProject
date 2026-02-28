@@ -1,21 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-
-  <meta charset="UTF-8">
-  <title>Test</title>
+    <meta charset="utf-8"/>
+    <title>Kakao 지도 시작하기</title>
 </head>
 <body>
+    <div id="map" style="width:500px;height:400px;"></div>
+    
+    <!-- autoload=false 추가 -->
+    <script type="text/javascript"
+        src="//dapi.kakao.com/v2/maps/sdk.js?appkey=0fe7c7a264f9456db151ae55939175a2&libraries=services&autoload=false"></script>
+    
+    <script>
+        kakao.maps.load(function () {
+            var container = document.getElementById('map');
+            var options = {
+                center: new kakao.maps.LatLng(33.450701, 126.570667),
+                level: 3
+            };
 
-<button id="btn">서버 호출</button>
-
-<script>
-  document.getElementById("btn").addEventListener("click", () => {
-    fetch("/api/hello")
-      .then(res => res.text())
-      .then(data => console.log(data));
-  });
-</script>
-
+            var map = new kakao.maps.Map(container, options);
+        });
+    </script>
 </body>
 </html>
