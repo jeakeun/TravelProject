@@ -25,10 +25,12 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
   const editorRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // 🚩 [수정] 공지사항(notice) 경로 인식을 위한 로직 추가 및 기존 로직 유지
   const getCategoryPath = useCallback(() => {
     const path = location.pathname;
     if (propsBoardType) return propsBoardType;
     if (stateBoardType) return stateBoardType;
+    if (path.includes('/notice')) return 'notice'; // 공지사항 경로 추가
     if (path.includes('/newsletter')) return 'newsletter';
     if (path.includes('/event')) return 'event';
     if (path.includes('/recommend')) return 'recommend';
@@ -37,6 +39,7 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
     if (boardParam) return boardParam;
     
     const apiMap = {
+      '공지사항': 'notice',
       '이벤트': 'event',
       '이벤트 게시판': 'event',
       '뉴스레터': 'newsletter',
@@ -46,6 +49,22 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
     };
     return apiMap[activeMenu] || 'freeboard';
   }, [location.pathname, propsBoardType, stateBoardType, boardParam, activeMenu]);
+
+  // 🚩 [보완] 관리자 권한 체크 (로딩 중 멈춤 방지)
+  useEffect(() => {
+    if (currentUser) {
+        const isAdmin = 
+            currentUser.mbRol === 'ADMIN' || 
+            currentUser.mb_rol === 'ADMIN' || 
+            currentUser.role === 'ADMIN' || 
+            currentUser.mbLevel >= 10;
+
+        if (!isAdmin) {
+            alert('관리자만 접근 가능합니다.');
+            navigate(-1);
+        }
+    }
+  }, [currentUser, navigate]);
 
   useEffect(() => {
     const fetchPostData = async () => {
@@ -116,26 +135,40 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
     const rawAuthorNum = currentUser?.mbNum || currentUser?.mb_num || currentUser?.id;
     const authorNum = rawAuthorNum ? Number(rawAuthorNum) : null;
 
-    // 🚩 [수정] 서버 DTO 규격에 맞춰 필드명 보정 (poTitle, poContent 등)
-    const formData = new FormData();
-    formData.append('poTitle', title);          // title -> poTitle
-    formData.append('poContent', htmlContent);    // content -> poContent
-    formData.append('poMbNum', authorNum || 1);   // mbNum -> poMbNum
-
-    // 파일이 있을 경우 'images'가 아닌 'files' 또는 서버 규격 키값 확인 필요 (일반적으로 multipartFile)
-    if (imageFiles.length > 0) {
-      imageFiles.forEach((file) => {
-        formData.append('images', file); 
-      });
-    }
-
     let categoryPath = getCategoryPath();
     const correctionMap = {
+      '공지사항': 'notice',
       '이벤트': 'event', '이벤트 게시판': 'event',
       '뉴스레터': 'newsletter', '여행 추천 게시판': 'recommend',
       '자유 게시판': 'freeboard', '자주 묻는 질문': 'faq'
     };
     categoryPath = correctionMap[categoryPath] || categoryPath;
+
+    // 🚩 [수정 부분] 공지사항(notice)일 때는 JSON 전송, 그 외에는 FormData 전송
+    let requestData;
+    let contentType;
+
+    if (categoryPath === 'notice') {
+      // 공지사항은 백엔드 NoticePost 규격(JSON)에 맞춤
+      requestData = {
+        nnTitle: title,
+        nnContent: htmlContent
+      };
+      contentType = 'application/json';
+    } else {
+      // 다른 게시판은 기존대로 FormData 전송
+      const formData = new FormData();
+      formData.append('poTitle', title);
+      formData.append('poContent', htmlContent);
+      formData.append('poMbNum', authorNum || 1);
+      if (imageFiles.length > 0) {
+        imageFiles.forEach((file) => {
+          formData.append('images', file); 
+        });
+      }
+      requestData = formData;
+      contentType = 'multipart/form-data';
+    }
 
     const apiUrl = isEdit 
       ? `${API_BASE_URL}/api/${categoryPath}/posts/${id || statePostData?.poNum || statePostData?.id}`
@@ -147,9 +180,9 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
       const response = await axios({
         method: isEdit ? 'put' : 'post',
         url: apiUrl,
-        data: formData,
+        data: requestData,
         headers: { 
-          'Content-Type': 'multipart/form-data',
+          'Content-Type': contentType,
           ...(token && { 'Authorization': `Bearer ${token}` })
         },
         withCredentials: true
@@ -163,9 +196,8 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
       }
     } catch (error) {
       console.error("저장 실패 상세:", error.response);
-      // 서버에서 전달한 에러 메시지가 있다면 표시
       const errorData = error.response?.data;
-      const errorMsg = typeof errorData === 'string' ? errorData : (errorData?.message || errorData?.error || "서버 규격 오류(400)가 발생했습니다.");
+      const errorMsg = typeof errorData === 'string' ? errorData : (errorData?.message || errorData?.error || "서버 규격 오류가 발생했습니다.");
       alert(`저장 실패: ${errorMsg}`);
     }
   };
@@ -185,7 +217,7 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
   return (
     <div className="post-write-wrapper" style={{ padding: '0 20px' }}>
       <h2 style={{ marginBottom: '20px', color: '#2c3e50', fontSize: '1.2rem', fontWeight: '800' }}>
-        {activeMenu || (location.pathname.includes('newsletter') ? '뉴스레터' : location.pathname.includes('event') ? '이벤트 게시판' : location.pathname.includes('faq') ? '자주 묻는 질문' : boardParam)} {isEdit ? '수정하기' : '글쓰기'}
+        {activeMenu || (location.pathname.includes('notice') ? '공지사항' : location.pathname.includes('newsletter') ? '뉴스레터' : location.pathname.includes('event') ? '이벤트 게시판' : location.pathname.includes('faq') ? '자주 묻는 질문' : boardParam)} {isEdit ? '수정하기' : '글쓰기'}
       </h2>
 
       <div style={{ background: '#fff', padding: '40px', borderRadius: '15px', boxShadow: '0 10px 30px rgba(0,0,0,0.05)', border: '1px solid #eee' }}>

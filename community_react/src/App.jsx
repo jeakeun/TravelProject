@@ -208,6 +208,7 @@ function CommunityContainer({ posts, setPosts, loadPosts, loading }) {
 }
 
 function App() {
+  const navigate = useNavigate(); 
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup, ] = useState(false);
   const [showFindPw, setShowFindPw] = useState(false);
@@ -231,7 +232,7 @@ function App() {
   const loadPosts = useCallback(async () => {
     const path = location.pathname.toLowerCase();
     
-    if (path === '/domestic' || path === '/foreigncountry') {
+    if (path.includes('/write') || path.includes('/edit') || path === '/domestic' || path === '/foreigncountry') {
         setLoading(false);
         return;
     }
@@ -262,7 +263,6 @@ function App() {
         return;
       }
 
-      // 🚩 [수정] API 주소를 생성할 때 API_BASE_URL (빈 문자열 가능)을 사용
       const apiUrl = endpoint === 'recommend' 
         ? `${API_BASE_URL}/api/recommend/posts/all`
         : `${API_BASE_URL}/api/${endpoint}/posts`;
@@ -421,7 +421,10 @@ function App() {
         <Route path="/login" element={<OpenLoginModal openLogin={openLogin} />} />
         <Route path="/signup" element={<OpenSignupModal openSignup={openSignup} />} />
         
-        <Route path="/news/notice" element={<NoticeList posts={posts} />} />
+        <Route path="/news/notice" element={<NoticeList posts={posts} goToDetail={(id) => navigate(`/news/notice/${id}`)} />} />
+        <Route path="/news/notice/write" element={<PostWrite activeMenu="공지사항" boardType="notice" refreshPosts={loadPosts} />} />
+        <Route path="/news/notice/edit/:id" element={<PostWrite activeMenu="공지사항" boardType="notice" refreshPosts={loadPosts} isEdit={true} />} />
+        {/* 🚩 상세 페이지 라우트: poNum 파라미터 확인 */}
         <Route path="/news/notice/:poNum" element={<NoticeDetail />} />
         <Route path="/inquiry" element={<InquiryPage />} />
       </Route>

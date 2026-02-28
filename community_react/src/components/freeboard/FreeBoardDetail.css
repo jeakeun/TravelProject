@@ -10,6 +10,7 @@
 }
 
 @media (max-width: 768px) {
+
     .freeboard-list-wrapper,
     .review-detail-wrapper {
         padding: 24px 20px 40px;
@@ -249,4 +250,85 @@
     background: #2c3e50;
     color: #fff;
     border: none;
+}
+
+/* 🚩 [5. 댓글 영역] - RecommendPostDetail과 100% 동일 이식 */
+.section-divider {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 40px 0;
+}
+
+.comment-area .comment-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.comment-write-box {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 50px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+}
+
+.comment-write-box textarea {
+    width: 100%;
+    border: none;
+    outline: none;
+    resize: none;
+    min-height: 80px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.btn-comment-submit {
+    align-self: flex-end;
+    background: #333;
+    color: #fff;
+    border: none;
+    padding: 8px 25px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.btn-comment-submit:hover {
+    background: #000;
+}
+
+.comment-unit {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 15px 20px;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.comment-btns {
+    display: flex;
+    gap: 10px;
+    font-size: 12px;
+    color: #888;
+    cursor: pointer;
+}
+
+.comment-btns span:hover {
+    text-decoration: underline;
+}
+
+/* 🚩 리스트 통계 영역 테두리 제거 및 상태 유지 */
+.list-data-table .stat-item {
+    background: none !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
 }
