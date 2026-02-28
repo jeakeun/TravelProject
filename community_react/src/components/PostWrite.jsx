@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation, useOutletContext, useParams } from 'react-router-dom';
 import axios from 'axios';
 
-// 🚩 [유지] 상대 경로 설정을 통한 포트 차단 방지
-const API_BASE_URL = "";
+const API_BASE_URL = process.env.REACT_APP_API_URL || "";
 
-function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType, isEdit: isEditProp }) {
+function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams(); 
@@ -16,81 +15,65 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType, 
   const { user: contextUser, loadPosts } = useOutletContext() || {};
   const currentUser = user || contextUser;
 
-  // 수정 모드 및 기존 데이터 확인
-  const isEdit = isEditProp || location.state?.mode === 'edit';
-  const existingPost = location.state?.postData;
+  const isEdit = location.pathname.includes('/edit/') || location.state?.mode === 'edit';
+  const statePostData = location.state?.postData;
   const stateBoardType = location.state?.boardType;
 
   const [title, setTitle] = useState('');
   const [imageFiles, setImageFiles] = useState([]);      
-  const [isDataLoaded, setIsDataLoaded] = useState(false); 
   
   const editorRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // 카테고리 경로 결정 로직 (기존 디자인 및 로직 유지)
-  const getCategoryPath = () => {
+  const getCategoryPath = useCallback(() => {
+    const path = location.pathname;
+    if (propsBoardType) return propsBoardType;
+    if (stateBoardType) return stateBoardType;
+    if (path.includes('/newsletter')) return 'newsletter';
+    if (path.includes('/event')) return 'event';
+    if (path.includes('/recommend')) return 'recommend';
+    if (path.includes('/freeboard')) return 'freeboard';
+    if (path.includes('/faq')) return 'faq';
+    if (boardParam) return boardParam;
+    
     const apiMap = {
-      '여행 추천 게시판': 'recommend',
-      '여행 후기 게시판': 'reviewboard',
-      '자유 게시판': 'freeboard',
       '이벤트': 'event',
       '이벤트 게시판': 'event',
       '뉴스레터': 'newsletter',
+      '여행 추천 게시판': 'recommend',
+      '자유 게시판': 'freeboard',
       '자주 묻는 질문': 'faq'
     };
-    
-    const path = location.pathname;
-    let urlDerivedBoard = '';
-    if (path.includes('/newsletter')) urlDerivedBoard = 'newsletter';
-    else if (path.includes('/event')) urlDerivedBoard = 'event';
-    else if (path.includes('/recommend')) urlDerivedBoard = 'recommend';
-    else if (path.includes('/freeboard')) urlDerivedBoard = 'freeboard';
-    else if (path.includes('/faq')) urlDerivedBoard = 'faq';
+    return apiMap[activeMenu] || 'freeboard';
+  }, [location.pathname, propsBoardType, stateBoardType, boardParam, activeMenu]);
 
-    let category = propsBoardType || stateBoardType || urlDerivedBoard || boardParam || apiMap[activeMenu] || 'freeboard';
-
-    if (category === '이벤트' || category === '이벤트 게시판') return 'event';
-    if (category === '뉴스레터') return 'newsletter';
-    if (category === '여행 추천 게시판') return 'recommend';
-    if (category === '자유 게시판') return 'freeboard';
-    if (category === '자주 묻는 질문') return 'faq';
-    return category;
-  };
-
-  const categoryPath = getCategoryPath();
-
-  // 🚩 [유지] 데이터 주입 로직
   useEffect(() => {
-    const fetchExistingPost = async () => {
-      if (!isEdit || isDataLoaded) return;
-
-      if (existingPost) {
-        setTitle(existingPost.poTitle || existingPost.po_title || existingPost.title || '');
+    const fetchPostData = async () => {
+      if (statePostData) {
+        setTitle(statePostData.poTitle || statePostData.title || '');
         if (editorRef.current) {
-          editorRef.current.innerHTML = existingPost.poContent || existingPost.po_content || existingPost.content || '';
-          setIsDataLoaded(true);
+          editorRef.current.innerHTML = statePostData.poContent || statePostData.content || '';
         }
-      } 
-      else if (id) {
+        return;
+      }
+
+      if (isEdit && id) {
         try {
-          const response = await axios.get(`${API_BASE_URL}/api/${categoryPath}/posts/${id}`);
-          if (response.data) {
-            setTitle(response.data.poTitle || response.data.po_title || '');
-            if (editorRef.current) {
-              editorRef.current.innerHTML = response.data.poContent || response.data.po_content || '';
-            }
-            setIsDataLoaded(true);
+          const category = getCategoryPath();
+          const response = await axios.get(`${API_BASE_URL}/api/${category}/posts/${id}`);
+          const data = response.data;
+          setTitle(data.poTitle || data.title || '');
+          if (editorRef.current) {
+            editorRef.current.innerHTML = data.poContent || data.content || '';
           }
-        } catch (err) {
-          console.error("수정 데이터 로드 실패:", err);
+        } catch (error) {
+          console.error("기존 글 로딩 실패:", error);
         }
       }
     };
 
-    const timer = setTimeout(fetchExistingPost, 100);
-    return () => clearTimeout(timer);
-  }, [isEdit, existingPost, id, categoryPath, isDataLoaded]);
+    fetchPostData();
+  }, [isEdit, id, statePostData, getCategoryPath]);
 
   const insertImageAtCursor = (base64Data) => {
     if (!editorRef.current) return;
@@ -130,24 +113,16 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType, 
       return;
     }
 
+    const rawAuthorNum = currentUser?.mbNum || currentUser?.mb_num || currentUser?.id;
+    const authorNum = rawAuthorNum ? Number(rawAuthorNum) : null;
+
+    // 🚩 [수정] 서버 DTO 규격에 맞춰 필드명 보정 (poTitle, poContent 등)
     const formData = new FormData();
-    const authorNum = currentUser?.mbNum || currentUser?.mb_num || currentUser?.id || 1;
-    const authorNick = currentUser?.mbNickname || currentUser?.mb_nickname || currentUser?.nickname || "익명 사용자";
+    formData.append('poTitle', title);          // title -> poTitle
+    formData.append('poContent', htmlContent);    // content -> poContent
+    formData.append('poMbNum', authorNum || 1);   // mbNum -> poMbNum
 
-    // 🚩 [수정] 모든 게시판 컨트롤러 호환성 확보
-    // title/content와 poTitle/poContent를 모두 보냄으로써 서버 에러(400)를 원천 차단합니다.
-    if (isEdit) {
-      formData.append('title', title);
-      formData.append('content', htmlContent);
-      formData.append('poTitle', title);
-      formData.append('poContent', htmlContent);
-    } else {
-      formData.append('poTitle', title);
-      formData.append('poContent', htmlContent);
-      formData.append('poMbNum', String(authorNum));
-      formData.append('mbNickname', authorNick);
-    }
-
+    // 파일이 있을 경우 'images'가 아닌 'files' 또는 서버 규격 키값 확인 필요 (일반적으로 multipartFile)
     if (imageFiles.length > 0) {
       imageFiles.forEach((file) => {
         formData.append('images', file); 
@@ -180,32 +155,18 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType, 
         withCredentials: true
       });
 
-      if (response.status === 200 || response.status === 201 || (response.data && String(response.data).includes("Success"))) {
+      if (response.status >= 200 && response.status < 300) {
         alert(isEdit ? "글이 수정되었습니다!" : "글이 등록되었습니다!");
-        
         if (refreshPosts) await refreshPosts();
         if (loadPosts) await loadPosts();
-
-        if (isEdit) {
-          let detailPath = `/community/${categoryPath}/${finalPostId}`;
-          if (categoryPath === 'newsletter') detailPath = `/news/newsletter/${finalPostId}`;
-          if (categoryPath === 'event') detailPath = `/news/event/${finalPostId}`;
-          if (categoryPath === 'faq') detailPath = `/cscenter/faq/posts/${finalPostId}`;
-          
-          navigate(detailPath, { replace: true });
-        } else {
-          navigate(-1); 
-        }
+        navigate(-1); 
       }
     } catch (error) {
       console.error("저장 실패 상세:", error.response);
-      let errorMsg = "서버와 통신 중 오류가 발생했습니다.";
-      if (error.response?.data) {
-        errorMsg = typeof error.response.data === 'string' 
-          ? error.response.data 
-          : (error.response.data.message || error.response.data.error || JSON.stringify(error.response.data));
-      }
-      alert(`저장 실패 (코드 ${error.response?.status}): ${errorMsg}`);
+      // 서버에서 전달한 에러 메시지가 있다면 표시
+      const errorData = error.response?.data;
+      const errorMsg = typeof errorData === 'string' ? errorData : (errorData?.message || errorData?.error || "서버 규격 오류(400)가 발생했습니다.");
+      alert(`저장 실패: ${errorMsg}`);
     }
   };
 
