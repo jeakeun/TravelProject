@@ -27,7 +27,6 @@ const RecommendPostDetail = () => {
     const [replyTo, setReplyTo] = useState(null);         
     const [replyInput, setReplyInput] = useState(""); 
 
-   
     const [reportModal, setReportModal] = useState({ open: false, type: 'post', targetId: null });
 
     const commentAreaRef = useRef(null);
@@ -59,15 +58,9 @@ const RecommendPostDetail = () => {
         if (!isNumericId) return;
         try {
             if (!isAction) setLoading(true);
-            
             const postRes = await axios.get(`${SERVER_URL}/api/recommend/posts/${id}`, {
-                params: { mbNum: currentUserNum }
+                params: { mbNum: currentUserNum } 
             });
-
-            setPost(postRes.data);
-
-            const likedStatus = postRes.data.isLiked === true || postRes.data.isLiked === 'Y' || postRes.data.isLikedByMe === true;
-            setIsLiked(likedStatus);
             
             const data = postRes.data;
             setPost(data);
@@ -90,7 +83,7 @@ const RecommendPostDetail = () => {
             addRecentView({ 
                 boardType: 'recommend', 
                 poNum: Number(id), 
-                poTitle: postRes.data?.poTitle || postRes.data?.po_title 
+                poTitle: data?.poTitle || data?.po_title 
             }, currentUserNum);
 
             const commentRes = await axios.get(`${SERVER_URL}/api/comment/list/${id}`);
@@ -107,7 +100,7 @@ const RecommendPostDetail = () => {
             }
             setLoading(false);
         }
-    }, [id, navigate, isNumericId, currentUserNum]);
+    }, [id, isNumericId, currentUserNum, navigate]);
 
     useEffect(() => {
         const handleStorageChange = (e) => {
@@ -181,40 +174,6 @@ const RecommendPostDetail = () => {
         navigate(`/community/recommend/write`, { state: { mode: 'edit', postData: post } });
     };
 
-    const handleLikeToggle = async () => {
-        if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
-        try {
-            const res = await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/like`, { mbNum: currentUserNum });
-            if (res.data.status === "liked") {
-                setIsLiked(true);
-                setPost(prev => ({ ...prev, poUp: (prev.poUp || 0) + 1 }));
-                alert("게시글을 추천했습니다.");
-            } else {
-                setIsLiked(false);
-                setPost(prev => ({ ...prev, poUp: Math.max(0, (prev.poUp || 0) - 1) }));
-                alert("게시글 추천을 취소했습니다.");
-            }
-        } catch (err) { alert("추천 처리 중 오류가 발생했습니다."); }
-    };
-
-    const handleBookmark = async () => {
-        if (!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
-        try {
-            await api.post("/api/mypage/bookmarks", { poNum: Number(id), boardType: "recommend" });
-            const newState = !isBookmarked;
-            setIsBookmarked(newState);
-            localStorage.setItem('bookmark_changed', JSON.stringify({ 
-                id: Number(id), 
-                state: newState, 
-                time: Date.now() 
-            }));
-            alert(newState ? "게시글을 즐겨찾기에 등록했습니다." : "게시글 즐겨찾기를 취소했습니다.");
-        } catch (err) {
-            const msg = err?.response?.data?.msg || err?.response?.data?.error;
-            alert(msg || "즐겨찾기 처리에 실패했습니다.");
-        }
-    };
-
     const handleCommentLike = async (commentId) => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
@@ -237,12 +196,6 @@ const RecommendPostDetail = () => {
         try {
             if (type === 'post') {
                 await axios.post(`${SERVER_URL}/api/recommend/posts/${targetId}/report`, { category, reason, mbNum: currentUserNum });
-                
-                // 🚩 게시글 신고 성공 시 화면의 신고 수 실시간 업데이트
-                setPost(prev => ({
-                    ...prev,
-                    poReport: (prev.poReport || prev.po_report || 0) + 1 
-                }));
             } else {
                 await axios.post(`${SERVER_URL}/api/comment/report/${targetId}`, { category, reason, mbNum: currentUserNum });
             }
@@ -383,8 +336,7 @@ const RecommendPostDetail = () => {
                                     background: isLiked ? '#e74c3c' : '#fff', border: '1px solid #e74c3c', color: isLiked ? '#fff' : '#e74c3c' 
                                 }}
                             >
-                                <span style={{ color: '#e74c3c', filter: isLiked ? 'brightness(0) invert(1)' : 'none' }}>❤️</span>
-                                추천 {post.poUp || post.po_up || 0}
+                                {isLiked ? '❤️' : '🤍'} 추천 {post.poUp || post.po_up || 0}
                             </button>
                         )}
                         
@@ -414,27 +366,11 @@ const RecommendPostDetail = () => {
                         )}
                     </div>
 
-                    {/* 🚩 자유게시판과 동일한 디자인으로 수정된 '목록으로' 버튼 */}
                     <button 
                         className="btn-list-return" 
                         onClick={() => navigate('/community/recommend')}
-                        style={{ 
-                            padding: '10px 25px', 
-                            borderRadius: '30px', 
-                            fontWeight: 'bold', 
-                            cursor: 'pointer', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '5px', 
-                            transition: 'all 0.2s ease', 
-                            fontSize: '14px',
-                            background: '#fff', 
-                            border: '1px solid #34495e', 
-                            color: '#34495e' 
-                        }}
-                    >
-                        목록으로 
-                    </button>
+                        style={{ padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', background: '#fff', border: '1px solid #34495e', color: '#34495e' }}
+                    >목록으로</button>
                 </div>
 
                 <hr className="section-divider" />
