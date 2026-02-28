@@ -49,7 +49,7 @@ const RecommendMain = ({ posts: initialPosts = [] }) => {
         return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
-    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+    const SERVER_URL = process.env.REACT_APP_API_URL || "";
 
     const goToDetail = (id) => {
         if (!id) return;

@@ -3,7 +3,7 @@ import React from 'react';
 const RankingSidebar = ({ ranking, startRank, onDetail, getImageUrl, onBookmarkToggle }) => {
     // 🚩 [수정] 환경 변수가 있으면 사용하고, 없으면 로컬 백엔드 기본 포트(8080)를 사용합니다.
     // AWS 배포 환경에서는 .env 파일의 REACT_APP_API_URL을 따라가고, 로컬에선 8080으로 자동 설정됩니다.
-    const SERVER_URL = process.env.REACT_APP_API_URL || "http://localhost:8080";
+    const SERVER_URL = process.env.REACT_APP_API_URL || "";
 
     return (
         <aside className="ranking-section">
