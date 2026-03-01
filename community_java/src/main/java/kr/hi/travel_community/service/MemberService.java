@@ -321,7 +321,8 @@ public class MemberService {
             return created;
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            String msg = e.getMessage() != null && !e.getMessage().isBlank() ? e.getMessage() : "카카오 로그인에 실패했습니다.";
+            throw new RuntimeException(msg, e);
         }
     }
 }

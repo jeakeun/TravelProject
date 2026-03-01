@@ -364,7 +364,13 @@ public class MemberController {
             return ResponseEntity.badRequest().body("카카오 인증 코드가 없습니다.");
         }
         boolean fromSignup = body != null && Boolean.TRUE.equals(body.get("signup"));
-        MemberVO member = memberService.kakaoLoginOrSignup(code, fromSignup);
+        MemberVO member;
+        try {
+            member = memberService.kakaoLoginOrSignup(code, fromSignup);
+        } catch (RuntimeException e) {
+            String msg = e.getMessage() != null && !e.getMessage().isBlank() ? e.getMessage() : "카카오 로그인에 실패했습니다.";
+            return ResponseEntity.badRequest().body(msg);
+        }
         if (member == null) {
             return ResponseEntity.badRequest().body("카카오 로그인에 실패했습니다.");
         }
