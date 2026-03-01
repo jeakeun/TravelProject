@@ -16,10 +16,13 @@ function Kakaomap({ category, keyword }) {
   const dbMarkersRef = useRef([]);     // DB 데이터 마커 관리
   const infowindowRef = useRef(null);
   const resizeHandlerRef = useRef(null);
+  
+  // 🚩 현재 지도의 중심 위치를 추적하기 위한 Ref (튕김 방지)
+  const currentCenterRef = useRef(new window.kakao.maps.LatLng(37.5665, 126.9780));
 
   const codes = useMemo(() => CATEGORY_CODES, []);
 
-  // [기능] DB 데이터 불러오기 함수 (의존성 경고 방지를 위해 useCallback 사용)
+  // [기능] DB 데이터 불러오기 함수 (우리 추천 장소)
   const fetchDbPlaces = useCallback(async (map) => {
     try {
       const baseUrl = process.env.REACT_APP_API_URL || "";
@@ -43,6 +46,11 @@ function Kakaomap({ category, keyword }) {
         const marker = new window.kakao.maps.Marker({
           map: map,
           position: new window.kakao.maps.LatLng(lat, lng),
+          // DB 마커는 별점 모양 이미지로 구분 (선택 사항)
+          image: new window.kakao.maps.MarkerImage(
+            'https://t1.daumcdn.net/localimg/localimages/07/mapapidoc/markerStar.png',
+            new window.kakao.maps.Size(24, 35)
+          )
         });
 
         window.kakao.maps.event.addListener(marker, 'click', () => {
@@ -82,40 +90,31 @@ function Kakaomap({ category, keyword }) {
   // [기능 1] 지도 초기화 및 DB 데이터 불러오기
   useEffect(() => {
     const { kakao } = window;
-
-    if (!kakao || !kakao.maps) {
-      console.warn("카카오 지도 SDK 로딩 대기 중...");
-      return;
-    }
+    if (!kakao || !kakao.maps) return;
 
     kakao.maps.load(() => {
       if (!mapContainer.current) return;
 
-      try {
-        if (!mapInstance.current) {
-          const options = {
-            center: new kakao.maps.LatLng(37.5665, 126.9780),
-            level: 8
-          };
-          const map = new kakao.maps.Map(mapContainer.current, options);
-          mapInstance.current = map;
-          infowindowRef.current = new kakao.maps.InfoWindow({ zIndex: 5 });
-          
-          fetchDbPlaces(map);
-        }
+      if (!mapInstance.current) {
+        const options = {
+          center: currentCenterRef.current, 
+          level: 4 
+        };
+        const map = new kakao.maps.Map(mapContainer.current, options);
+        mapInstance.current = map;
+        infowindowRef.current = new kakao.maps.InfoWindow({ zIndex: 10 });
+        
+        // 사용자가 지도를 움직일 때마다 현재 중심 좌표를 실시간으로 Ref에 동기화
+        kakao.maps.event.addListener(map, 'idle', () => {
+          currentCenterRef.current = map.getCenter();
+        });
 
-        setTimeout(() => {
-          if (mapInstance.current) {
-            mapInstance.current.relayout();
-            if (!keyword && !category) {
-              mapInstance.current.setCenter(new kakao.maps.LatLng(37.5665, 126.9780));
-            }
-          }
-        }, 100);
-
-      } catch (fatalError) {
-        console.error("지도 초기화 치명적 오류:", fatalError);
+        fetchDbPlaces(map);
       }
+
+      setTimeout(() => {
+        if (mapInstance.current) mapInstance.current.relayout();
+      }, 100);
     });
 
     const currentResizeHandler = () => {
@@ -127,95 +126,91 @@ function Kakaomap({ category, keyword }) {
     return () => {
       window.removeEventListener('resize', currentResizeHandler);
     };
-  }, [fetchDbPlaces, category, keyword]);
+  }, [fetchDbPlaces]);
 
   // [기능 2] 키워드 및 카테고리 실시간 검색 로직
   useEffect(() => {
     const { kakao } = window;
     if (!kakao || !kakao.maps || !mapInstance.current) return;
 
-    // 🚩 마커 제거 함수 정의
+    const map = mapInstance.current;
+    const ps = new kakao.maps.services.Places();
+    const infowindow = infowindowRef.current;
+
+    // 기존 검색 마커 제거 함수
     const removeSearchMarkers = () => {
-      if (searchMarkersRef.current.length > 0) {
+      if (searchMarkersRef.current && searchMarkersRef.current.length > 0) {
         searchMarkersRef.current.forEach(m => m.setMap(null));
         searchMarkersRef.current = [];
       }
-      if (infowindowRef.current) infowindowRef.current.close();
+      if (infowindow) infowindow.close();
     };
 
-    kakao.maps.load(() => {
-      const map = mapInstance.current;
-      const ps = new kakao.maps.services.Places();
-      const infowindow = infowindowRef.current;
+    const displaySearchMarkers = (data, isCategorySearch) => {
+      const bounds = new kakao.maps.LatLngBounds();
 
-      const displayInfoWindow = (marker, place) => {
-        const detailUrl = `https://place.map.kakao.com/${place.id}`;
-        const content = `
-          <div style="padding:15px; font-size:13px; border-radius:10px; min-width:200px; line-height:1.6;">
-            <strong style="
-              display: -webkit-box;
-              -webkit-line-clamp: 1;
-              -webkit-box-orient: vertical;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              margin-bottom:6px; 
-              color:#333;
-            ">${place.place_name}</strong>
-            <span style="
-              display: -webkit-box;
-              -webkit-line-clamp: 2;
-              -webkit-box-orient: vertical;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              font-size:11px; 
-              color:#666;
-            ">📍 ${place.address_name}</span>
-            <a href="${detailUrl}" target="_blank" style="display:inline-block; margin-top:10px; background:#333; color:#fff; padding:4px 10px; border-radius:4px; text-decoration:none; font-size:11px;">상세보기</a>
-          </div>`;
-        infowindow.setContent(content);
-        infowindow.open(map, marker);
-      };
+      data.forEach((place, index) => {
+        const marker = new window.kakao.maps.Marker({
+          map: map,
+          position: new window.kakao.maps.LatLng(place.y, place.x)
+        });
 
-      const placesSearchCB = (data, status) => {
-        if (status === kakao.maps.services.Status.OK) {
-          // 검색 결과 직전에 한 번 더 초기화 (중복 방지)
-          removeSearchMarkers();
-          const bounds = new kakao.maps.LatLngBounds();
+        const displayInfoWindow = () => {
+          const detailUrl = `https://place.map.kakao.com/${place.id}`;
+          const content = `
+            <div style="padding:15px; font-size:13px; border-radius:10px; min-width:200px; line-height:1.6;">
+              <strong style="display:block; margin-bottom:6px; color:#333;">${place.place_name}</strong>
+              <span style="display:block; font-size:11px; color:#666;">📍 ${place.address_name}</span>
+              ${place.phone ? `<span style="display:block; font-size:11px; color:#1890ff; margin-top:2px;">📞 ${place.phone}</span>` : ''}
+              <a href="${detailUrl}" target="_blank" style="display:inline-block; margin-top:10px; background:#333; color:#fff; padding:4px 10px; border-radius:4px; text-decoration:none; font-size:11px;">상세보기</a>
+            </div>`;
+          infowindow.setContent(content);
+          infowindow.open(map, marker);
+        };
 
-          data.forEach(place => {
-            const marker = new kakao.maps.Marker({
-              map: map,
-              position: new kakao.maps.LatLng(place.y, place.x)
-            });
+        kakao.maps.event.addListener(marker, 'click', () => {
+          displayInfoWindow();
+        });
 
-            kakao.maps.event.addListener(marker, 'click', () => {
-              displayInfoWindow(marker, place);
-              map.panTo(new kakao.maps.LatLng(place.y, place.x));
-            });
+        searchMarkersRef.current.push(marker);
+        bounds.extend(new kakao.maps.LatLng(place.y, place.x));
+      });
 
-            searchMarkersRef.current.push(marker);
-            bounds.extend(new kakao.maps.LatLng(place.y, place.x));
-          });
-
-          if (keyword) map.setBounds(bounds);
-        }
-      };
-
-      // 새로운 검색 시작 시 즉시 제거
-      removeSearchMarkers();
-
-      if (keyword) {
-        ps.keywordSearch(keyword, placesSearchCB);
-      } else if (category && codes[category]) {
-        ps.categorySearch(codes[category], placesSearchCB, { useMapBounds: true });
+      // 🚩 키워드 검색 시에만 화면 이동 / 카테고리 검색 시에는 현재 위치 유지
+      if (!isCategorySearch && keyword && data.length > 0) {
+        map.setBounds(bounds);
+        currentCenterRef.current = map.getCenter(); 
       }
-    });
-
-    // 🚩 [핵심 수정] Cleanup 함수: 탭이나 키워드가 바뀌어 이 useEffect가 다시 실행되기 직전에 
-    // 이전 마커들을 지도에서 명시적으로 지웁니다.
-    return () => {
-      removeSearchMarkers();
     };
+
+    const placesSearchCB = (data, status, pagination) => {
+      if (status === kakao.maps.services.Status.OK) {
+        // 현재 실행 중인 검색이 카테고리 기반인지 확인
+        const isCategorySearch = !!(category && codes[category] && !keyword);
+        displaySearchMarkers(data, isCategorySearch);
+
+        // 카테고리 검색 결과가 많을 경우 다음 페이지 연쇄 검색 (최대 45개)
+        if (isCategorySearch && pagination.hasNextPage && searchMarkersRef.current.length < 45) {
+          pagination.nextPage();
+        }
+      }
+    };
+
+    // 검색 시작 전 기존 마커 정리
+    removeSearchMarkers();
+
+    // 🚩 검색 로직 우선순위 조정: 키워드가 있을 때는 키워드 검색, 없을 때만 카테고리 검색
+    if (keyword) {
+      ps.keywordSearch(keyword, placesSearchCB);
+    } else if (category && codes[category]) {
+      ps.categorySearch(codes[category], placesSearchCB, {
+        location: map.getCenter(), // 실시간 현재 지도 중심 기준
+        radius: 2000, 
+        size: 15,
+        useMapBounds: false // 현재 화면 영역에 구애받지 않고 중심점 기준 2km 검색
+      });
+    }
+
   }, [category, keyword, codes]);
 
   return (

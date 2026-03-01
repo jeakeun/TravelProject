@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Kakaomap from './Kakaomap.jsx';
 
-function MainList({ photos = [], setPhotos, activeMenu = '', setActiveMenu, menuItems, goToDetail }) {
+function MainList({ photos = [], setPhotos, activeMenu = '', setActiveMenu, menuItems, goToDetail, onAreaClick }) {
   const [inputValue, setInputValue] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -10,7 +10,6 @@ function MainList({ photos = [], setPhotos, activeMenu = '', setActiveMenu, menu
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 🚩 [수정] .env의 설정을 가져오되, 없을 경우 상대경로 처리를 위해 빈 문자열 유지
   const SERVER_URL = process.env.REACT_APP_API_URL || "";
 
   // 지도 관련 상태 관리
@@ -27,14 +26,26 @@ function MainList({ photos = [], setPhotos, activeMenu = '', setActiveMenu, menu
 
   const FALLBACK_IMAGE = "https://placehold.co/300x200?text=No+Image";
 
-  // 🚩 [유지] 경로 판정 로직
+  // 외부(TOP 5)에서 클릭 이벤트가 들어오면 이 함수를 실행하여 지도를 움직입니다.
+  const handleExternalClick = useCallback((areaName) => {
+    if (!areaName) return;
+    setMapKeyword(areaName);      
+    setSelectedCategory(null);   
+    setMapInput(areaName);       
+  }, []);
+
+  useEffect(() => {
+    if (onAreaClick && typeof onAreaClick === 'string') {
+      handleExternalClick(onAreaClick);
+    }
+  }, [onAreaClick, handleExternalClick]);
+
   const isDomesticMode = useMemo(() => {
     const path = location.pathname.toLowerCase();
     const menuStr = (typeof activeMenu === 'string') ? activeMenu : (activeMenu?.name || '');
     return path.includes('domestic') || menuStr.includes('국내여행');
   }, [location.pathname, activeMenu]);
 
-  // 🚩 [유지] activeMenu 안전 처리
   const safeActiveMenu = useMemo(() => {
     if (!activeMenu || typeof activeMenu !== 'string') {
       return isDomesticMode ? '국내여행' : '해외여행';
@@ -167,7 +178,11 @@ function MainList({ photos = [], setPhotos, activeMenu = '', setActiveMenu, menu
                     transition: 'all 0.2s ease',
                     boxShadow: selectedCategory === cat ? '0 4px 8px rgba(0,0,0,0.15)' : 'none'
                   }} 
-                  onClick={() => { setSelectedCategory(cat); setMapKeyword(''); setMapInput(''); }}
+                  // 🚩 [수정 포인트] 카테고리 클릭 시 mapKeyword를 비워줘야 Kakaomap에서 카테고리 검색이 작동합니다.
+                  onClick={() => { 
+                    setSelectedCategory(cat); 
+                    setMapKeyword(''); // 키워드를 초기화하여 카테고리 검색 모드로 전환
+                  }}
                 >
                   <span style={{ fontSize: '18px' }}>{categoryIcons[cat]}</span>
                   {cat}
@@ -188,7 +203,10 @@ function MainList({ photos = [], setPhotos, activeMenu = '', setActiveMenu, menu
               position: 'relative'
             }}>
               {window.kakao && window.kakao.maps ? (
-                <Kakaomap category={selectedCategory} keyword={mapKeyword} />
+                <Kakaomap 
+                  category={selectedCategory} 
+                  keyword={mapKeyword} 
+                />
               ) : (
                 <div style={{ width: '100%', height: '100%', display:'flex', justifyContent:'center', alignItems:'center', color:'#888', textAlign: 'center' }}>
                   카카오 지도를 불러오는 중입니다...<br/>(잠시만 기다려주세요)
@@ -218,16 +236,12 @@ function MainList({ photos = [], setPhotos, activeMenu = '', setActiveMenu, menu
                 const postId = photo.poNum || photo.po_num || photo.postId || photo.id;
                 const displayTitle = photo.poTitle || photo.po_title || photo.title;
 
-                // 🚩 [수정 핵심] 이미지 경로 구성 로직 최적화
                 let displayImg = FALLBACK_IMAGE;
                 if (photo.fileUrl) {
                   displayImg = photo.fileUrl;
                 } else if (photo.poImg || photo.fileName) {
-                  // poImg가 있으면 그것을 쓰고, 없으면 fileName을 확인
                   const targetImg = photo.poImg || photo.fileName;
                   const firstImgName = String(targetImg).split(',')[0].trim();
-                  
-                  // http로 시작하면 그대로 쓰고, 아니면 SERVER_URL/pic/ 경로를 붙임
                   displayImg = firstImgName.startsWith('http') 
                     ? firstImgName 
                     : `${SERVER_URL}/pic/${firstImgName}`;

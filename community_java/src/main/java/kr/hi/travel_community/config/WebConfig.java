@@ -33,13 +33,26 @@ public class WebConfig implements WebMvcConfigurer {
             directory.mkdirs();
         }
 
-        // 🚩 [핵심 수정] 리눅스 환경(/home/uploads/)에 최적화된 경로 생성
-        // 리눅스는 'file:' 뒤에 바로 절대경로(/)가 붙어야 하므로 file:/home/uploads/ 형식이 됩니다.
+        // 🚩 리눅스 환경(/home/uploads/)에 최적화된 경로 생성
         String location = path.startsWith("/") ? "file:" + path : "file:///" + path;
 
         registry.addResourceHandler("/pic/**")
                 .addResourceLocations(location)
                 .setCachePeriod(3600); 
+
+        // 2. [추가] 리액트 정적 파일 및 새로고침 대응 (SPA 라우팅)
+        registry.addResourceHandler("/**")
+                .addResourceLocations("classpath:/static/")
+                .resourceChain(true)
+                .addResolver(new PathResourceResolver() {
+                    @Override
+                    protected Resource getResource(String resourcePath, Resource location) throws IOException {
+                        Resource requestedResource = location.createRelative(resourcePath);
+                        // 존재하는 리소스거나 파일 확장자가 있는 경우는 그대로 반환
+                        return (requestedResource.exists() && requestedResource.isReadable()) ? requestedResource
+                                : new ClassPathResource("/static/index.html"); // 그 외엔 index.html로 리다이렉트
+                    }
+                });
 
         System.out.println("✅ [Mapping] /pic/** URL -> " + location);
     }

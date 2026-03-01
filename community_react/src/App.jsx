@@ -33,6 +33,9 @@ import AdminPage from './pages/AdminPage';
 import InquiryPage from './pages/InquiryPage';
 import { getUserId } from './utils/user';
 
+// 🚩 RankingList 임포트 추가
+import RankingList from './components/ranking/RankingList'; 
+
 import Login from './auth/login';
 import Signup from './auth/signup';
 import FindPassword from './auth/FindPassword';
@@ -41,7 +44,6 @@ import ChangePassword from './auth/ChangePassword';
 
 axios.defaults.withCredentials = true;
 
-// 🚩 [수정] 환경변수가 있으면 쓰고, 없으면 현재 호스트의 8080 포트를 바라봄 (상대 경로 대응)
 const API_BASE_URL = process.env.REACT_APP_API_URL || "";
 
 function OpenLoginModal({ openLogin }) {
@@ -118,6 +120,9 @@ function GlobalLayout({
 
 function CommunityContainer({ posts, setPosts, loadPosts, loading }) {
   const [activeMenu, setActiveMenu] = useState('');
+  // 🚩 [핵심 수정] 랭킹 리스트에서 클릭한 지역명을 저장할 상태 추가
+  const [selectedArea, setSelectedArea] = useState('');
+  
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -176,32 +181,49 @@ function CommunityContainer({ posts, setPosts, loadPosts, loading }) {
         </ul>
       </aside>
 
-      <main className="main-content" style={{ flex: 1 }}>
-        <Routes>
-          <Route index element={
-            pathname.startsWith('/domestic') 
-              ? <MainList photos={posts} setPhotos={setPosts} activeMenu="국내여행" />
-              : <MainList photos={posts} setPhotos={setPosts} activeMenu="해외여행" goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />
-          } />
+      <main className="main-content" style={{ flex: 1, padding: '20px' }}>
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: pathname.startsWith('/domestic') ? 'row' : 'column',
+          gap: '20px',
+          alignItems: 'flex-start'
+        }}>
+          
+          <div style={{ flex: 1, width: '100%' }}>
+            <Routes>
+              <Route index element={
+                pathname.startsWith('/domestic') 
+                  ? <MainList photos={posts} setPhotos={setPosts} activeMenu="국내여행" onAreaClick={selectedArea} />
+                  : <MainList photos={posts} setPhotos={setPosts} activeMenu="해외여행" goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />
+              } />
 
-          <Route path="recommend" element={<RecommendMain posts={posts} />} />
-          <Route path="recommend/write" element={<PostWrite activeMenu="여행 추천 게시판" boardType="recommend" refreshPosts={loadPosts} />} />
-          <Route path="recommend/edit/:id" element={<PostWrite activeMenu="여행 추천 게시판" boardType="recommend" refreshPosts={loadPosts} isEdit={true} />} />
-          <Route path="recommend/:id" element={<RecommendPostDetail />} />
+              <Route path="recommend" element={<RecommendMain posts={posts} />} />
+              <Route path="recommend/write" element={<PostWrite activeMenu="여행 추천 게시판" boardType="recommend" refreshPosts={loadPosts} />} />
+              <Route path="recommend/edit/:id" element={<PostWrite activeMenu="여행 추천 게시판" boardType="recommend" refreshPosts={loadPosts} isEdit={true} />} />
+              <Route path="recommend/:id" element={<RecommendPostDetail />} />
 
-          <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />
-          <Route path="freeboard/write" element={<PostWrite activeMenu="자유 게시판" boardType="freeboard" refreshPosts={loadPosts} />} />
-          <Route path="freeboard/edit/:id" element={<PostWrite activeMenu="자유 게시판" boardType="freeboard" refreshPosts={loadPosts} isEdit={true} />} />
-          <Route path="freeboard/:id" element={<FreeBoardDetail />} />
+              <Route path="freeboard" element={<FreeBoard posts={posts} goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />} />
+              <Route path="freeboard/write" element={<PostWrite activeMenu="자유 게시판" boardType="freeboard" refreshPosts={loadPosts} />} />
+              <Route path="freeboard/edit/:id" element={<PostWrite activeMenu="자유 게시판" boardType="freeboard" refreshPosts={loadPosts} isEdit={true} />} />
+              <Route path="freeboard/:id" element={<FreeBoardDetail />} />
 
-          <Route path="write" element={<PostWrite activeMenu={activeMenu} boardType={activeMenu === '여행 추천 게시판' ? 'recommend' : 'freeboard'} refreshPosts={loadPosts} />} />
+              <Route path="write" element={<PostWrite activeMenu={activeMenu} boardType={activeMenu === '여행 추천 게시판' ? 'recommend' : 'freeboard'} refreshPosts={loadPosts} />} />
 
-          <Route path="*" element={
-            pathname.includes('/domestic') 
-              ? <MainList photos={posts} setPhotos={setPosts} activeMenu="국내여행" />
-              : <MainList photos={posts} setPhotos={setPosts} activeMenu="해외여행" goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />
-          } />
-        </Routes>
+              <Route path="*" element={
+                pathname.includes('/domestic') 
+                  ? <MainList photos={posts} setPhotos={setPosts} activeMenu="국내여행" onAreaClick={selectedArea} />
+                  : <MainList photos={posts} setPhotos={setPosts} activeMenu="해외여행" goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />
+              } />
+            </Routes>
+          </div>
+
+          {/* 🚩 [수정] RankingList에 onAreaSelect 프롭스를 전달하여 상태를 업데이트하게 함 */}
+          {pathname === '/domestic' && (
+            <div className="ranking-sidebar">
+              <RankingList onAreaSelect={(areaName) => setSelectedArea(areaName)} />
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
@@ -210,7 +232,7 @@ function CommunityContainer({ posts, setPosts, loadPosts, loading }) {
 function App() {
   const navigate = useNavigate(); 
   const [showLogin, setShowLogin] = useState(false);
-  const [showSignup, setShowSignup, ] = useState(false);
+  const [showSignup, setShowSignup] = useState(false);
   const [showFindPw, setShowFindPw] = useState(false);
   const [showResetPw, setShowResetPw] = useState(false);
   const [showChangePw, setShowChangePw] = useState(false);
@@ -424,7 +446,6 @@ function App() {
         <Route path="/news/notice" element={<NoticeList posts={posts} goToDetail={(id) => navigate(`/news/notice/${id}`)} />} />
         <Route path="/news/notice/write" element={<PostWrite activeMenu="공지사항" boardType="notice" refreshPosts={loadPosts} />} />
         <Route path="/news/notice/edit/:id" element={<PostWrite activeMenu="공지사항" boardType="notice" refreshPosts={loadPosts} isEdit={true} />} />
-        {/* 🚩 상세 페이지 라우트: poNum 파라미터 확인 */}
         <Route path="/news/notice/:poNum" element={<NoticeDetail />} />
         <Route path="/inquiry" element={<InquiryPage />} />
       </Route>
