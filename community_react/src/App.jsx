@@ -87,7 +87,7 @@ function GlobalLayout({
         adminNewCounts={adminNewCounts}
       />
       {/* 네비게이션바 컴포넌트 추가 */}
-      <NavigationBar />
+      <NavigationBar user={user}/>
       {showLogin && (
         <Login
           onClose={() => setShowLogin(false)}
