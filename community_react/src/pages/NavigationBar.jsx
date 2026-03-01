@@ -106,7 +106,7 @@ const NavigationBar = ({ user }) => {
 
         {/* 🚩 숨김 버튼 추가 */}
         <button className="side-nav-hide-btn" onClick={() => { setIsVisible(false); setIsDrawerOpen(false); }}>
-          숨기기 ◀
+          숨기기 ▶
         </button>
       </div>
     </nav>
