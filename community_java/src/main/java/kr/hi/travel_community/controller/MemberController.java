@@ -10,6 +10,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -286,6 +287,24 @@ public class MemberController {
         Integer photoVer = memberService.updatePhoto(id, photo);
         if (photoVer == null) {
             return ResponseEntity.badRequest().body("업로드에 실패했습니다.");
+        }
+        Map<String, Object> body = new HashMap<>();
+        body.put("mb_photo_ver", photoVer);
+        return ResponseEntity.ok(body);
+    }
+
+    /**
+     * ✅ 프로필 사진 삭제 (로그인 사용자 본인만)
+     */
+    @DeleteMapping("/auth/profile-photo")
+    public ResponseEntity<?> deleteProfilePhoto(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUser)) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+        String id = ((CustomUser) authentication.getPrincipal()).getMember().getMb_Uid();
+        Integer photoVer = memberService.deletePhoto(id);
+        if (photoVer == null) {
+            return ResponseEntity.badRequest().body("삭제에 실패했습니다.");
         }
         Map<String, Object> body = new HashMap<>();
         body.put("mb_photo_ver", photoVer);

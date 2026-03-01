@@ -215,6 +215,18 @@ public class MemberService {
     }
 
     /**
+     * ✅ 프로필 사진 삭제 (DB BLOB/타입 null, 버전 증가)
+     */
+    @Transactional
+    public Integer deletePhoto(String id) {
+        if (id == null || id.trim().isEmpty()) return null;
+        int updated = memberDAO.updatePhotoDeleteById(id.trim());
+        if (updated <= 0) return null;
+        MemberVO m = memberDAO.selectMemberById(id.trim());
+        return m != null && m.getMb_photo_ver() != null ? m.getMb_photo_ver() : (int) (System.currentTimeMillis() / 1000);
+    }
+
+    /**
      * ✅ 프로필 사진 조회 (DB BLOB → 바이트 배열)
      */
     public byte[] getPhotoData(String id) {

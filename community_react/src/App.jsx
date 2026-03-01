@@ -83,7 +83,7 @@ function GlobalLayout({ showLogin, setShowLogin, showSignup, setShowSignup, open
           onOpenFindPw={() => { setShowLogin(false); setShowFindPw(true); }}
         />
       )}
-      {showSignup && <Signup onClose={() => setShowSignup(false)} />}
+      {showSignup && <Signup onClose={() => setShowSignup(false)} currentLang={currentLang} />}
       {showFindPw && (
         <FindPassword
           onClose={() => setShowFindPw(false)}

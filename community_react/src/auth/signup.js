@@ -1,13 +1,15 @@
 import { useState } from "react";
 import "./signup.css";
+import { signupMessages } from "../translations/signup";
 
-function Signup({ onClose }) {
+function Signup({ onClose, currentLang = "KR" }) {
   const [id, setId] = useState("");
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [email, setEmail] = useState("");
   const [agree, setAgree] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
+  const t = signupMessages[currentLang] || signupMessages.KR;
 
   const fillRandom = () => {
     const rand = Math.random().toString(36).substring(2, 8);
@@ -22,23 +24,23 @@ function Signup({ onClose }) {
     e.preventDefault();
 
     if (!id.trim()) {
-      alert("아이디를 입력하세요.");
+      alert(t.id_required);
       return;
     }
     if (!pw.trim()) {
-      alert("비밀번호를 입력하세요.");
+      alert(t.pw_required);
       return;
     }
     if (pw !== pw2) {
-      alert("비밀번호가 일치하지 않습니다.");
+      alert(t.pw_mismatch);
       return;
     }
     if (!email.trim()) {
-      alert("이메일을 입력하세요.");
+      alert(t.email_required);
       return;
     }
     if (!agree) {
-      alert("개인정보 처리방침에 동의해주세요.");
+      alert(t.agree_required);
       return;
     }
 
@@ -58,7 +60,7 @@ function Signup({ onClose }) {
         alert(message);
       }
     } catch (error) {
-      alert("서버와 통신 중 오류가 발생했습니다.");
+      alert(t.network_error);
     }
   };
 
@@ -136,7 +138,7 @@ function Signup({ onClose }) {
                     prompt: "login",
                   });
                 } else {
-                  alert("카카오 로그인을 사용할 수 없습니다. 페이지를 새로고침 후 다시 시도하세요.");
+                  alert(t.kakao_unavailable);
                 }
               }}
             >
