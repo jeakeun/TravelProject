@@ -111,7 +111,6 @@ function Main() {
 
   return (
     <div className="main-container">
-      <NavigationBar />
       <section id="main-video">
         <iframe 
           src="https://www.youtube.com/embed/1La4QzGeaaQ?autoplay=1&mute=1&controls=0&loop=1&playlist=1La4QzGeaaQ" 
