@@ -21,14 +21,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import kr.hi.travel_community.entity.BookMark;
+import kr.hi.travel_community.entity.Comment;
 import kr.hi.travel_community.entity.FreePost;
+import kr.hi.travel_community.entity.Member;
 import kr.hi.travel_community.entity.RecommendPost;
 import kr.hi.travel_community.entity.ReportBox;
 import kr.hi.travel_community.entity.ReviewPost;
 import kr.hi.travel_community.model.util.CustomUser;
 import kr.hi.travel_community.model.vo.MemberVO;
 import kr.hi.travel_community.repository.BookMarkRepository;
+import kr.hi.travel_community.repository.CommentRepository;
 import kr.hi.travel_community.repository.FreeRepository;
+import kr.hi.travel_community.repository.MemberRepository;
 import kr.hi.travel_community.repository.RecommendRepository;
 import kr.hi.travel_community.repository.ReportRepository;
 import kr.hi.travel_community.repository.ReviewRepository;
@@ -52,6 +56,8 @@ public class MypageController {
     private final RecommendRepository recommendRepository;
     private final ReviewRepository reviewRepository;
     private final FreeRepository freeRepository;
+    private final CommentRepository commentRepository;
+    private final MemberRepository memberRepository;
 
     @GetMapping("/posts")
     public ResponseEntity<?> getMyPosts(Authentication authentication) {
@@ -164,6 +170,7 @@ public class MypageController {
             m.put("rbReply", rb.getRbReply());
             m.put("rbManage", rb.getRbManage());
             m.put("rbSeen", rb.getRbSeen() != null ? rb.getRbSeen() : "N");
+            m.put("rbTargetNickname", resolveReportTargetNickname(rb));
             result.add(m);
         }
         return ResponseEntity.ok(result);
@@ -180,6 +187,38 @@ public class MypageController {
         if (member == null) return ResponseEntity.status(401).body(Map.of("error", "회원 정보를 찾을 수 없습니다."));
         int updated = reportRepository.markSeen(rbNum, member.getMb_num());
         return updated > 0 ? ResponseEntity.ok(Map.of("msg", "확인됨")) : ResponseEntity.notFound().build();
+    }
+
+    /** 신고 대상(글/댓글 작성자) 닉네임 조회 */
+    private String resolveReportTargetNickname(ReportBox rb) {
+        if (rb == null) return "알 수 없음";
+        String rbName = rb.getRbName() != null ? rb.getRbName() : "";
+        Integer rbId = rb.getRbId();
+        if (rbId == null) return "알 수 없음";
+        Integer targetMbNum = null;
+        try {
+            if ("RECOMMEND".equals(rbName)) {
+                targetMbNum = recommendRepository.findByPoNumAndPoDel(rbId, "N")
+                        .map(RecommendPost::getPoMbNum).orElse(null);
+            } else if ("RECOMMEND_COMMENT".equals(rbName)) {
+                Comment c = commentRepository.findById(rbId).orElse(null);
+                targetMbNum = c != null ? c.getCoMbNum() : null;
+            } else if ("REVIEW".equals(rbName) || "REVIEWBOARD".equals(rbName)) {
+                targetMbNum = reviewRepository.findByPoNumAndPoDel(rbId, "N")
+                        .map(ReviewPost::getPoMbNum).orElse(null);
+            } else if ("FREE".equals(rbName) || "FREEBOARD".equals(rbName)) {
+                targetMbNum = freeRepository.findByPoNumAndPoDel(rbId, "N")
+                        .map(FreePost::getPoMbNum).orElse(null);
+            }
+            if (targetMbNum != null) {
+                return memberRepository.findById(targetMbNum)
+                        .map(Member::getMbNickname)
+                        .orElse("알 수 없음");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "알 수 없음";
     }
 
     private String resolvePostTitle(String poType, Integer poNum) {

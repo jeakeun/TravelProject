@@ -8,10 +8,16 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import kr.hi.travel_community.entity.Comment;
+import kr.hi.travel_community.entity.FreePost;
 import kr.hi.travel_community.entity.InquiryBox;
+import kr.hi.travel_community.entity.Member;
 import kr.hi.travel_community.entity.ReportBox;
+import kr.hi.travel_community.entity.ReviewPost;
+import kr.hi.travel_community.repository.CommentRepository;
 import kr.hi.travel_community.repository.FreeRepository;
 import kr.hi.travel_community.repository.InquiryRepository;
+import kr.hi.travel_community.repository.MemberRepository;
 import kr.hi.travel_community.repository.RecommendRepository;
 import kr.hi.travel_community.repository.ReportRepository;
 import kr.hi.travel_community.repository.ReviewRepository;
@@ -26,6 +32,8 @@ public class AdminService {
     private final RecommendRepository recommendRepository;
     private final ReviewRepository reviewRepository;
     private final FreeRepository freeRepository;
+    private final CommentRepository commentRepository;
+    private final MemberRepository memberRepository;
 
     public List<Map<String, Object>> getAllInquiries() {
         return inquiryRepository.findAllByOrderByIbNumDesc().stream()
@@ -116,6 +124,7 @@ public class AdminService {
         m.put("ibDate", ib.getIbDate());
         m.put("ibStatus", ib.getIbStatus() != null ? ib.getIbStatus() : "N");
         m.put("ibMbNum", ib.getIbMbNum());
+        m.put("ibAuthorNickname", resolveMemberNickname(ib.getIbMbNum()));
         return m;
     }
 
@@ -128,6 +137,52 @@ public class AdminService {
         m.put("rbId", rb.getRbId());
         m.put("rbName", rb.getRbName() != null ? rb.getRbName() : "");
         m.put("rbMbNum", rb.getRbMbNum());
+        m.put("rbTargetNickname", resolveReportTargetNickname(rb));
+        m.put("rbReporterNickname", resolveMemberNickname(rb.getRbMbNum()));
         return m;
+    }
+
+    /** 회원 번호로 닉네임 조회 */
+    private String resolveMemberNickname(Integer mbNum) {
+        if (mbNum == null) return "알 수 없음";
+        try {
+            return memberRepository.findById(mbNum)
+                    .map(Member::getMbNickname)
+                    .orElse("알 수 없음");
+        } catch (Exception e) {
+            return "알 수 없음";
+        }
+    }
+
+    /** 신고 대상(글/댓글 작성자) 닉네임 조회 */
+    private String resolveReportTargetNickname(ReportBox rb) {
+        if (rb == null) return "알 수 없음";
+        String rbName = rb.getRbName() != null ? rb.getRbName() : "";
+        Integer rbId = rb.getRbId();
+        if (rbId == null) return "알 수 없음";
+        Integer targetMbNum = null;
+        try {
+            if ("RECOMMEND".equals(rbName)) {
+                targetMbNum = recommendRepository.findByPoNumAndPoDel(rbId, "N")
+                        .map(p -> p.getPoMbNum()).orElse(null);
+            } else if ("RECOMMEND_COMMENT".equals(rbName)) {
+                Comment c = commentRepository.findById(rbId).orElse(null);
+                targetMbNum = c != null ? c.getCoMbNum() : null;
+            } else if ("REVIEW".equals(rbName) || "REVIEWBOARD".equals(rbName)) {
+                targetMbNum = reviewRepository.findByPoNumAndPoDel(rbId, "N")
+                        .map(ReviewPost::getPoMbNum).orElse(null);
+            } else if ("FREE".equals(rbName) || "FREEBOARD".equals(rbName)) {
+                targetMbNum = freeRepository.findByPoNumAndPoDel(rbId, "N")
+                        .map(FreePost::getPoMbNum).orElse(null);
+            }
+            if (targetMbNum != null) {
+                return memberRepository.findById(targetMbNum)
+                        .map(Member::getMbNickname)
+                        .orElse("알 수 없음");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "알 수 없음";
     }
 }
