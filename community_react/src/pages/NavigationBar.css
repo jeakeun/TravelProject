@@ -1,22 +1,22 @@
-/* 사이드바 전체 컨테이너: 각진 네모 스타일 유지 */
+/* 전체 컨테이너 스타일 */
 .side-nav-rect {
   position: fixed;
-  right: 57px; /* 우측 끝 여백 */
+  right: 57px;
   top: 50%;
   transform: translateY(-50%);
   z-index: 9999;
   width: 90px;
-  background-color: rgba(0, 0, 0, 0.685); /* 어두운 배경 */
-  border: 1px solid #444; /* 얇은 테두리 */
+  background-color: rgba(0, 0, 0, 0.685);
+  border: 1px solid #444;
   display: flex;
   flex-direction: column;
   padding: 15px 0;
-  min-height: 450px; /* 박스들이 밀려나지 않도록 최소 높이 설정 */
+  min-height: 450px; /* 서랍장 버튼 위치 확보를 위한 최소 높이 */
 }
 
-/* 상단 타이틀 (TOP 버튼 기능) */
+/* 상단 TOP 타이틀 */
 .side-nav-title {
-  color: #2d5a27; /* 사이트 포인트 컬러 */
+  color: #2d5a27;
   font-size: 10px;
   font-weight: bold;
   text-align: center;
@@ -24,15 +24,13 @@
   letter-spacing: 1px;
   cursor: pointer;
   transition: all 0.3s ease;
-  padding: 5px 0;
 }
-
 .side-nav-title:hover {
-  background-color: #f0f0f0; /* 마우스 올렸을 때 피드백 */
-  color: #2ecc71; 
+  background-color: #f0f0f0;
+  color: #2ecc71;
 }
 
-/* 메뉴 리스트 스타일 */
+/* 메뉴 리스트 및 아이템 */
 .side-nav-list-rect {
   list-style: none;
   padding: 0;
@@ -41,14 +39,14 @@
 
 .side-nav-item-rect {
   width: 100%;
-  border-bottom: 1px solid #333; /* 메뉴 간 구분선 */
+  border-bottom: 1px solid #333;
 }
 
 .side-nav-item-rect:last-child {
   border-bottom: none;
 }
 
-/* 메뉴 버튼 및 링크 스타일 */
+/* 버튼 및 링크 기본 스타일 */
 .side-nav-btn-rect {
   width: 100%;
   padding: 15px 0;
@@ -59,14 +57,12 @@
   flex-direction: column;
   align-items: center;
   transition: background 0.3s;
-  
-  /* 링크 기본 스타일 제거 */
-  text-decoration: none; 
-  color: inherit; 
+  text-decoration: none;
+  color: inherit;
 }
 
 .side-nav-btn-rect:hover {
-  background-color: #2d5a27; /* 마우스 호버 시 포인트 컬러 */
+  background-color: #2d5a27;
 }
 
 .icon-rect {
@@ -80,56 +76,98 @@
   font-weight: 500;
 }
 
-/* --- 하단 최근 본 게시물 영역 (수정 및 추가된 부분) --- */
+/* -------------------------------------------------- */
+/*  하단 서랍장(Drawer) 관련 스타일 (박스 3개 대체) */
+/* -------------------------------------------------- */
+
 .side-nav-footer-rect {
-  display: flex;
-  justify-content: center;
-  gap: 6px; /* 박스 사이 간격 */
-  padding: 15px 5px 5px 5px;
-  border-top: 2px solid #2d5a27; /* 상단과 구분하는 강조선 */
-  margin-top: auto; /* 메뉴가 적어도 박스들은 항상 맨 아래 배치 */
+  margin-top: auto; /* 메뉴 아래로 밀어내기 */
+  border-top: 2px solid #2d5a27;
+  padding-top: 5px;
+  position: relative; /* 서랍장 위치 기준점 */
 }
 
-/* 공통 사각형 박스 스타일 */
-.square-box {
-  width: 24px;  /* 기존 18px에서 글자 가독성을 위해 살짝 키움 */
-  height: 24px;
-  background-color: #555;
-  border: 1px solid #777;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
+/* 최근 본 글 버튼 전용 스타일 */
+.drawer-toggle-btn {
+  padding: 12px 0;
+  outline: none;
+}
+
+/* 왼쪽으로 튀어나오는 서랍장 패널 */
+.recent-drawer-panel {
+  position: absolute;
+  right: 100%; /* 사이드바 왼쪽 바깥 */
+  bottom: 0;
+  width: 220px; /* 제목을 길게 보기 위한 충분한 너비 */
+  margin-right: 15px; /* 사이드바와의 간격 */
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: -5px 5px 15px rgba(0,0,0,0.2);
+  z-index: 10001;
   overflow: hidden;
-  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.2s ease-out; /* 나타날 때 애니메이션 */
 }
 
-/* 최근 본 게시물 데이터가 있을 때 */
-.recent-box {
-  background-color: #ffffff;
-  border: 1px solid #2d5a27;
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
-.recent-box:hover {
-  transform: scale(1.15); /* 마우스 올리면 살짝 확대 */
-  z-index: 10;
+/* 서랍장 헤더 */
+.drawer-header {
+  background-color: #2d5a27;
+  color: #fff;
+  padding: 8px 12px;
+  font-size: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-/* 박스 내부 아주 작은 제목 텍스트 */
-.recent-text {
-  font-size: 7px; /* 박스 크기에 맞춘 초소형 폰트 */
+.drawer-close-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+/* 서랍장 내부 리스트 */
+.drawer-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.drawer-list li {
+  border-bottom: 1px solid #eee;
+}
+
+.drawer-item-link {
+  display: block;
+  padding: 10px 12px;
+  font-size: 11px;
   color: #333;
-  line-height: 1.1;
-  text-align: center;
-  display: -webkit-box;
-  -webkit-line-clamp: 1; /* 최대 1줄 표시 */
-  -webkit-box-orient: vertical;
-  word-break: break-all;
-  padding: 1px;
+  text-decoration: none;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* 긴 제목은 ... 처리 */
 }
 
-/* 게시글이 없는 빈 박스 */
-.empty-box {
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px dashed #666;
+.drawer-item-link:hover {
+  background-color: #f9f9f9;
+  color: #2d5a27;
+}
+
+.drawer-empty {
+  padding: 20px;
+  font-size: 11px;
+  color: #999;
+  text-align: center;
 }
