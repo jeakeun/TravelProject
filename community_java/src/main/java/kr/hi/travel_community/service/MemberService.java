@@ -256,6 +256,13 @@ public class MemberService {
         }
     }
 
+    /** 프로필 사진 존재 여부 (삭제 버튼 표시용) */
+    public boolean hasProfilePhoto(String id) {
+        if (id == null || id.trim().isEmpty()) return false;
+        byte[] data = getPhotoData(id.trim());
+        return data != null && data.length > 0;
+    }
+
     /**
      * ✅ 회원 탈퇴: 비밀번호 확인 후 계정 삭제.
      * 카카오 로그인 사용자는 비밀번호 없이 확인만으로 탈퇴 가능.

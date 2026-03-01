@@ -312,6 +312,19 @@ public class MemberController {
     }
 
     /**
+     * ✅ 프로필 사진 존재 여부 (마이페이지 삭제 버튼 표시용)
+     */
+    @GetMapping("/auth/profile-photo/check")
+    public ResponseEntity<?> checkProfilePhoto(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUser)) {
+            return ResponseEntity.status(401).build();
+        }
+        String id = ((CustomUser) authentication.getPrincipal()).getMember().getMb_Uid();
+        boolean hasPhoto = memberService.hasProfilePhoto(id);
+        return ResponseEntity.ok(Map.of("hasPhoto", hasPhoto));
+    }
+
+    /**
      * ✅ 프로필 사진 조회 (DB에서 BLOB 반환, JWT 인증)
      */
     @GetMapping("/auth/profile-photo")
