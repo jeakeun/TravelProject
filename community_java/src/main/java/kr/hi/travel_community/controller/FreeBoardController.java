@@ -46,7 +46,7 @@ public class FreeBoardController {
     }
 
     /**
-     * 🚩 게시글 등록
+     * 🚩 게시글 등록 (비로그인 차단 및 일반 유저 허용 수정)
      */
     @PostMapping("/posts")
     public ResponseEntity<?> create(Authentication authentication,
@@ -58,6 +58,7 @@ public class FreeBoardController {
                                     @RequestParam(value = "poMbNum", required = false) Integer requestPoMbNum,
                                     @RequestParam(value = "images", required = false) List<MultipartFile> images) {
         
+        // 🚩 [핵심 수정] 로그인 여부(authentication)를 최우선으로 검사합니다.
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "로그인이 필요한 서비스입니다."));
         }
@@ -70,7 +71,13 @@ public class FreeBoardController {
                 return ResponseEntity.badRequest().body(Map.of("error", "제목과 내용을 입력하세요."));
             }
             
-            int mbNum = resolveMbNum(authentication, requestMbNum != null ? requestMbNum : requestPoMbNum);
+            // 인증 객체에서 유저 번호를 추출 (일반 유저/관리자 공통)
+            Integer mbNum = resolveMbNum(authentication, requestMbNum != null ? requestMbNum : requestPoMbNum);
+            
+            // 만약 유저 번호를 가져올 수 없다면 차단
+            if (mbNum == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "로그인이 필요한 서비스입니다."));
+            }
             
             FreePost post = new FreePost();
             post.setPoTitle(finalTitle);
@@ -89,12 +96,13 @@ public class FreeBoardController {
     /**
      * 작성자 번호 확인 유틸리티
      */
-    private int resolveMbNum(Authentication authentication, Integer requestMbNum) {
-        if (authentication != null && authentication.getPrincipal() instanceof CustomUser) {
+    private Integer resolveMbNum(Authentication authentication, Integer requestMbNum) {
+        if (authentication != null && authentication.isAuthenticated() && authentication.getPrincipal() instanceof CustomUser) {
             MemberVO member = ((CustomUser) authentication.getPrincipal()).getMember();
             if (member != null) return member.getMb_num();
         }
-        return requestMbNum != null ? requestMbNum : 1;
+        // 🚩 보안을 위해 인증 정보가 없으면 파라미터가 있어도 null 반환 (글쓰기 차단)
+        return null;
     }
 
     /**
@@ -133,11 +141,10 @@ public class FreeBoardController {
     public ResponseEntity<?> toggleLike(@PathVariable("id") Integer id, 
                                         @RequestBody(required = false) Map<String, Object> data,
                                         Authentication authentication) {
-        // 인증 정보가 있다면 인증 정보 우선, 없다면 data에서 mbNum 추출
-        Integer mbNum = null;
-        if (authentication != null && authentication.isAuthenticated()) {
-            mbNum = resolveMbNum(authentication, null);
-        } else if (data != null && data.get("mbNum") != null) {
+        
+        Integer mbNum = resolveMbNum(authentication, null);
+
+        if (mbNum == null && data != null && data.get("mbNum") != null) {
             mbNum = Integer.parseInt(data.get("mbNum").toString());
         }
 
@@ -148,22 +155,21 @@ public class FreeBoardController {
     }
 
     /**
-     * 🚩 북마크 기능 (FreePostService 통합 버전으로 수정)
+     * 🚩 북마크 기능
      */
     @PostMapping("/posts/{id}/bookmark")
     public ResponseEntity<?> toggleBookmark(@PathVariable("id") Integer id, 
                                             @RequestBody(required = false) Map<String, Object> data,
                                             Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
+        
+        Integer mbNum = resolveMbNum(authentication, (data != null && data.get("mbNum") != null) 
+                        ? Integer.parseInt(data.get("mbNum").toString()) : null);
+
+        if (mbNum == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "로그인이 필요한 서비스입니다."));
         }
 
-        Integer mbNum = resolveMbNum(authentication, (data != null && data.get("mbNum") != null) 
-                        ? Integer.parseInt(data.get("mbNum").toString()) : null);
-        
-        // FreePostService에 만들어둔 토글 로직 사용
         String result = freePostService.toggleBookmarkStatus(id, mbNum);
-        
         boolean isBookmarked = result.equals("bookmarked");
         
         return ResponseEntity.ok(Map.of(
@@ -179,18 +185,18 @@ public class FreeBoardController {
     public ResponseEntity<?> reportPost(@PathVariable("id") Integer id, 
                                         @RequestBody Map<String, Object> data,
                                         Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
+        
+        Integer mbNum = resolveMbNum(authentication, (data != null && data.get("mbNum") != null) 
+                        ? Integer.parseInt(data.get("mbNum").toString()) : null);
+
+        if (mbNum == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "로그인이 필요한 서비스입니다."));
         }
 
         try {
-            Object mbNumObj = data.get("mbNum");
-            int mbNum = resolveMbNum(authentication, (mbNumObj != null) ? Integer.parseInt(mbNumObj.toString()) : null);
             String category = (String) data.get("category");
             String reason = (String) data.get("reason");
-
             freePostService.reportPost(id, mbNum, category, reason);
-            
             return ResponseEntity.ok(Map.of("msg", "신고가 정상적으로 접수되었습니다."));
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("error", "신고 실패: " + e.getMessage()));
