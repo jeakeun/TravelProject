@@ -25,12 +25,12 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
   const editorRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // 🚩 [수정] 공지사항(notice) 경로 인식을 위한 로직 추가 및 기존 로직 유지
+  // 카테고리 경로 인식 로직
   const getCategoryPath = useCallback(() => {
     const path = location.pathname;
     if (propsBoardType) return propsBoardType;
     if (stateBoardType) return stateBoardType;
-    if (path.includes('/notice')) return 'notice'; // 공지사항 경로 추가
+    if (path.includes('/notice')) return 'notice';
     if (path.includes('/newsletter')) return 'newsletter';
     if (path.includes('/event')) return 'event';
     if (path.includes('/recommend')) return 'recommend';
@@ -50,21 +50,30 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
     return apiMap[activeMenu] || 'freeboard';
   }, [location.pathname, propsBoardType, stateBoardType, boardParam, activeMenu]);
 
-  // 🚩 [보완] 관리자 권한 체크 (로딩 중 멈춤 방지)
+  // 권한 및 로그인 체크 로직
   useEffect(() => {
-    if (currentUser) {
-        const isAdmin = 
-            currentUser.mbRol === 'ADMIN' || 
-            currentUser.mb_rol === 'ADMIN' || 
-            currentUser.role === 'ADMIN' || 
-            currentUser.mbLevel >= 10;
-
-        if (!isAdmin) {
-            alert('관리자만 접근 가능합니다.');
-            navigate(-1);
-        }
+    if (!currentUser) {
+      alert("로그인이 필요한 서비스입니다.");
+      navigate(-1);
+      return;
     }
-  }, [currentUser, navigate]);
+
+    const category = getCategoryPath();
+    const adminOnlyBoards = ['notice', 'newsletter', 'event', 'faq'];
+
+    if (adminOnlyBoards.includes(category)) {
+      const isAdmin = 
+        currentUser.mbRol === 'ADMIN' || 
+        currentUser.mb_rol === 'ADMIN' || 
+        currentUser.role === 'ADMIN' || 
+        currentUser.mbLevel >= 10;
+
+      if (!isAdmin) {
+        alert('관리자만 접근 가능합니다.');
+        navigate(-1);
+      }
+    }
+  }, [currentUser, navigate, getCategoryPath]);
 
   useEffect(() => {
     const fetchPostData = async () => {
@@ -144,23 +153,33 @@ function PostWrite({ user, refreshPosts, activeMenu, boardType: propsBoardType }
     };
     categoryPath = correctionMap[categoryPath] || categoryPath;
 
-    // 🚩 [수정 부분] 공지사항(notice)일 때는 JSON 전송, 그 외에는 FormData 전송
     let requestData;
     let contentType;
 
     if (categoryPath === 'notice') {
-      // 공지사항은 백엔드 NoticePost 규격(JSON)에 맞춤
       requestData = {
         nnTitle: title,
         nnContent: htmlContent
       };
       contentType = 'application/json';
     } else {
-      // 다른 게시판은 기존대로 FormData 전송
       const formData = new FormData();
-      formData.append('poTitle', title);
-      formData.append('poContent', htmlContent);
-      formData.append('poMbNum', authorNum || 1);
+      
+      // 🚩 [수정] 백엔드 컨트롤러 파라미터 규격(title, content)에 맞춰 수정
+      // 자유게시판(freeboard)과 여행추천(recommend)의 수정(PUT) 요청 시 필드명 보정
+      if (isEdit) {
+        formData.append('title', title);
+        formData.append('content', htmlContent);
+        // 백엔드에서 poTitle, poContent도 함께 볼 수 있으므로 하위 호환을 위해 추가 (선택사항)
+        formData.append('poTitle', title);
+        formData.append('poContent', htmlContent);
+      } else {
+        // 일반 등록(POST) 시
+        formData.append('poTitle', title);
+        formData.append('poContent', htmlContent);
+      }
+
+      formData.append('poMbNum', authorNum); 
       if (imageFiles.length > 0) {
         imageFiles.forEach((file) => {
           formData.append('images', file); 

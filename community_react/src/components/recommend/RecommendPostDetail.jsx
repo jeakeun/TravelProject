@@ -122,10 +122,23 @@ const RecommendPostDetail = () => {
         }
     }, [isNumericId, fetchAllData, incrementViewCount]);
 
+    // 🚩 [수정 포인트] 추천 기능에 Authorization 헤더 추가
     const handleLikeToggle = async () => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
+        
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+        
         try {
-            const res = await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/like`, { mbNum: currentUserNum });
+            const res = await axios.post(
+                `${SERVER_URL}/api/recommend/posts/${id}/like`, 
+                { mbNum: currentUserNum },
+                {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    },
+                    withCredentials: true
+                }
+            );
             const nextState = res.data.status === "liked";
             
             setIsLiked(nextState);
@@ -138,7 +151,13 @@ const RecommendPostDetail = () => {
             window.dispatchEvent(new Event('storage'));
 
             alert(nextState ? "게시글을 추천했습니다." : "게시글 추천을 취소했습니다.");
-        } catch (err) { alert("추천 처리 중 오류 발생"); }
+        } catch (err) { 
+            if (err.response?.status === 401) {
+                alert("로그인 세션이 만료되었습니다. 다시 로그인해주세요.");
+            } else {
+                alert("추천 처리 중 오류 발생"); 
+            }
+        }
     };
 
     const handleBookmark = async () => {
@@ -163,8 +182,12 @@ const RecommendPostDetail = () => {
 
     const handleDeletePost = async () => {
         if (!window.confirm("정말 이 게시글을 삭제하시겠습니까?")) return;
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         try {
-            await axios.delete(`${SERVER_URL}/api/recommend/posts/${id}`);
+            await axios.delete(`${SERVER_URL}/api/recommend/posts/${id}`, {
+                headers: { 'Authorization': token ? `Bearer ${token}` : '' },
+                withCredentials: true
+            });
             alert("게시글이 삭제되었습니다.");
             navigate('/community/recommend');
         } catch (err) { alert("삭제 실패"); }
@@ -176,8 +199,16 @@ const RecommendPostDetail = () => {
 
     const handleCommentLike = async (commentId) => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         try {
-            const res = await axios.post(`${SERVER_URL}/api/comment/like/${commentId}`, { mbNum: currentUserNum });
+            const res = await axios.post(
+                `${SERVER_URL}/api/comment/like/${commentId}`, 
+                { mbNum: currentUserNum },
+                {
+                    headers: { 'Authorization': token ? `Bearer ${token}` : '' },
+                    withCredentials: true
+                }
+            );
             if(res.data.status === "liked") {
                 setComments(prevComments => prevComments.map(c => c.coNum === commentId ? { ...c, coLike: (c.coLike || 0) + 1 } : c));
             } else {
@@ -193,11 +224,18 @@ const RecommendPostDetail = () => {
 
     const handleReportSubmit = async ({ category, reason }) => {
         const { type, targetId } = reportModal;
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         try {
             if (type === 'post') {
-                await axios.post(`${SERVER_URL}/api/recommend/posts/${targetId}/report`, { category, reason, mbNum: currentUserNum });
+                await axios.post(`${SERVER_URL}/api/recommend/posts/${targetId}/report`, 
+                    { category, reason, mbNum: currentUserNum },
+                    { headers: { 'Authorization': token ? `Bearer ${token}` : '' }, withCredentials: true }
+                );
             } else {
-                await axios.post(`${SERVER_URL}/api/comment/report/${targetId}`, { category, reason, mbNum: currentUserNum });
+                await axios.post(`${SERVER_URL}/api/comment/report/${targetId}`, 
+                    { category, reason, mbNum: currentUserNum },
+                    { headers: { 'Authorization': token ? `Bearer ${token}` : '' }, withCredentials: true }
+                );
             }
             setReportModal({ open: false, type: null, targetId: null });
             fetchAllData(true, type === 'comment');
@@ -209,10 +247,12 @@ const RecommendPostDetail = () => {
         if(!isLoggedIn) return alert("로그인 후 이용 가능합니다.");
         const content = parentId ? replyInput : commentInput;
         if (!content?.trim()) return alert("내용을 입력하세요.");
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         try {
-            await axios.post(`${SERVER_URL}/api/comment/add/${id}`, { 
-                content: content.trim(), parentId: parentId, mbNum: currentUserNum 
-            });
+            await axios.post(`${SERVER_URL}/api/comment/add/${id}`, 
+                { content: content.trim(), parentId: parentId, mbNum: currentUserNum },
+                { headers: { 'Authorization': token ? `Bearer ${token}` : '' }, withCredentials: true }
+            );
             setCommentInput(""); setReplyInput(""); setReplyTo(null);
             fetchAllData(true, true); 
         } catch (err) { alert("등록 실패"); }
@@ -220,8 +260,12 @@ const RecommendPostDetail = () => {
 
     const handleUpdateComment = async (commentId) => {
         if (!editInput?.trim()) return alert("내용을 입력하세요.");
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         try {
-            await axios.put(`${SERVER_URL}/api/comment/update/${commentId}`, { content: editInput.trim() });
+            await axios.put(`${SERVER_URL}/api/comment/update/${commentId}`, 
+                { content: editInput.trim() },
+                { headers: { 'Authorization': token ? `Bearer ${token}` : '' }, withCredentials: true }
+            );
             setEditId(null); setEditInput("");
             fetchAllData(true, true);
         } catch (err) { alert("수정 실패"); }
@@ -229,8 +273,12 @@ const RecommendPostDetail = () => {
 
     const handleDeleteComment = async (commentId) => {
         if (!window.confirm("삭제하시겠습니까?")) return;
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         try {
-            await axios.delete(`${SERVER_URL}/api/comment/delete/${commentId}`);
+            await axios.delete(`${SERVER_URL}/api/comment/delete/${commentId}`, {
+                headers: { 'Authorization': token ? `Bearer ${token}` : '' },
+                withCredentials: true
+            });
             fetchAllData(true, true);
         } catch (err) { alert("삭제 실패"); }
     };
