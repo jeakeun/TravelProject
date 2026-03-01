@@ -36,17 +36,13 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
-            // 🚩 REST API 응답 시 폼 로그인이나 세션 기반 에러 페이지 호출을 막아 FileNotFound 예방
             .formLogin(AbstractHttpConfigurer::disable)
             .httpBasic(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/", "/index.html", "/static/**", "/favicon.ico", "/manifest.json", "/logo*.png").permitAll()
-                
-                // 🚩 API 경로 및 이미지 경로 허용 (기존 유지)
                 .requestMatchers("/api/**", "/pic/**").permitAll()
-                
                 .requestMatchers("/login", "/signup", "/community/**", "/news/**", "/domestic/**", "/foreigncountry/**", "/cscenter/**", "/mypage", "/admin", "/inquiry").permitAll()
                 .anyRequest().permitAll()
             )

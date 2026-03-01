@@ -212,13 +212,13 @@ function MyPage() {
 
   const handleWithdraw = async () => {
     const pw = (withdrawPassword || "").trim();
-    if (!pw) {
+    if (!isKakaoUser && !pw) {
       alert("비밀번호를 입력하세요.");
       return;
     }
     setWithdrawSubmitting(true);
     try {
-      const res = await api.post("/auth/withdraw", { password: pw });
+      const res = await api.post("/auth/withdraw", { password: pw || "" });
       if (res.status === 200) {
         setShowWithdrawModal(false);
         setWithdrawPassword("");
@@ -348,6 +348,7 @@ function MyPage() {
     return null;
   }
 
+  const isKakaoUser = (user.mb_provider || user.mbProvider) === "kakao";
   const email = user.mb_email ?? user.mb_Email ?? "-";
 
   const reportsWithReply = myReports.filter(isReportUnseen).length;
@@ -427,43 +428,49 @@ function MyPage() {
               <span className="mypage-info-label">아이디</span>
               <span className="mypage-info-text">{getUserId(user)}</span>
             </div>
-            <div className="mypage-info-row">
-              <span className="mypage-info-icon" aria-hidden>✉</span>
-              <span className="mypage-info-label">이메일</span>
-              {!isEditingEmail ? (
-                <>
-                  <span className="mypage-info-text">{email}</span>
-                  <button type="button" className="mypage-info-btn" onClick={startEditEmail}>
-                    수정
-                  </button>
-                </>
-              ) : (
-                <div className="mypage-email-edit">
-                  <input
-                    type="email"
-                    className="mypage-email-input"
-                    value={editEmailValue}
-                    onChange={(e) => setEditEmailValue(e.target.value)}
-                    placeholder="이메일 입력"
-                    aria-label="이메일"
-                  />
-                  <button type="button" className="mypage-info-btn" onClick={saveEmail} disabled={emailSaving}>
-                    {emailSaving ? "저장 중..." : "저장"}
-                  </button>
-                  <button type="button" className="mypage-info-btn mypage-email-cancel" onClick={cancelEditEmail} disabled={emailSaving}>
-                    취소
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="mypage-info-row">
-              <span className="mypage-info-icon" aria-hidden>🔒</span>
-              <span className="mypage-info-label">비밀번호</span>
-              <span className="mypage-info-text">••••••••</span>
-              <button type="button" className="mypage-info-btn" onClick={() => openChangePassword?.()}>
-                수정
-              </button>
-            </div>
+            {/* [카카오 로그인] 카카오 유저는 이메일/비밀번호를 사용하지 않으므로 완전히 숨김 */}
+            {!isKakaoUser && (
+              <div className="mypage-info-row">
+                <span className="mypage-info-icon" aria-hidden>✉</span>
+                <span className="mypage-info-label">이메일</span>
+                {!isEditingEmail ? (
+                  <>
+                    <span className="mypage-info-text">{email}</span>
+                    <button type="button" className="mypage-info-btn" onClick={startEditEmail}>
+                      수정
+                    </button>
+                  </>
+                ) : (
+                  <div className="mypage-email-edit">
+                    <input
+                      type="email"
+                      className="mypage-email-input"
+                      value={editEmailValue}
+                      onChange={(e) => setEditEmailValue(e.target.value)}
+                      placeholder="이메일 입력"
+                      aria-label="이메일"
+                    />
+                    <button type="button" className="mypage-info-btn" onClick={saveEmail} disabled={emailSaving}>
+                      {emailSaving ? "저장 중..." : "저장"}
+                    </button>
+                    <button type="button" className="mypage-info-btn mypage-email-cancel" onClick={cancelEditEmail} disabled={emailSaving}>
+                      취소
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            {/* [카카오 로그인] 카카오 유저는 비밀번호를 사용하지 않으므로 비밀번호 영역 숨김 */}
+            {!isKakaoUser && (
+              <div className="mypage-info-row">
+                <span className="mypage-info-icon" aria-hidden>🔒</span>
+                <span className="mypage-info-label">비밀번호</span>
+                <span className="mypage-info-text">••••••••</span>
+                <button type="button" className="mypage-info-btn" onClick={() => openChangePassword?.()}>
+                  수정
+                </button>
+              </div>
+            )}
             <div className="mypage-info-row mypage-withdraw-row">
               <span className="mypage-info-icon" aria-hidden />
               <span className="mypage-info-label" />
@@ -538,14 +545,16 @@ function MyPage() {
           <div className="mypage-withdraw-modal" onClick={(e) => e.stopPropagation()}>
             <h3 className="mypage-withdraw-title">회원 탈퇴</h3>
             <p className="mypage-withdraw-desc">정말 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
-            <input
-              type="password"
-              className="mypage-withdraw-password"
-              placeholder="비밀번호 입력"
-              value={withdrawPassword}
-              onChange={(e) => setWithdrawPassword(e.target.value)}
-              aria-label="비밀번호"
-            />
+            {!isKakaoUser && (
+              <input
+                type="password"
+                className="mypage-withdraw-password"
+                placeholder="비밀번호 입력"
+                value={withdrawPassword}
+                onChange={(e) => setWithdrawPassword(e.target.value)}
+                aria-label="비밀번호"
+              />
+            )}
             <div className="mypage-withdraw-actions">
               <button type="button" className="mypage-withdraw-btn-cancel" onClick={() => !withdrawSubmitting && setShowWithdrawModal(false)} disabled={withdrawSubmitting}>
                 취소

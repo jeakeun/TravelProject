@@ -333,6 +333,7 @@ public class MemberController {
 
     /**
      * ✅ 회원 탈퇴: 비밀번호 확인 후 계정 삭제 (JWT로 본인 확인)
+     * 카카오 로그인 사용자는 비밀번호 없이 탈퇴 가능
      */
     @PostMapping("/auth/withdraw")
     public ResponseEntity<String> withdraw(Authentication authentication, @RequestBody Map<String, String> body) {
@@ -341,7 +342,9 @@ public class MemberController {
         }
         String id = ((CustomUser) authentication.getPrincipal()).getMember().getMb_Uid();
         String password = body != null ? (body.get("password") != null ? body.get("password") : "") : "";
-        if (password.isEmpty()) {
+        MemberVO member = memberDAO.selectMemberById(id);
+        boolean isKakao = member != null && "kakao".equalsIgnoreCase(member.getMb_provider());
+        if (!isKakao && password.isEmpty()) {
             return ResponseEntity.badRequest().body("비밀번호를 입력하세요.");
         }
         boolean ok = memberService.withdraw(id, password);
@@ -349,6 +352,41 @@ public class MemberController {
             return ResponseEntity.ok("OK");
         }
         return ResponseEntity.badRequest().body("비밀번호가 일치하지 않거나 탈퇴에 실패했습니다.");
+    }
+
+    /**
+     * 카카오 로그인/회원가입: authorization code를 받아 토큰 교환 → 사용자 조회/생성 → JWT 발급
+     */
+    @PostMapping("/auth/kakao")
+    public ResponseEntity<?> kakaoAuth(@RequestBody Map<String, Object> body) {
+        String code = body != null && body.get("code") != null ? body.get("code").toString().trim() : null;
+        if (code == null || code.isEmpty()) {
+            return ResponseEntity.badRequest().body("카카오 인증 코드가 없습니다.");
+        }
+        boolean fromSignup = body != null && Boolean.TRUE.equals(body.get("signup"));
+        MemberVO member = memberService.kakaoLoginOrSignup(code, fromSignup);
+        if (member == null) {
+            return ResponseEntity.badRequest().body("카카오 로그인에 실패했습니다.");
+        }
+
+        String accessToken = jwtTokenProvider.createAccessToken(member.getMb_Uid());
+        String refreshToken = jwtTokenProvider.createRefreshToken(member.getMb_Uid());
+
+        ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
+                .httpOnly(true)
+                .secure(false)
+                .sameSite("Lax")
+                .path("/")
+                .maxAge(Duration.ofDays(14))
+                .build();
+
+        Map<String, Object> resBody = new HashMap<>();
+        resBody.put("member", member);
+        resBody.put("accessToken", accessToken);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(resBody);
     }
 
     /**
