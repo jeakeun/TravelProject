@@ -20,6 +20,12 @@
   text-align: center;
   margin-bottom: 15px;
   letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.side-nav-title:hover {
+  background-color: #f0f0f0; /* 마우스 올렸을 때 살짝 밝아짐 */
+  color: #2ecc71; /* 마우스 호버시 강조효과 */
 }
 
 .side-nav-list-rect {
@@ -37,7 +43,7 @@
   border-bottom: none;
 }
 
-/* 버튼 및 링크 스타일: 네모나게 변경 및 링크 기본 스타일 제거 */
+/* 버튼 및 링크 스타일: 네모로 변경 및 링크 기본 스타일 제거 */
 .side-nav-btn-rect {
   width: 100%;
   padding: 15px 0;
@@ -49,7 +55,7 @@
   align-items: center;
   transition: background 0.3s;
   
-  /* 추가된 부분: a 태그와 Link 태그의 기본 스타일 초기화 */
+  /* a 태그와 Link 태그의 기본 스타일 초기화 */
   text-decoration: none; /* 밑줄 제거 */
   color: inherit;       /* 부모 컬러 상속 */
 }

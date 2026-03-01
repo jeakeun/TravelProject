@@ -3,27 +3,37 @@ import { Link} from "react-router-dom";
 import './NavigationBar.css';
 
 const NavigationBar = () => {
+
+    const scrollToTop = () => {
+      window.scrollTo({
+        top:0,
+        behavior: 'smooth' // 스크롤이 부드럽게 되도록 사용
+      });
+    };
+
     const navItems = [
-    /* 1. 인기 명소: 알려주신 /domestic 경로 적용 */
+    /* 1. 인기 명소: /domestic 경로 적용 */
     { id: 1, name: '인기 명소', icon: '⛰️', url: '/domestic', isExternal: false },
-    
     /* 2. 날씨 정보: 외부 링크 (새 탭) */
     { id: 2, name: '날씨 정보', icon: '🌤️', url: 'https://weather.naver.com/', isExternal: true },
-    
     /* 3. 환율 계산: 외부 링크 (새 탭) */
     { id: 3, name: '환율 계산', icon: '💵', url: 'https://search.naver.com/search.naver?query=환율', isExternal: true },
-    
-    /* 4. 여행 게시판: 알려주신 /community/recommend 경로 적용 */
+    /* 4. 여행 게시판: /community/recommend 경로 적용 */
     { id: 4, name: '여행 게시판', icon: '🗒️', url: '/community/recommend', isExternal: false },
-    
-    /* 5. 고객 센터: 알려주신 /cscenter/faq 경로 적용 */
+    /* 5. 고객 센터: /cscenter/faq 경로 적용 */
     { id: 5, name: '고객 센터', icon: '💬', url: '/cscenter/faq', isExternal: false }
   ];
 
 
   return (
     <nav className="side-nav-rect">
-      <div className="side-nav-title">MENU</div>
+      <div 
+        className="side-nav-title" 
+        onClick={scrollToTop}
+        style={{cursor: 'pointer'}}
+        >
+          TOP ▲
+        </div>
       <ul className="side-nav-list-rect">
         {navItems.map((item) => (
           <li key={item.id} className="side-nav-item-rect">
