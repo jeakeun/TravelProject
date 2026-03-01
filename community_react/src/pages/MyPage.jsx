@@ -39,6 +39,13 @@ function MyPage() {
   const [myReports, setMyReports] = useState([]);
   const [myInquiries, setMyInquiries] = useState([]);
   const [detailModal, setDetailModal] = useState(null);
+  const [postsPage, setPostsPage] = useState(1);
+  const [reportsPage, setReportsPage] = useState(1);
+  const [inquiriesPage, setInquiriesPage] = useState(1);
+
+  const POSTS_PER_PAGE = 3;
+  const REPORTS_PER_PAGE = 3;
+  const INQUIRIES_PER_PAGE = 3;
 
   const loadMyPosts = useCallback(async () => {
     if (!user) {
@@ -399,6 +406,18 @@ function MyPage() {
     return matchBoard && matchSearch;
   });
 
+  const postsTotalPages = Math.ceil(filteredPosts.length / POSTS_PER_PAGE) || 1;
+  const postsCurrentPage = Math.min(postsPage, postsTotalPages);
+  const postsPaginated = filteredPosts.slice((postsCurrentPage - 1) * POSTS_PER_PAGE, postsCurrentPage * POSTS_PER_PAGE);
+
+  const reportsTotalPages = Math.ceil(myReports.length / REPORTS_PER_PAGE) || 1;
+  const reportsCurrentPage = Math.min(reportsPage, reportsTotalPages);
+  const reportsPaginated = myReports.slice((reportsCurrentPage - 1) * REPORTS_PER_PAGE, reportsCurrentPage * REPORTS_PER_PAGE);
+
+  const inquiriesTotalPages = Math.ceil(myInquiries.length / INQUIRIES_PER_PAGE) || 1;
+  const inquiriesCurrentPage = Math.min(inquiriesPage, inquiriesTotalPages);
+  const inquiriesPaginated = myInquiries.slice((inquiriesCurrentPage - 1) * INQUIRIES_PER_PAGE, inquiriesCurrentPage * INQUIRIES_PER_PAGE);
+
   return (
     <div className="mypage-wrapper">
       <h1 className="mypage-page-title">내 프로필</h1>
@@ -688,18 +707,27 @@ function MyPage() {
                   {filteredPosts.length === 0 ? (
                     <p className="mypage-posts-empty">작성한 글이 없습니다.</p>
                   ) : (
-                    <ul className="mypage-posts-list">
-                      {filteredPosts.map((post) => (
-                        <li
-                          key={`${post.boardType}-${post.poNum || post.id}`}
-                          className="mypage-posts-item"
-                          onClick={() => goToPost(post)}
-                        >
-                          <span className="mypage-post-board">{post.boardName}</span>
-                          <span className="mypage-post-title">{post.poTitle || post.title || "-"}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <>
+                      <ul className="mypage-posts-list">
+                        {postsPaginated.map((post) => (
+                          <li
+                            key={`${post.boardType}-${post.poNum || post.id}`}
+                            className="mypage-posts-item"
+                            onClick={() => goToPost(post)}
+                          >
+                            <span className="mypage-post-board">{post.boardName}</span>
+                            <span className="mypage-post-title">{post.poTitle || post.title || "-"}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {postsTotalPages > 1 && (
+                        <div className="mypage-pagination">
+                          <button type="button" className="mypage-pagination-btn" disabled={postsCurrentPage <= 1} onClick={() => setPostsPage((p) => Math.max(1, p - 1))}>이전</button>
+                          <span className="mypage-pagination-info">{postsCurrentPage} / {postsTotalPages}</span>
+                          <button type="button" className="mypage-pagination-btn" disabled={postsCurrentPage >= postsTotalPages} onClick={() => setPostsPage((p) => Math.min(postsTotalPages, p + 1))}>다음</button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )              )}
@@ -714,19 +742,28 @@ function MyPage() {
                   {myReports.length === 0 ? (
                     <p className="mypage-posts-empty">신고 내역이 없습니다.</p>
                   ) : (
-                    <ul className="mypage-posts-list">
-                      {myReports.map((r) => (
-                        <li
-                          key={r.rbNum}
-                          className="mypage-posts-item"
-                          onClick={() => openReportDetail(r)}
-                        >
-                          <span className="mypage-post-board">{r.rbName} #{r.rbId}</span>
-                          <span className="mypage-post-title">{(r.rbContent || "").slice(0, 40)}{(r.rbContent || "").length > 40 ? "..." : ""}</span>
-                          <span className="mypage-post-date">{getReportStatusLabel(r)}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <>
+                      <ul className="mypage-posts-list">
+                        {reportsPaginated.map((r) => (
+                          <li
+                            key={r.rbNum}
+                            className="mypage-posts-item"
+                            onClick={() => openReportDetail(r)}
+                          >
+                            <span className="mypage-post-board">{r.rbTargetNickname ?? `${r.rbName} #${r.rbId}`}</span>
+                            <span className="mypage-post-title">{(r.rbContent || "").slice(0, 40)}{(r.rbContent || "").length > 40 ? "..." : ""}</span>
+                            <span className="mypage-post-date">{getReportStatusLabel(r)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {reportsTotalPages > 1 && (
+                        <div className="mypage-pagination">
+                          <button type="button" className="mypage-pagination-btn" disabled={reportsCurrentPage <= 1} onClick={() => setReportsPage((p) => Math.max(1, p - 1))}>이전</button>
+                          <span className="mypage-pagination-info">{reportsCurrentPage} / {reportsTotalPages}</span>
+                          <button type="button" className="mypage-pagination-btn" disabled={reportsCurrentPage >= reportsTotalPages} onClick={() => setReportsPage((p) => Math.min(reportsTotalPages, p + 1))}>다음</button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}
@@ -741,19 +778,28 @@ function MyPage() {
                   {myInquiries.length === 0 ? (
                     <p className="mypage-posts-empty">문의 내역이 없습니다.</p>
                   ) : (
-                    <ul className="mypage-posts-list">
-                      {myInquiries.map((q) => (
-                        <li
-                          key={q.ibNum}
-                          className="mypage-posts-item"
-                          onClick={() => openInquiryDetail(q)}
-                        >
-                          <span className="mypage-post-board">{(q.ibTitle || "").slice(0, 15)}{(q.ibTitle || "").length > 15 ? "..." : ""}</span>
-                          <span className="mypage-post-title">{(q.ibContent || "").slice(0, 40)}{(q.ibContent || "").length > 40 ? "..." : ""}</span>
-                          <span className="mypage-post-date">{q.ibStatus === "Y" ? "답변완료" : "대기"}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <>
+                      <ul className="mypage-posts-list">
+                        {inquiriesPaginated.map((q) => (
+                          <li
+                            key={q.ibNum}
+                            className="mypage-posts-item"
+                            onClick={() => openInquiryDetail(q)}
+                          >
+                            <span className="mypage-post-board">{(q.ibTitle || "").slice(0, 15)}{(q.ibTitle || "").length > 15 ? "..." : ""}</span>
+                            <span className="mypage-post-title">{(q.ibContent || "").slice(0, 40)}{(q.ibContent || "").length > 40 ? "..." : ""}</span>
+                            <span className="mypage-post-date">{q.ibStatus === "Y" ? "답변완료" : "대기"}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {inquiriesTotalPages > 1 && (
+                        <div className="mypage-pagination">
+                          <button type="button" className="mypage-pagination-btn" disabled={inquiriesCurrentPage <= 1} onClick={() => setInquiriesPage((p) => Math.max(1, p - 1))}>이전</button>
+                          <span className="mypage-pagination-info">{inquiriesCurrentPage} / {inquiriesTotalPages}</span>
+                          <button type="button" className="mypage-pagination-btn" disabled={inquiriesCurrentPage >= inquiriesTotalPages} onClick={() => setInquiriesPage((p) => Math.min(inquiriesTotalPages, p + 1))}>다음</button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}
@@ -768,7 +814,7 @@ function MyPage() {
             </h3>
             {detailModal.type === "report" ? (
               <div className="mypage-detail-body">
-                <p><strong>대상:</strong> {detailModal.data.rbName} #{detailModal.data.rbId}</p>
+                <p><strong>대상:</strong> {detailModal.data.rbTargetNickname ?? `${detailModal.data.rbName} #${detailModal.data.rbId}`}</p>
                 <p><strong>신고 내용:</strong></p>
                 <p className="mypage-detail-content">{detailModal.data.rbContent}</p>
                 {detailModal.data.rbReply && (
