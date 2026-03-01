@@ -27,6 +27,7 @@ function KakaoCallback() {
     }
 
     const fromSignup = sessionStorage.getItem("kakao_signup") === "true";
+    const redirectUri = `${window.location.origin}/kakao-callback`;
 
     const doAuth = async (signup) => {
       try {
@@ -35,7 +36,7 @@ function KakaoCallback() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ code, signup }),
+          body: JSON.stringify({ code, signup, redirect_uri: redirectUri }),
         });
 
         const raw = await res.text();

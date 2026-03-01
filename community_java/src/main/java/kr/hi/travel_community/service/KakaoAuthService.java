@@ -34,15 +34,17 @@ public class KakaoAuthService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * 인증 코드를 카카오 access token으로 교환
+     * 인증 코드를 카카오 access token으로 교환.
+     * @param redirectUriOverride 프론트에서 사용한 redirect_uri(있으면 이 값 사용, 없으면 설정값 사용)
      */
-    public String exchangeCodeForToken(String code) throws Exception {
+    public String exchangeCodeForToken(String code, String redirectUriOverride) throws Exception {
         if (restApiKey == null || restApiKey.isBlank()) {
             throw new IllegalStateException("kakao.rest-api-key가 설정되지 않았습니다.");
         }
+        String uri = (redirectUriOverride != null && !redirectUriOverride.isBlank()) ? redirectUriOverride : redirectUri;
         String body = "grant_type=authorization_code"
                 + "&client_id=" + URLEncoder.encode(restApiKey, StandardCharsets.UTF_8)
-                + "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8)
+                + "&redirect_uri=" + URLEncoder.encode(uri, StandardCharsets.UTF_8)
                 + "&code=" + URLEncoder.encode(code, StandardCharsets.UTF_8);
         if (clientSecret != null && !clientSecret.isBlank()) {
             body += "&client_secret=" + URLEncoder.encode(clientSecret, StandardCharsets.UTF_8);
