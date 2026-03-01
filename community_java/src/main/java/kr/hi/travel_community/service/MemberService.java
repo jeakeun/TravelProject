@@ -277,13 +277,14 @@ public class MemberService {
      * [카카오 로그인] 카카오 인증 코드로 로그인 또는 회원가입.
      * @param code 카카오 인증 코드
      * @param fromSignup true면 회원가입 버튼에서 진입 → 항상 회원가입 처리 후 로그인, false면 로그인 버튼 → 기존 회원이면 로그인만
+     * @param redirectUri 프론트에서 카카오 인증 시 사용한 redirect_uri(토큰 교환 시 동일 값 필수, null이면 서버 설정값 사용)
      * @return 로그인된 회원 정보 (없으면 null)
      */
     @Transactional
-    public MemberVO kakaoLoginOrSignup(String code, boolean fromSignup) {
+    public MemberVO kakaoLoginOrSignup(String code, boolean fromSignup, String redirectUri) {
         try {
             if (code == null || code.trim().isEmpty()) return null;
-            String accessToken = kakaoAuthService.exchangeCodeForToken(code.trim());
+            String accessToken = kakaoAuthService.exchangeCodeForToken(code.trim(), redirectUri);
             Map<String, Object> kakaoUser = kakaoAuthService.getUserInfo(accessToken);
 
             long kakaoId = ((Number) kakaoUser.get("id")).longValue();
@@ -321,7 +322,8 @@ public class MemberService {
             return created;
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            String msg = e.getMessage() != null && !e.getMessage().isBlank() ? e.getMessage() : "카카오 로그인에 실패했습니다.";
+            throw new RuntimeException(msg, e);
         }
     }
 }

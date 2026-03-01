@@ -27,6 +27,7 @@ function KakaoCallback() {
     }
 
     const fromSignup = sessionStorage.getItem("kakao_signup") === "true";
+    const redirectUri = `${window.location.origin}/kakao-callback`;
 
     const doAuth = async (signup) => {
       try {
@@ -35,13 +36,23 @@ function KakaoCallback() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ code, signup }),
+          body: JSON.stringify({ code, signup, redirect_uri: redirectUri }),
         });
 
-        const data = await res.json().catch(() => ({}));
+        const raw = await res.text();
+        let data = {};
+        try {
+          data = raw ? JSON.parse(raw) : {};
+        } catch {
+          data = { message: raw };
+        }
 
         if (!res.ok) {
-          setError(typeof data === "string" ? data : data?.message || "카카오 로그인에 실패했습니다.");
+          const msg =
+            typeof data === "string"
+              ? data
+              : data?.message || data?.error || (raw && raw.length < 200 ? raw : "카카오 로그인에 실패했습니다.");
+          setError(msg);
           setStatus("");
           return;
         }
