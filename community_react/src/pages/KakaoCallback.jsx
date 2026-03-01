@@ -38,10 +38,20 @@ function KakaoCallback() {
           body: JSON.stringify({ code, signup }),
         });
 
-        const data = await res.json().catch(() => ({}));
+        const raw = await res.text();
+        let data = {};
+        try {
+          data = raw ? JSON.parse(raw) : {};
+        } catch {
+          data = { message: raw };
+        }
 
         if (!res.ok) {
-          setError(typeof data === "string" ? data : data?.message || "카카오 로그인에 실패했습니다.");
+          const msg =
+            typeof data === "string"
+              ? data
+              : data?.message || data?.error || (raw && raw.length < 200 ? raw : "카카오 로그인에 실패했습니다.");
+          setError(msg);
           setStatus("");
           return;
         }

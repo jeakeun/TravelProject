@@ -370,7 +370,9 @@ function App() {
         }
         if (data?.accessToken) localStorage.setItem('accessToken', data.accessToken);
       } catch (err) {
-        console.log("로그인 세션 없음:", err.response?.status);
+        if (err.response?.status !== 401) {
+          console.warn("auth/refresh:", err.response?.status, err.message);
+        }
       } finally {
         setLoading(false);
       }
