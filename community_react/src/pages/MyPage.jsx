@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { getUserId, getNickname } from "../utils/user";
+import { getUserId, getNickname, isAdmin } from "../utils/user";
 import ProfileImage from "../components/ProfileImage";
 import { getRecentViews } from "../utils/recentViews";
 import api from "../api/axios";
@@ -614,40 +614,44 @@ function MyPage() {
         </div>
       )}
 
-      {/* 하단 탭: 내가 쓴 글 | 신고함 | 1:1 문의함 */}
+      {/* 하단 탭: 내가 쓴 글 | 신고함 | 1:1 문의함 (관리자는 내가 쓴 글만 표시) */}
       <section className="mypage-posts">
             <div className="mypage-posts-header">
               <div className="mypage-bottom-tabs">
                 <button
-                  className={`mypage-bottom-tab ${bottomTab === "posts" ? "active" : ""}`}
+                  className={`mypage-bottom-tab ${(bottomTab === "posts" || isAdmin(user)) ? "active" : ""}`}
                   onClick={() => setBottomTab("posts")}
                 >
                   내가 쓴 글
                 </button>
-                <button
-                  className={`mypage-bottom-tab ${bottomTab === "reports" ? "active" : ""}`}
-                  onClick={() => setBottomTab("reports")}
-                >
-                  신고함
-                  {reportsWithReply > 0 && (
-                    <span className="mypage-tab-badge" title="답변 있음">
-                      {reportsWithReply}
-                    </span>
-                  )}
-                </button>
-                <button
-                  className={`mypage-bottom-tab ${bottomTab === "inquiries" ? "active" : ""}`}
-                  onClick={() => setBottomTab("inquiries")}
-                >
-                  1:1 문의함
-                  {inquiriesWithReply > 0 && (
-                    <span className="mypage-tab-badge" title="답변 있음">
-                      {inquiriesWithReply}
-                    </span>
-                  )}
-                </button>
+                {!isAdmin(user) && (
+                  <>
+                    <button
+                      className={`mypage-bottom-tab ${bottomTab === "reports" ? "active" : ""}`}
+                      onClick={() => setBottomTab("reports")}
+                    >
+                      신고함
+                      {reportsWithReply > 0 && (
+                        <span className="mypage-tab-badge" title="답변 있음">
+                          {reportsWithReply}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      className={`mypage-bottom-tab ${bottomTab === "inquiries" ? "active" : ""}`}
+                      onClick={() => setBottomTab("inquiries")}
+                    >
+                      1:1 문의함
+                      {inquiriesWithReply > 0 && (
+                        <span className="mypage-tab-badge" title="답변 있음">
+                          {inquiriesWithReply}
+                        </span>
+                      )}
+                    </button>
+                  </>
+                )}
               </div>
-              {bottomTab === "posts" && (
+              {(bottomTab === "posts" || isAdmin(user)) && (
               <div className="mypage-posts-toolbar">
                 <input
                   type="text"
@@ -673,7 +677,7 @@ function MyPage() {
               )}
             </div>
             <div className="mypage-posts-body">
-              {bottomTab === "posts" && (loading ? (
+              {(bottomTab === "posts" || isAdmin(user)) && (loading ? (
                 <p className="mypage-posts-loading">불러오는 중...</p>
               ) : (
                 <>
@@ -698,9 +702,9 @@ function MyPage() {
                     </ul>
                   )}
                 </>
-              ))}
+              )              )}
 
-              {bottomTab === "reports" && (
+              {!isAdmin(user) && bottomTab === "reports" && (
                 <>
                   <div className="mypage-posts-table-header">
                     <span className="mypage-posts-th-board">대상</span>
@@ -727,7 +731,7 @@ function MyPage() {
                 </>
               )}
 
-              {bottomTab === "inquiries" && (
+              {!isAdmin(user) && bottomTab === "inquiries" && (
                 <>
                   <div className="mypage-posts-table-header">
                     <span className="mypage-posts-th-board">제목</span>
