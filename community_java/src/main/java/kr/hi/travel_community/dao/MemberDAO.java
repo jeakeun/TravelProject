@@ -60,6 +60,9 @@ public interface MemberDAO {
     int updatePhotoBlobById(@Param("id") String id, @Param("photoData") byte[] photoData,
             @Param("photoType") String photoType, @Param("photoVer") int photoVer);
 
+    // ✅ 프로필 사진 삭제 (BLOB/타입 null, 버전 증가)
+    int updatePhotoDeleteById(@Param("id") String id);
+
     // 프로필 사진 조회 (이미지 서빙)
     Map<String, Object> selectPhotoByMemberId(@Param("id") String id);
 

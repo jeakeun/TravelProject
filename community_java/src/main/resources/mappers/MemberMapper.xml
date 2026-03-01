@@ -104,6 +104,13 @@
         WHERE mb_uid = #{id}
     </update>
 
+    <!-- ✅ 프로필 사진 삭제 (BLOB/타입 null, 버전만 증가) -->
+    <update id="updatePhotoDeleteById">
+        UPDATE member
+        SET mb_photo_data = NULL, mb_photo_type = NULL, mb_photo_ver = IFNULL(mb_photo_ver, 0) + 1
+        WHERE mb_uid = #{id}
+    </update>
+
     <!-- 프로필 사진 조회 (이미지 서빙용) -->
     <select id="selectPhotoByMemberId" resultType="map">
         SELECT mb_photo_data as photoData, mb_photo_type as photoType

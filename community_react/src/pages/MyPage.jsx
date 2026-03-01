@@ -32,6 +32,8 @@ function MyPage() {
   const [bookmarks, setBookmarks] = useState([]);
   const [bottomTab, setBottomTab] = useState("posts");
   const [photoSaving, setPhotoSaving] = useState(false);
+  const [photoDeleting, setPhotoDeleting] = useState(false);
+  const [hasProfilePhoto, setHasProfilePhoto] = useState(false);
   const [photoVersion, setPhotoVersion] = useState(0);
   const photoInputRef = useRef(null);
   const [myReports, setMyReports] = useState([]);
@@ -115,6 +117,17 @@ function MyPage() {
       }
     };
     fetchInquiries();
+  }, [user]);
+
+  // 프로필 사진 존재 여부 (삭제 버튼 표시용)
+  useEffect(() => {
+    if (!user) {
+      setHasProfilePhoto(false);
+      return;
+    }
+    api.get("/auth/profile-photo/check")
+      .then((res) => setHasProfilePhoto(Boolean(res.data?.hasPhoto)))
+      .catch(() => setHasProfilePhoto(false));
   }, [user]);
 
   useEffect(() => {
@@ -269,6 +282,7 @@ function MyPage() {
       if (mbPhotoVer != null) {
         const updated = { ...user, mb_photo_ver: mbPhotoVer, mbPhotoVer: mbPhotoVer };
         setUser?.(updated);
+        setHasProfilePhoto(true);
         try {
           localStorage.setItem("user", JSON.stringify(updated));
         } catch (_) {}
@@ -279,6 +293,29 @@ function MyPage() {
       alert(typeof msg === "string" ? msg : "프로필 사진 변경에 실패했습니다.");
     } finally {
       setPhotoSaving(false);
+    }
+  };
+
+  const handlePhotoDelete = async () => {
+    if (!window.confirm("프로필 사진을 삭제하시겠습니까?")) return;
+    setPhotoDeleting(true);
+    try {
+      const res = await api.delete("/auth/profile-photo");
+      const mbPhotoVer = res.data?.mb_photo_ver ?? res.data?.mbPhotoVer;
+      if (mbPhotoVer != null && setUser) {
+        const updated = { ...user, mb_photo_ver: mbPhotoVer, mbPhotoVer: mbPhotoVer };
+        setUser(updated);
+        setHasProfilePhoto(false);
+        try {
+          localStorage.setItem("user", JSON.stringify(updated));
+        } catch (_) {}
+        alert("프로필 사진이 삭제되었습니다.");
+      }
+    } catch (err) {
+      const msg = err?.response?.data ?? "프로필 사진 삭제에 실패했습니다.";
+      alert(typeof msg === "string" ? msg : "프로필 사진 삭제에 실패했습니다.");
+    } finally {
+      setPhotoDeleting(false);
     }
   };
 
@@ -386,10 +423,20 @@ function MyPage() {
             type="button"
             className="mypage-profile-photo-btn"
             onClick={handlePhotoChangeClick}
-            disabled={photoSaving}
+            disabled={photoSaving || photoDeleting}
           >
             {photoSaving ? "업로드 중..." : "프로필 사진 변경"}
           </button>
+          {hasProfilePhoto && (
+            <button
+              type="button"
+              className="mypage-profile-photo-btn mypage-profile-photo-delete-btn"
+              onClick={handlePhotoDelete}
+              disabled={photoSaving || photoDeleting}
+            >
+              {photoDeleting ? "삭제 중..." : "프로필 사진 삭제"}
+            </button>
+          )}
         </div>
         <div className="mypage-profile-info">
           <div className="mypage-info-list">
