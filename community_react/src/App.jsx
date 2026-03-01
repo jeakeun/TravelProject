@@ -13,6 +13,9 @@ import Header from "./components/Header";
 import MainList from './components/MainList'; // MainList.js 로드
 import PostWrite from './components/PostWrite';
 
+// 네이게이션바
+import NavigationBar from './pages/NavigationBar';
+
 import FreeBoard from './components/freeboard/FreeBoardList'; 
 import FreeBoardDetail from './components/freeboard/FreeBoardDetail';
 import RecommendMain from './components/recommend/RecommendMain';
@@ -80,7 +83,8 @@ function GlobalLayout({
         currentLang={currentLang} 
         setCurrentLang={setCurrentLang} 
       />
-      
+      {/* 네비게이션바 컴포넌트 추가 */}
+      <NavigationBar />
       {showLogin && (
         <Login
           onClose={() => setShowLogin(false)}

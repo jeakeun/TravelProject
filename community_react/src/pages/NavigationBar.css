@@ -37,7 +37,7 @@
   border-bottom: none;
 }
 
-/* 버튼 스타일: 네모나게 변경 */
+/* 버튼 및 링크 스타일: 네모나게 변경 및 링크 기본 스타일 제거 */
 .side-nav-btn-rect {
   width: 100%;
   padding: 15px 0;
@@ -48,6 +48,10 @@
   flex-direction: column;
   align-items: center;
   transition: background 0.3s;
+  
+  /* 추가된 부분: a 태그와 Link 태그의 기본 스타일 초기화 */
+  text-decoration: none; /* 밑줄 제거 */
+  color: inherit;       /* 부모 컬러 상속 */
 }
 
 .side-nav-btn-rect:hover {
