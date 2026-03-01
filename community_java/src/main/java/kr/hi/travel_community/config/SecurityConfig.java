@@ -36,21 +36,18 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
+            // 🚩 REST API 응답 시 폼 로그인이나 세션 기반 에러 페이지 호출을 막아 FileNotFound 예방
+            .formLogin(AbstractHttpConfigurer::disable)
+            .httpBasic(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                // 1. 로그인, 회원가입, 토큰 갱신 등 인증 관련 경로 허용 (401 에러 해결 핵심)
                 .requestMatchers("/auth/**").permitAll()
-                
-                // 2. 리액트 정적 리소스 및 기본 경로 허용
                 .requestMatchers("/", "/index.html", "/static/**", "/favicon.ico", "/manifest.json", "/logo*.png").permitAll()
                 
-                // 3. 지도 API 및 모든 API, 이미지 경로 허용
+                // 🚩 API 경로 및 이미지 경로 허용 (기존 유지)
                 .requestMatchers("/api/**", "/pic/**").permitAll()
                 
-                // 4. 리액트 라우터의 모든 페이지 경로 허용 (새로고침 시 403/404 방지)
                 .requestMatchers("/login", "/signup", "/community/**", "/news/**", "/domestic/**", "/foreigncountry/**", "/cscenter/**", "/mypage", "/admin", "/inquiry").permitAll()
-                
-                // 나머지 모든 요청 허용 (permitAll을 마지막에 배치)
                 .anyRequest().permitAll()
             )
             .addFilterBefore(
@@ -65,7 +62,6 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // 🚩 [수정됨] 배포 서버 IP와 로컬 호스트를 모두 허용 리스트에 추가했습니다.
         configuration.setAllowedOrigins(List.of(
             "http://localhost:3000",
             "http://127.0.0.1:3000",
@@ -74,11 +70,7 @@ public class SecurityConfig {
         
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
-        
-        // 쿠키 및 인증 헤더 허용 (axios.withCredentials 대응)
         configuration.setAllowCredentials(true);
-        
-        // 브라우저에서 읽을 수 있도록 허용할 헤더 추가
         configuration.setExposedHeaders(List.of("Set-Cookie", "Authorization"));
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
