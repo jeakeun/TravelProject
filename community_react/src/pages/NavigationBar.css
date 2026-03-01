@@ -4,7 +4,7 @@
   right: 57px;
   top: 50%;
   transform: translateY(-50%);
-  z-index: 9999;
+  z-index: 99999 !important;
   width: 90px;
   background-color: rgba(0, 0, 0, 0.685);
   border: 1px solid #444;
@@ -170,4 +170,67 @@
   font-size: 11px;
   color: #999;
   text-align: center;
+}
+
+.side-nav-footer-rect {
+  margin-top: auto;
+  border-top: 2px solid #2d5a27;
+  padding-top: 5px;
+  display: flex;
+  flex-direction: column; /* 세로 배치 */
+  align-items: center;
+}
+
+/* 🚩 숨김 버튼 스타일 */
+.side-nav-hide-btn {
+  width: 100%;
+  padding: 8px 0;
+  background-color: #333;
+  color: #aaa;
+  border: none;
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-top: 1px solid #444;
+}
+
+.side-nav-hide-btn:hover {
+  background-color: #444;
+  color: #fff;
+}
+
+/* 🚩 다시 펼치기 버튼 스타일 (숨겨졌을 때 화면 우측 중앙에 고정) */
+.side-nav-open-btn {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 99999;
+  width: 30px;
+  height: 100px;
+  background-color: #2d5a27;
+  color: white;
+  border: none;
+  border-radius: 8px 0 0 8px; /* 왼쪽만 둥글게 */
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+  box-shadow: -2px 0 5px rgba(0,0,0,0.2);
+  writing-mode: vertical-lr; /* 텍스트 세로 쓰기 */
+  letter-spacing: 2px;
+}
+
+.open-icon {
+  margin-top: 5px;
+  font-size: 10px;
+  transform: rotate(180deg); /* 아이콘 방향 */
+}
+
+.side-nav-open-btn:hover {
+  background-color: #3d7a35;
+  width: 35px; /* 호버 시 약간 튀어나오게 */
 }
