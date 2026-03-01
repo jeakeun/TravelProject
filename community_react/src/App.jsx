@@ -29,6 +29,7 @@ import FAQDetail from './components/faq/FAQDetail';
 import NoticeList from './components/notice/NoticeList';
 import NoticeDetail from './components/notice/NoticeDetail';
 import MyPage from './pages/MyPage';
+import KakaoCallback from './pages/KakaoCallback';
 import AdminPage from './pages/AdminPage';
 import InquiryPage from './pages/InquiryPage';
 import { getUserId } from './utils/user';
@@ -438,6 +439,7 @@ function App() {
         <Route path="/cscenter/faq/posts/:id" element={<FAQDetail />} />
         <Route path="/cscenter/faq/edit/:id" element={<PostWrite activeMenu="자주 묻는 질문" boardType="faq" refreshPosts={loadPosts} isEdit={true} />} />
 
+        <Route path="/kakao-callback" element={<KakaoCallback />} />
         <Route path="/mypage" element={<MyPage />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/login" element={<OpenLoginModal openLogin={openLogin} />} />

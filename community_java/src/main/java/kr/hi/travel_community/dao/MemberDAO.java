@@ -28,11 +28,18 @@ public interface MemberDAO {
 	 */
 	MemberVO selectMemberByEmail(@Param("email") String email);
 
-	/**
-	 * 새로운 회원정보 저장 (회원가입 완료)
-	 * Mapper XML의 #{id}, #{pw}, #{email}, #{agree}와 매칭됩니다.
-	 */
+    /**
+     * 새로운 회원정보 저장 (회원가입 완료)
+     * Mapper XML의 #{id}, #{pw}, #{email}, #{agree}와 매칭됩니다.
+     */
 	boolean insertMember(MemberSignUpDTO member);
+
+	/** 카카오 회원 조회 (mb_uid = 'kakao_' + kakaoId) */
+	MemberVO selectMemberByKakaoId(@Param("kakaoUid") String kakaoUid);
+
+	/** 카카오 회원 가입 */
+	boolean insertMemberKakao(@Param("id") String id, @Param("nickname") String nickname,
+			@Param("pw") String pw, @Param("email") String email);
 
 	// ✅ 아이디 + 이메일로 일치 회원 찾기 (비밀번호 찾기 검증용)
     MemberVO selectMemberByIdAndEmail(@Param("id") String id, @Param("email") String email);

@@ -125,7 +125,23 @@ function Signup({ onClose }) {
           )}
           <div className="modal-btn-group">
             <button type="submit" className="btn-primary">회원가입</button>
-            <button type="button" className="btn-kakao">카카오톡으로 회원가입</button>
+            <button
+              type="button"
+              className="btn-kakao"
+              onClick={() => {
+                if (window.Kakao?.Auth?.authorize) {
+                  sessionStorage.setItem("kakao_signup", "true");
+                  window.Kakao.Auth.authorize({
+                    redirectUri: `${window.location.origin}/kakao-callback`,
+                    prompt: "login",
+                  });
+                } else {
+                  alert("카카오 로그인을 사용할 수 없습니다. 페이지를 새로고침 후 다시 시도하세요.");
+                }
+              }}
+            >
+              카카오톡으로 회원가입
+            </button>
           </div>
         </form>
       </div>

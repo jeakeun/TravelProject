@@ -1,22 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script type="text/javascript"  src="//dapi.kakao.com/v2/maps/sdk.js?appkey=0fe7c7a264f9456db151ae55939175a2&libraries=services"></script>
+    <script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=0fe7c7a264f9456db151ae55939175a2&libraries=services"></script>
+    <script src="//t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" crossorigin="anonymous"></script>
+    <script>
+      window.KAKAO_JS_KEY = '0fe7c7a264f9456db151ae55939175a2';
+      (function initKakao() {
+        if (window.Kakao && !window.Kakao.isInitialized()) {
+          window.Kakao.init(window.KAKAO_JS_KEY);
+        } else if (!window.Kakao) {
+          setTimeout(initKakao, 100);
+        }
+      })();
+    </script>
     <title>Travel Community</title>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
- 
   </body>
-<head>
-  <meta charset="UTF-8" />
-  <title>Travel Community</title>
-</head>
-<body>
-  <div id="root"></div>
-</body>
 </html>
 
