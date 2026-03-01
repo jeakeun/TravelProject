@@ -2,8 +2,9 @@
 import axios from "axios";
 
 const api = axios.create({
-  // 🚩 [수정] 빈 문자열 대신 실제 배포된 서버의 IP와 8080 포트를 명시합니다.
-  baseURL: 'http://3.37.160.108:8080', 
+  // 🚩 [수정] IP 하드코딩을 제거하고 빈 문자열로 설정합니다.
+  // 이 설정은 브라우저가 현재 접속 중인 도메인과 포트를 자동으로 사용하게 합니다.
+  baseURL: '', 
   withCredentials: true, // ✅ refreshToken 쿠키 포함
   headers: {
     "Content-Type": "application/json",
@@ -66,16 +67,16 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // 🚩 [수정] 상대 경로 "/" 대신 설정된 baseURL을 사용하여 전체 경로로 요청합니다.
-        const refreshRes = await fetch(`${api.defaults.baseURL}/auth/refresh`, {
+        // 🚩 [수정] 하드코딩된 주소 대신 api.defaults.baseURL(현재 접속 주소)을 사용합니다.
+        const refreshRes = await fetch(`${api.defaults.baseURL}/api/auth/refresh`, {
           method: "POST",
           credentials: "include",
         });
 
         if (!refreshRes.ok) {
           // refresh 실패 → 서버 쿠키 삭제 + 로컬 정리
-          // 🚩 [수정] 여기도 전체 경로로 수정합니다.
-          await fetch(`${api.defaults.baseURL}/auth/logout`, {
+          // 🚩 [수정] 로그아웃 경로도 현재 주소를 따르도록 수정합니다.
+          await fetch(`${api.defaults.baseURL}/api/auth/logout`, {
             method: "POST",
             credentials: "include",
           }).catch(() => {});
