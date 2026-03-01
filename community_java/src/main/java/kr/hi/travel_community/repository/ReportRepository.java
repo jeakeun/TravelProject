@@ -32,4 +32,8 @@ public interface ReportRepository extends JpaRepository<ReportBox, Integer> {
     @Modifying(clearAutomatically = true)
     @Query(value = "UPDATE report_box SET rb_seen = 'Y' WHERE rb_num = :rbNum AND rb_mb_num = :mbNum", nativeQuery = true)
     int markSeen(@Param("rbNum") Integer rbNum, @Param("mbNum") Integer mbNum);
+
+    /** 미처리 신고 건수 - 관리자 알림용 (rb_manage가 null이거나 'Y'가 아님) */
+    @Query("SELECT COUNT(r) FROM ReportBox r WHERE r.rbManage IS NULL OR r.rbManage <> 'Y'")
+    long countNewReports();
 }
