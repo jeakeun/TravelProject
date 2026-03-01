@@ -64,12 +64,22 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // 리액트 포트와 통신 허용
-        configuration.setAllowedOrigins(List.of("http://localhost:3000")); 
+        
+        // 🚩 [수정됨] 배포 서버 IP와 로컬 호스트를 모두 허용 리스트에 추가했습니다.
+        configuration.setAllowedOrigins(List.of(
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://3.37.160.108"
+        )); 
+        
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
+        
         // 쿠키 및 인증 헤더 허용 (axios.withCredentials 대응)
         configuration.setAllowCredentials(true);
+        
+        // 브라우저에서 읽을 수 있도록 허용할 헤더 추가
+        configuration.setExposedHeaders(List.of("Set-Cookie", "Authorization"));
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
