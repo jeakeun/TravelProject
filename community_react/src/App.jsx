@@ -35,7 +35,8 @@ import MyPage from './pages/MyPage';
 import KakaoCallback from './pages/KakaoCallback';
 import AdminPage from './pages/AdminPage';
 import InquiryPage from './pages/InquiryPage';
-import { getUserId } from './utils/user';
+import { getUserId, isAdmin } from './utils/user';
+import api from './api/axios';
 
 // 🚩 RankingList 임포트 추가
 import RankingList from './components/ranking/RankingList'; 
@@ -72,7 +73,7 @@ function GlobalLayout({
   showLogin, setShowLogin, showSignup, setShowSignup, openLogin, openSignup, 
   showFindPw, setShowFindPw, showResetPw, setShowResetPw, resetUserId, setResetUserId, 
   showChangePw, setShowChangePw, user, setUser, onLogin, onLogout, 
-  currentLang, setCurrentLang, posts, loadPosts, openChangePassword 
+  currentLang, setCurrentLang, posts, loadPosts, openChangePassword, adminNewCounts, refreshAdminCounts 
 }) {
   return (
     <div className="App">
@@ -82,7 +83,8 @@ function GlobalLayout({
         openLogin={openLogin} 
         openSignup={openSignup} 
         currentLang={currentLang} 
-        setCurrentLang={setCurrentLang} 
+        setCurrentLang={setCurrentLang}
+        adminNewCounts={adminNewCounts}
       />
       {/* 네비게이션바 컴포넌트 추가 */}
       <NavigationBar />
@@ -117,7 +119,7 @@ function GlobalLayout({
       )}
       
       <main className="main-content">
-        <Outlet context={{ user, setUser, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang, posts, loadPosts, openChangePassword }} />
+        <Outlet context={{ user, setUser, setShowLogin, setShowSignup, onLogout, currentLang, setCurrentLang, posts, loadPosts, openChangePassword, refreshAdminCounts }} />
       </main>
     </div>
   );
@@ -253,9 +255,24 @@ function App() {
       return parsed?.member ?? parsed;
     } catch { return null; }
   });
+  const [adminNewCounts, setAdminNewCounts] = useState({ newInquiries: 0, newReports: 0 });
 
   const location = useLocation();
 
+  const refreshAdminCounts = useCallback(() => {
+    if (!user || !isAdmin(user)) return;
+    api.get("/api/admin/notification-counts")
+      .then((res) => {
+        const d = res.data || {};
+        setAdminNewCounts({
+          newInquiries: Number(d.newInquiries) || 0,
+          newReports: Number(d.newReports) || 0
+        });
+      })
+      .catch(() => setAdminNewCounts({ newInquiries: 0, newReports: 0 }));
+  }, [user]);
+
+  // 🚩 수정됨: 데이터 갱신 로직 보완
   const loadPosts = useCallback(async () => {
     const path = location.pathname.toLowerCase();
     
@@ -381,6 +398,22 @@ function App() {
     checkAuth();
   }, []);
 
+  useEffect(() => {
+    if (!user || !isAdmin(user)) {
+      setAdminNewCounts({ newInquiries: 0, newReports: 0 });
+      return;
+    }
+    api.get("/api/admin/notification-counts")
+      .then((res) => {
+        const d = res.data || {};
+        setAdminNewCounts({
+          newInquiries: Number(d.newInquiries) || 0,
+          newReports: Number(d.newReports) || 0
+        });
+      })
+      .catch(() => setAdminNewCounts({ newInquiries: 0, newReports: 0 }));
+  }, [user]);
+
   const handleLogin = useCallback((userData) => {
     const member = userData?.member ?? userData;
     const accessToken = userData?.accessToken;
@@ -424,6 +457,8 @@ function App() {
           onLogin={handleLogin} onLogout={handleLogout}
           currentLang={currentLang} setCurrentLang={setCurrentLang}
           posts={posts} loadPosts={loadPosts} openChangePassword={openChangePassword}
+          adminNewCounts={adminNewCounts}
+          refreshAdminCounts={refreshAdminCounts}
         />
       }>
         <Route path="/" element={<Main />} />

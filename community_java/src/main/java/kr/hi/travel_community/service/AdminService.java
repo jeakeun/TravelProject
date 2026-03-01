@@ -39,6 +39,14 @@ public class AdminService {
                 .collect(Collectors.toList());
     }
 
+    /** 관리자 알림용: 미답변 문의·미처리 신고 건수 */
+    public Map<String, Long> getNewCounts() {
+        Map<String, Long> m = new HashMap<>();
+        m.put("newInquiries", inquiryRepository.countByIbStatus("N"));
+        m.put("newReports", reportRepository.countNewReports());
+        return m;
+    }
+
     @Transactional
     public void updateInquiryStatus(Integer ibNum, String status) {
         inquiryRepository.updateStatus(ibNum, status != null ? status : "Y");

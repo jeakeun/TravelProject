@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import api from "../api/axios";
 import { isAdmin } from "../utils/user";
 import "./AdminPage.css";
 
 function AdminPage() {
-  const { user } = useOutletContext() || {};
+  const { user, refreshAdminCounts } = useOutletContext() || {};
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("inquiry");
   const [inquiries, setInquiries] = useState([]);
   const [reports, setReports] = useState([]);
+  const [newCounts, setNewCounts] = useState({ newInquiries: 0, newReports: 0 });
   const [loading, setLoading] = useState(true);
   const [expandedInquiry, setExpandedInquiry] = useState(null);
   const [expandedReport, setExpandedReport] = useState(null);
@@ -18,6 +19,18 @@ function AdminPage() {
   const [savingReply, setSavingReply] = useState(false);
   const [editingInquiry, setEditingInquiry] = useState(null);
   const [editingReport, setEditingReport] = useState(null);
+
+  const fetchNewCounts = useCallback(() => {
+    api.get("/api/admin/notification-counts")
+      .then((res) => {
+        const d = res.data || {};
+        setNewCounts({
+          newInquiries: Number(d.newInquiries) || 0,
+          newReports: Number(d.newReports) || 0,
+        });
+      })
+      .catch(() => setNewCounts({ newInquiries: 0, newReports: 0 }));
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -37,12 +50,18 @@ function AdminPage() {
     const fetch = async () => {
       setLoading(true);
       try {
-        const [inqRes, repRes] = await Promise.all([
+        const [inqRes, repRes, countsRes] = await Promise.all([
           api.get("/api/admin/inquiries"),
           api.get("/api/admin/reports"),
+          api.get("/api/admin/notification-counts").catch(() => ({ data: { newInquiries: 0, newReports: 0 } })),
         ]);
         setInquiries(Array.isArray(inqRes.data) ? inqRes.data : []);
         setReports(Array.isArray(repRes.data) ? repRes.data : []);
+        const d = countsRes?.data || {};
+        setNewCounts({
+          newInquiries: Number(d.newInquiries) || 0,
+          newReports: Number(d.newReports) || 0,
+        });
       } catch (err) {
         console.error("관리자 데이터 로딩 실패:", err);
         if (err?.response?.status === 403) {
@@ -88,6 +107,8 @@ function AdminPage() {
       alert("답변이 저장되었습니다.");
       setExpandedInquiry(null);
       setEditingInquiry(null);
+      fetchNewCounts();
+      refreshAdminCounts?.();
     } catch (err) {
       const data = err?.response?.data;
       const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "저장 실패");
@@ -121,6 +142,8 @@ function AdminPage() {
       alert("답변이 저장되었습니다.");
       setExpandedReport(null);
       setEditingReport(null);
+      fetchNewCounts();
+      refreshAdminCounts?.();
     } catch (err) {
       const data = err?.response?.data;
       const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "저장 실패");
@@ -138,6 +161,8 @@ function AdminPage() {
       );
       alert(res?.data?.msg ?? "처리되었습니다.");
       setExpandedReport(null);
+      fetchNewCounts();
+      refreshAdminCounts?.();
     } catch (err) {
       const data = err?.response?.data;
       const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "처리 실패");
@@ -162,13 +187,15 @@ function AdminPage() {
           className={`admin-tab ${activeTab === "inquiry" ? "active" : ""}`}
           onClick={() => setActiveTab("inquiry")}
         >
-          1:1 문의함
+          <span className="admin-tab-label">1:1 문의함</span>
+          <span className={`admin-tab-badge ${newCounts.newInquiries > 0 ? "has-count" : ""}`}>{newCounts.newInquiries}</span>
         </button>
         <button
           className={`admin-tab ${activeTab === "report" ? "active" : ""}`}
           onClick={() => setActiveTab("report")}
         >
-          신고함
+          <span className="admin-tab-label">신고함</span>
+          <span className={`admin-tab-badge ${newCounts.newReports > 0 ? "has-count" : ""}`}>{newCounts.newReports}</span>
         </button>
       </div>
 

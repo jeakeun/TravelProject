@@ -152,7 +152,8 @@ body {
     pointer-events: none;
 }
 
-.App .nav-area:hover .mega-menu-wrapper {
+/* 네비 목록(왼쪽) 영역에만 호버 시 메가메뉴 표시 - 언어/오른쪽 호버 시에는 미표시 */
+.App .nav-area .nav-and-mega:hover .mega-menu-wrapper {
     height: 240px;
     visibility: visible;
 }
@@ -174,7 +175,7 @@ body {
     z-index: 9999;
 }
 
-.App .nav-area:hover .mega-menu-content {
+.App .nav-area .nav-and-mega:hover .mega-menu-content {
     opacity: 1;
     visibility: visible;
 }
@@ -337,10 +338,94 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
+.App .nav-area .user-name-and-alert {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
 .App .nav-area .user-name-text {
     display: block;
     font-size: 14px;
     font-weight: 500;
+}
+
+.App .nav-area .admin-alert-msg {
+    display: block;
+    font-size: 11px;
+    color: #ffc107;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* 관리자 알림창: 1줄 문구 + X / 2줄 관리자페이지로 이동 */
+.App .nav-area .admin-alert-panel {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 6px;
+    min-width: 240px;
+    background: #fff;
+    color: #333;
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+    padding: 12px 14px;
+    z-index: 10002;
+    animation: fadeInDown 0.2s ease;
+    border: 1px solid rgba(0,0,0,0.08);
+}
+
+.App .nav-area .admin-alert-panel-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.App .nav-area .admin-alert-panel-msg {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a6b2a;
+    flex: 1;
+}
+
+.App .nav-area .admin-alert-panel-x {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    font-size: 18px;
+    line-height: 1;
+    color: #666;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.App .nav-area .admin-alert-panel-x:hover {
+    color: #333;
+    background: #f0f0f0;
+}
+
+.App .nav-area .admin-alert-panel-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.App .nav-area .admin-alert-panel-link {
+    font-size: 12px;
+    color: #1a6b2a;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.App .nav-area .admin-alert-panel-link:hover {
+    text-decoration: underline;
 }
 
 .App .nav-area .user-name-arrow {
