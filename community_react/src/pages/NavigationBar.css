@@ -1,4 +1,4 @@
-/* 전체 컨테이너를 각진 네모로 변경 */
+/* 사이드바 전체 컨테이너: 각진 네모 스타일 유지 */
 .side-nav-rect {
   position: fixed;
   right: 57px; /* 우측 끝 여백 */
@@ -6,13 +6,15 @@
   transform: translateY(-50%);
   z-index: 9999;
   width: 90px;
-  background-color: rgba(0, 0, 0, 0.685); /* 어두운 배경으로 가독성 확보 */
+  background-color: rgba(0, 0, 0, 0.685); /* 어두운 배경 */
   border: 1px solid #444; /* 얇은 테두리 */
   display: flex;
   flex-direction: column;
   padding: 15px 0;
+  min-height: 450px; /* 박스들이 밀려나지 않도록 최소 높이 설정 */
 }
 
+/* 상단 타이틀 (TOP 버튼 기능) */
 .side-nav-title {
   color: #2d5a27; /* 사이트 포인트 컬러 */
   font-size: 10px;
@@ -22,12 +24,15 @@
   letter-spacing: 1px;
   cursor: pointer;
   transition: all 0.3s ease;
-}
-.side-nav-title:hover {
-  background-color: #f0f0f0; /* 마우스 올렸을 때 살짝 밝아짐 */
-  color: #2ecc71; /* 마우스 호버시 강조효과 */
+  padding: 5px 0;
 }
 
+.side-nav-title:hover {
+  background-color: #f0f0f0; /* 마우스 올렸을 때 피드백 */
+  color: #2ecc71; 
+}
+
+/* 메뉴 리스트 스타일 */
 .side-nav-list-rect {
   list-style: none;
   padding: 0;
@@ -43,7 +48,7 @@
   border-bottom: none;
 }
 
-/* 버튼 및 링크 스타일: 네모로 변경 및 링크 기본 스타일 제거 */
+/* 메뉴 버튼 및 링크 스타일 */
 .side-nav-btn-rect {
   width: 100%;
   padding: 15px 0;
@@ -55,13 +60,13 @@
   align-items: center;
   transition: background 0.3s;
   
-  /* a 태그와 Link 태그의 기본 스타일 초기화 */
-  text-decoration: none; /* 밑줄 제거 */
-  color: inherit;       /* 부모 컬러 상속 */
+  /* 링크 기본 스타일 제거 */
+  text-decoration: none; 
+  color: inherit; 
 }
 
 .side-nav-btn-rect:hover {
-  background-color: #2d5a27; /* 마우스 올리면 초록색으로 변경 */
+  background-color: #2d5a27; /* 마우스 호버 시 포인트 컬러 */
 }
 
 .icon-rect {
@@ -75,19 +80,56 @@
   font-weight: 500;
 }
 
-/* 하단 사각형 3개 정렬 */
+/* --- 하단 최근 본 게시물 영역 (수정 및 추가된 부분) --- */
 .side-nav-footer-rect {
   display: flex;
   justify-content: center;
-  gap: 4px;
-  padding-top: 15px;
-  border-top: 2px solid #2d5a27; /* 하단 구분 강조 */
-  margin-top: 5px;
+  gap: 6px; /* 박스 사이 간격 */
+  padding: 15px 5px 5px 5px;
+  border-top: 2px solid #2d5a27; /* 상단과 구분하는 강조선 */
+  margin-top: auto; /* 메뉴가 적어도 박스들은 항상 맨 아래 배치 */
 }
 
+/* 공통 사각형 박스 스타일 */
 .square-box {
-  width: 18px;
-  height: 18px;
+  width: 24px;  /* 기존 18px에서 글자 가독성을 위해 살짝 키움 */
+  height: 24px;
   background-color: #555;
   border: 1px solid #777;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+/* 최근 본 게시물 데이터가 있을 때 */
+.recent-box {
+  background-color: #ffffff;
+  border: 1px solid #2d5a27;
+}
+
+.recent-box:hover {
+  transform: scale(1.15); /* 마우스 올리면 살짝 확대 */
+  z-index: 10;
+}
+
+/* 박스 내부 아주 작은 제목 텍스트 */
+.recent-text {
+  font-size: 7px; /* 박스 크기에 맞춘 초소형 폰트 */
+  color: #333;
+  line-height: 1.1;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 1; /* 최대 1줄 표시 */
+  -webkit-box-orient: vertical;
+  word-break: break-all;
+  padding: 1px;
+}
+
+/* 게시글이 없는 빈 박스 */
+.empty-box {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px dashed #666;
 }
