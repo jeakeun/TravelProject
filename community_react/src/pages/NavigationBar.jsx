@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { getRecentViews } from '../utils/recentView'; // 경로 확인 필수!
+import { getRecentViews } from '../utils/recentViews'; 
 import './NavigationBar.css';
 
 const NavigationBar = ({ user }) => {
