@@ -18,9 +18,9 @@ const carouselTranslations = {
   },
   JP: {
     rank_main_title: "今月の旅行先ランキング",
-    dest1_name: "01. 情報なし", dest1_desc: "おすすめの投稿がありません。",
-    dest2_name: "02. 정보 없음", dest2_desc: "おすすめ의 게시글이 없습니다.",
-    dest3_name: "03. 정보 없음", dest3_desc: "おすすめ의 게시글이 없습니다."
+    dest1_name: "01. 정보なし", dest1_desc: "おすすめの投稿がありません。",
+    dest2_name: "02. 정보なし", dest2_desc: "おすすめの投稿가ありません。",
+    dest3_name: "03. 정보なし", dest3_desc: "おすすめの投稿가ありません。"
   },
   CH: {
     rank_main_title: "本月目的地排名",
@@ -30,62 +30,67 @@ const carouselTranslations = {
   }
 };
 
+// 🚩 [수정] ESLint 에러 방지를 위해 함수를 컴포넌트 외부로 이동하고 필요한 값을 인자로 받음
+const getCarouselClass = (idx, carouselIndex) => {
+  if (idx === carouselIndex) return "carousel-item active";
+  const prevIdx = (carouselIndex + 1) % 3;
+  if (idx === prevIdx) return "carousel-item prev";
+  return "carousel-item next";
+};
+
+const getRankNumber = (idx, carouselIndex) => {
+  if (idx === carouselIndex) return 1; // 중앙 1위
+  if (idx === (carouselIndex + 1) % 3) return 2; // 왼쪽(prev) 2위
+  return 3; // 오른쪽(next) 3위
+};
+
 function Main() {
-  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselIndex, setCarouselIndex] = useState(1); // 중앙 1위
   const navigate = useNavigate();
   const outletContext = useOutletContext() || {};
   
-  // outletContext에서 posts와 currentLang을 가져옵니다.
   const { currentLang, posts = [] } = outletContext;
-
   const t = carouselTranslations[currentLang] || carouselTranslations["KR"];
-  const SERVER_URL = "";
+  
+  // 🚩 [수정] 하드코딩된 빈 문자열 대신 환경변수 적용
+  const SERVER_URL = process.env.REACT_APP_API_URL || "";
 
-  // 🚩 [데이터 로직] 서버에서 이미 계산되어 내려온 순서를 유지하며 recommend 데이터 상위 3개 추출
+  // 🔹 topThree 순서: 2위-1위-3위
   const topThree = useMemo(() => {
     if (!Array.isArray(posts)) return [];
-    
-    // 1. recommend 게시판 데이터만 필터링 (poBoardType이나 엔드포인트에서 구분된 데이터 기반)
-    // 서버 응답 데이터 구조에 맞게 'recommend' 게시글만 필터링합니다.
     const recommendPosts = posts.filter(p => 
       p.poBoardType === 'recommend' || 
       p.boardType === 'recommend' || 
       p.category === 'recommend'
-    );
+    ).slice(0, 3);
 
-    // 2. 서버에서 랭킹순으로 보내주므로 별도 sort 없이 상위 3개만 선택
-    return recommendPosts.slice(0, 3);
+    if (recommendPosts.length === 3) {
+      return [recommendPosts[1], recommendPosts[0], recommendPosts[2]]; // 2위-1위-3위
+    }
+    return recommendPosts;
   }, [posts]);
 
-  // 🚩 [이미지 로직] DB 필드 대응 및 첫 번째 이미지 추출
   const getImageUrl = (post) => {
     const defaultImg = "https://placehold.co/1200x800?text=No+Image";
     if (!post) return defaultImg;
-    
-    // DB 컬럼명 po_img 또는 poImg 대응
     const targetUrl = post.poImg || post.po_img || post.fileName;
-
     if (targetUrl && targetUrl !== "" && String(targetUrl) !== "null") {
       if (String(targetUrl).startsWith('http') || String(targetUrl).startsWith('data:')) return targetUrl;
       const firstFile = String(targetUrl).split(',')[0].trim();
       const extractedName = firstFile.split(/[\\/]/).pop();
       return `${SERVER_URL}/pic/${extractedName}`;
     }
-
     if (post.poContent && typeof post.poContent === 'string') {
       const imgRegex = /<img[^>]+src=["']([^"']+)["']/;
       const match = post.poContent.match(imgRegex);
       if (match && match[1]) return match[1];
     }
-    
     return defaultImg; 
   };
 
-  // 카러셀 제어 로직
   const handlePrev = () => setCarouselIndex((prev) => (prev === 0 ? 2 : prev - 1));
   const handleNext = () => setCarouselIndex((prev) => (prev === 2 ? 0 : prev + 1));
 
-  // 스크롤 시 헤더 스타일 변경 이벤트
   useEffect(() => {
     const header = document.querySelector('.App .nav-area header');
     if (!header) return;
@@ -97,12 +102,6 @@ function Main() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const getCarouselClass = (idx) => {
-    if (idx === carouselIndex) return "carousel-item active";
-    if (idx === (carouselIndex + 1) % 3) return "carousel-item next";
-    return "carousel-item prev";
-  };
-
   const scrollToRanking = useCallback(() => {
     const el = document.getElementById("ranking");
     if (!el) return;
@@ -112,9 +111,6 @@ function Main() {
 
   return (
     <div className="main-container">
-      {/* 네이게이션바 */}
-      <NavigationBar />
-      {/* ===== 메인 비디오 섹션 ===== */}
       <section id="main-video">
         <iframe 
           src="https://www.youtube.com/embed/1La4QzGeaaQ?autoplay=1&mute=1&controls=0&loop=1&playlist=1La4QzGeaaQ" 
@@ -127,24 +123,23 @@ function Main() {
         </button>
       </section>
 
-      {/* ===== 랭킹 카러셀 섹션 ===== */}
       <section id="ranking">
         <h2>{t.rank_main_title}</h2>
         <div className="carousel-outer">
           <button type="button" className="carousel-btn prev-btn" onClick={handlePrev} aria-label="이전">❮</button>
           <div className="carousel-container">
             <div className="carousel-wrapper">
-              {[0, 1, 2].map((idx) => {
-                const post = topThree[idx];
-                // 서버 데이터 구조(po_num 또는 poNum)에 맞춰 ID 추출
+              {topThree.map((post, idx) => {
                 const postId = post?.poNum || post?.po_num || post?.id;
                 const displayTitle = post?.poTitle || post?.po_title || t[`dest${idx + 1}_name`];
+                
+                // 🚩 [수정] 외부로 분리된 함수를 인자와 함께 호출
+                const rankNumber = getRankNumber(idx, carouselIndex);
 
                 return (
                   <div 
                     key={idx} 
-                    className={getCarouselClass(idx)}
-                    // 🚩 클릭 시 상세페이지로 이동: /community/recommend/:id
+                    className={getCarouselClass(idx, carouselIndex)}
                     onClick={() => post && navigate(`/community/recommend/${postId}`)}
                     style={{ cursor: post ? 'pointer' : 'default' }}
                   >
@@ -154,7 +149,7 @@ function Main() {
                       onError={(e) => { e.target.src = "https://placehold.co/1200x800?text=No+Image"; }}
                     />
                     <div className="item-info">
-                      <h3>{post ? `0${idx + 1}. ${displayTitle}` : displayTitle}</h3>
+                      <h3>{post ? `0${rankNumber}. ${displayTitle}` : displayTitle}</h3>
                       <p>
                         {post 
                           ? (post.poContent?.replace(/<[^>]*>?/gm, '').substring(0, 40) + "...") 

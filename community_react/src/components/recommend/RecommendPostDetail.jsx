@@ -7,7 +7,6 @@ import { addRecentView } from '../../utils/recentViews';
 import ReportModal from '../ReportModal';
 import './RecommendPostDetail.css';
 
-// 🚩 [유지] 배포 서버 및 포트 설정
 const API_BASE_URL = "";
 const SERVER_URL = API_BASE_URL;
 
@@ -20,6 +19,7 @@ const RecommendPostDetail = () => {
     const [comments, setComments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [isLiked, setIsLiked] = useState(false);
+    const [isBookmarked, setIsBookmarked] = useState(false);
 
     const [commentInput, setCommentInput] = useState(""); 
     const [editId, setEditId] = useState(null);           
@@ -27,7 +27,6 @@ const RecommendPostDetail = () => {
     const [replyTo, setReplyTo] = useState(null);         
     const [replyInput, setReplyInput] = useState(""); 
 
-    const [isBookmarked, setIsBookmarked] = useState(false);
     const [reportModal, setReportModal] = useState({ open: false, type: 'post', targetId: null });
 
     const commentAreaRef = useRef(null);
@@ -36,7 +35,6 @@ const RecommendPostDetail = () => {
     const isLoggedIn = !!user; 
     const currentUserNum = getMemberNum(user); 
     const isAdmin = user ? (Number(user.mbLevel ?? user.mb_score ?? 0) >= 10 || user.mb_rol === 'ADMIN') : false; 
-
     const isNumericId = id && !isNaN(Number(id)) && id !== "write";
 
     const fixImagePaths = (content) => {
@@ -52,9 +50,7 @@ const RecommendPostDetail = () => {
             try {
                 await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/view`);
                 sessionStorage.setItem(storageKey, 'true');
-            } catch (err) {
-                console.error("조회수 증가 실패", err);
-            }
+            } catch (err) { console.error("조회수 증가 실패", err); }
         }
     }, [id, isNumericId]);
 
@@ -62,34 +58,32 @@ const RecommendPostDetail = () => {
         if (!isNumericId) return;
         try {
             if (!isAction) setLoading(true);
-            
             const postRes = await axios.get(`${SERVER_URL}/api/recommend/posts/${id}`, {
-                params: { mbNum: currentUserNum }
+                params: { mbNum: currentUserNum } 
             });
-
-            setPost(postRes.data);
-
-            const likedStatus = postRes.data.isLiked === true || postRes.data.isLiked === 'Y' || postRes.data.isLikedByMe === true;
-            setIsLiked(likedStatus);
             
-            const bookmarkStatus = postRes.data.isBookmarkedByMe || postRes.data.isBookmarked === 'Y' || postRes.data.isBookmarked === true || postRes.data.favorited;
+            const data = postRes.data;
+            setPost(data);
             
-            const storageChange = localStorage.getItem('bookmark_changed');
-            let finalBookmarkState = bookmarkStatus;
-            if (storageChange) {
-                try {
-                    const syncData = JSON.parse(storageChange);
-                    if (Number(syncData.id) === Number(id)) {
-                        finalBookmarkState = syncData.state;
-                    }
-                } catch(e) {}
+            const localLike = localStorage.getItem(`like_status_${id}`);
+            if (localLike !== null) {
+                setIsLiked(localLike === 'true');
+            } else {
+                setIsLiked(data.isLikedByMe || data.poUpCheck === 'Y' || data.isUp === 'Y');
             }
-            setIsBookmarked(finalBookmarkState);
+            
+            const localBookmark = localStorage.getItem(`bookmark_status_${id}`);
+            if (localBookmark !== null) {
+                setIsBookmarked(localBookmark === 'true');
+            } else {
+                const serverBookmark = !!(data.isBookmarkedByMe || data.isBookmarked === 'Y' || data.isBookmarked === true || data.favorited);
+                setIsBookmarked(serverBookmark);
+            }
             
             addRecentView({ 
                 boardType: 'recommend', 
                 poNum: Number(id), 
-                poTitle: postRes.data?.poTitle || postRes.data?.po_title 
+                poTitle: data?.poTitle || data?.po_title 
             }, currentUserNum);
 
             const commentRes = await axios.get(`${SERVER_URL}/api/comment/list/${id}`);
@@ -106,19 +100,15 @@ const RecommendPostDetail = () => {
             }
             setLoading(false);
         }
-    }, [id, navigate, isNumericId, currentUserNum]);
+    }, [id, isNumericId, currentUserNum, navigate]);
 
     useEffect(() => {
         const handleStorageChange = (e) => {
-            if (e.key === 'bookmark_changed' && e.newValue) {
-                try {
-                    const { id: changedId, state } = JSON.parse(e.newValue);
-                    if (Number(changedId) === Number(id)) {
-                        setIsBookmarked(state);
-                    }
-                } catch (err) {
-                    console.error("Storage parse error", err);
-                }
+            if (e.key === `bookmark_status_${id}` && e.newValue !== null) {
+                setIsBookmarked(e.newValue === 'true');
+            }
+            if (e.key === `like_status_${id}` && e.newValue !== null) {
+                setIsLiked(e.newValue === 'true');
             }
         };
         window.addEventListener('storage', handleStorageChange);
@@ -132,67 +122,99 @@ const RecommendPostDetail = () => {
         }
     }, [isNumericId, fetchAllData, incrementViewCount]);
 
-    useEffect(() => {
-        if (replyTo && replyInputRef.current) replyInputRef.current.focus();
-    }, [replyTo]);
-
-    const handleDeletePost = async () => {
-        if (!window.confirm("정말 이 게시글을 삭제하시겠습니까?")) return;
-        try {
-            await axios.delete(`${SERVER_URL}/api/recommend/posts/${id}`);
-            alert("게시글이 삭제되었습니다.");
-            navigate('/community/recommend');
-        } catch (err) { alert("삭제에 실패했습니다."); }
-    };
-
-    const handleEditPost = () => {
-        navigate(`/community/recommend/write`, { state: { mode: 'edit', postData: post } });
-    };
-
+    // 🚩 [수정 포인트] 추천 기능에 Authorization 헤더 추가
     const handleLikeToggle = async () => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
+        
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+        
         try {
-            const res = await axios.post(`${SERVER_URL}/api/recommend/posts/${id}/like`, { mbNum: currentUserNum });
-            if (res.data.status === "liked") {
-                setIsLiked(true);
-                setPost(prev => ({ ...prev, poUp: (prev.poUp || 0) + 1 }));
-                alert("게시글을 추천했습니다.");
+            const res = await axios.post(
+                `${SERVER_URL}/api/recommend/posts/${id}/like`, 
+                { mbNum: currentUserNum },
+                {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    },
+                    withCredentials: true
+                }
+            );
+            const nextState = res.data.status === "liked";
+            
+            setIsLiked(nextState);
+            setPost(prev => ({ 
+                ...prev, 
+                poUp: nextState ? (prev.poUp || 0) + 1 : Math.max(0, (prev.poUp || 0) - 1) 
+            }));
+
+            localStorage.setItem(`like_status_${id}`, nextState.toString());
+            window.dispatchEvent(new Event('storage'));
+
+            alert(nextState ? "게시글을 추천했습니다." : "게시글 추천을 취소했습니다.");
+        } catch (err) { 
+            if (err.response?.status === 401) {
+                alert("로그인 세션이 만료되었습니다. 다시 로그인해주세요.");
             } else {
-                setIsLiked(false);
-                setPost(prev => ({ ...prev, poUp: Math.max(0, (prev.poUp || 0) - 1) }));
-                alert("게시글 추천을 취소했습니다.");
+                alert("추천 처리 중 오류 발생"); 
             }
-        } catch (err) { alert("추천 처리 중 오류가 발생했습니다."); }
+        }
     };
 
     const handleBookmark = async () => {
         if (!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
             await api.post("/api/mypage/bookmarks", { poNum: Number(id), boardType: "recommend" });
-            const newState = !isBookmarked;
-            setIsBookmarked(newState);
+            const nextState = !isBookmarked;
+            
+            setIsBookmarked(nextState);
+            
+            localStorage.setItem(`bookmark_status_${id}`, nextState.toString());
             localStorage.setItem('bookmark_changed', JSON.stringify({ 
                 id: Number(id), 
-                state: newState, 
+                state: nextState, 
                 time: Date.now() 
             }));
-            alert(newState ? "게시글을 즐겨찾기에 등록했습니다." : "게시글 즐겨찾기를 취소했습니다.");
-        } catch (err) {
-            const msg = err?.response?.data?.msg || err?.response?.data?.error;
-            alert(msg || "즐겨찾기 처리에 실패했습니다.");
-        }
+            window.dispatchEvent(new Event('storage'));
+
+            alert(nextState ? "즐겨찾기에 등록했습니다." : "즐겨찾기를 취소했습니다.");
+        } catch (err) { alert("즐겨찾기 처리 실패"); }
+    };
+
+    const handleDeletePost = async () => {
+        if (!window.confirm("정말 이 게시글을 삭제하시겠습니까?")) return;
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+        try {
+            await axios.delete(`${SERVER_URL}/api/recommend/posts/${id}`, {
+                headers: { 'Authorization': token ? `Bearer ${token}` : '' },
+                withCredentials: true
+            });
+            alert("게시글이 삭제되었습니다.");
+            navigate('/community/recommend');
+        } catch (err) { alert("삭제 실패"); }
+    };
+
+    const handleEditPost = () => {
+        navigate(`/community/recommend/write`, { state: { mode: 'edit', postData: post } });
     };
 
     const handleCommentLike = async (commentId) => {
         if(!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         try {
-            const res = await axios.post(`${SERVER_URL}/api/comment/like/${commentId}`, { mbNum: currentUserNum });
+            const res = await axios.post(
+                `${SERVER_URL}/api/comment/like/${commentId}`, 
+                { mbNum: currentUserNum },
+                {
+                    headers: { 'Authorization': token ? `Bearer ${token}` : '' },
+                    withCredentials: true
+                }
+            );
             if(res.data.status === "liked") {
                 setComments(prevComments => prevComments.map(c => c.coNum === commentId ? { ...c, coLike: (c.coLike || 0) + 1 } : c));
             } else {
                 setComments(prevComments => prevComments.map(c => c.coNum === commentId ? { ...c, coLike: Math.max(0, (c.coLike || 0) - 1) } : c));
             }
-        } catch (err) { alert("추천 처리 중 오류가 발생했습니다."); }
+        } catch (err) { alert("추천 오류"); }
     };
 
     const handleReportPost = () => {
@@ -202,35 +224,35 @@ const RecommendPostDetail = () => {
 
     const handleReportSubmit = async ({ category, reason }) => {
         const { type, targetId } = reportModal;
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         try {
             if (type === 'post') {
-                await axios.post(`${SERVER_URL}/api/recommend/posts/${targetId}/report`, { category, reason, mbNum: currentUserNum });
-                
-                // 🚩 게시글 신고 성공 시 화면의 신고 수 실시간 업데이트
-                setPost(prev => ({
-                    ...prev,
-                    poReport: (prev.poReport || prev.po_report || 0) + 1 
-                }));
+                await axios.post(`${SERVER_URL}/api/recommend/posts/${targetId}/report`, 
+                    { category, reason, mbNum: currentUserNum },
+                    { headers: { 'Authorization': token ? `Bearer ${token}` : '' }, withCredentials: true }
+                );
             } else {
-                await axios.post(`${SERVER_URL}/api/comment/report/${targetId}`, { category, reason, mbNum: currentUserNum });
+                await axios.post(`${SERVER_URL}/api/comment/report/${targetId}`, 
+                    { category, reason, mbNum: currentUserNum },
+                    { headers: { 'Authorization': token ? `Bearer ${token}` : '' }, withCredentials: true }
+                );
             }
             setReportModal({ open: false, type: null, targetId: null });
             fetchAllData(true, type === 'comment');
-            alert("신고가 정상적으로 접수되었습니다.");
-        } catch (err) {
-            alert(err?.response?.data || "이미 신고했거나 오류가 발생했습니다.");
-            setReportModal({ open: false, type: null, targetId: null });
-        }
+            alert("신고가 접수되었습니다.");
+        } catch (err) { alert("신고 실패"); }
     };
 
     const handleAddComment = async (parentId = null) => {
-        if(!isLoggedIn) return alert("로그인 후 댓글 작성이 가능합니다.");
+        if(!isLoggedIn) return alert("로그인 후 이용 가능합니다.");
         const content = parentId ? replyInput : commentInput;
         if (!content?.trim()) return alert("내용을 입력하세요.");
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         try {
-            await axios.post(`${SERVER_URL}/api/comment/add/${id}`, { 
-                content: content.trim(), parentId: parentId, mbNum: currentUserNum 
-            });
+            await axios.post(`${SERVER_URL}/api/comment/add/${id}`, 
+                { content: content.trim(), parentId: parentId, mbNum: currentUserNum },
+                { headers: { 'Authorization': token ? `Bearer ${token}` : '' }, withCredentials: true }
+            );
             setCommentInput(""); setReplyInput(""); setReplyTo(null);
             fetchAllData(true, true); 
         } catch (err) { alert("등록 실패"); }
@@ -238,17 +260,25 @@ const RecommendPostDetail = () => {
 
     const handleUpdateComment = async (commentId) => {
         if (!editInput?.trim()) return alert("내용을 입력하세요.");
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         try {
-            await axios.put(`${SERVER_URL}/api/comment/update/${commentId}`, { content: editInput.trim() });
+            await axios.put(`${SERVER_URL}/api/comment/update/${commentId}`, 
+                { content: editInput.trim() },
+                { headers: { 'Authorization': token ? `Bearer ${token}` : '' }, withCredentials: true }
+            );
             setEditId(null); setEditInput("");
             fetchAllData(true, true);
         } catch (err) { alert("수정 실패"); }
     };
 
     const handleDeleteComment = async (commentId) => {
-        if (!window.confirm("정말 삭제하시겠습니까?")) return;
+        if (!window.confirm("삭제하시겠습니까?")) return;
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
         try {
-            await axios.delete(`${SERVER_URL}/api/comment/delete/${commentId}`);
+            await axios.delete(`${SERVER_URL}/api/comment/delete/${commentId}`, {
+                headers: { 'Authorization': token ? `Bearer ${token}` : '' },
+                withCredentials: true
+            });
             fetchAllData(true, true);
         } catch (err) { alert("삭제 실패"); }
     };
@@ -266,7 +296,7 @@ const RecommendPostDetail = () => {
             const isReply = depth > 0;
             const isActiveEdit = editId === comment.coNum;
             const isActiveReply = replyTo === comment.coNum;
-            const authorDisplayName = comment.coNickname || comment.mbNickname || comment.mb_nickname || "알 수 없는 사용자";
+            const authorDisplayName = comment.coNickname || comment.mbNickname || "User";
 
             return (
                 <div key={comment.coNum}>
@@ -280,12 +310,8 @@ const RecommendPostDetail = () => {
                             {!isActiveEdit && !isActiveReply && (
                                 <div className="comment-btns">
                                     <span onClick={() => { setReplyTo(comment.coNum); setEditId(null); }}>답글</span>
-                                    {isCommentOwner && (
-                                        <span onClick={() => { setEditId(comment.coNum); setEditInput(comment.coContent); }}>수정</span>
-                                    )}
-                                    {(isCommentOwner || isAdmin) && (
-                                        <span onClick={() => handleDeleteComment(comment.coNum)}>삭제</span>
-                                    )}
+                                    {isCommentOwner && <span onClick={() => { setEditId(comment.coNum); setEditInput(comment.coContent); }}>수정</span>}
+                                    {(isCommentOwner || isAdmin) && <span onClick={() => handleDeleteComment(comment.coNum)}>삭제</span>}
                                     <span onClick={() => setReportModal({ open: true, type: 'comment', targetId: comment.coNum })} style={{ color: '#ff4d4f' }}>신고</span>
                                 </div>
                             )}
@@ -337,8 +363,7 @@ const RecommendPostDetail = () => {
                         <span className="info-divider">|</span>
                         <span>추천 {post.poUp || post.po_up || 0}</span> 
                         <span className="info-divider">|</span>
-                        {/* 🚩 신고 횟수 추가 */}
-                        <span>신고 {post.poReport || post.po_report || 0}</span> 
+                        <span style={{ color: post.poReport > 0 ? '#ff4d4f' : 'inherit' }}>신고 {post.poReport || post.po_report || 0}</span>
                         <span className="info-divider">|</span>
                         <span>작성일 {new Date(post.poDate || post.po_date).toLocaleString()}</span>
                     </div>
@@ -355,35 +380,21 @@ const RecommendPostDetail = () => {
                                 className={`btn-like-action ${isLiked ? 'active' : ''}`} 
                                 onClick={handleLikeToggle}
                                 style={{ 
-                                    background: isLiked ? '#e74c3c' : '#fff', 
-                                    border: '1px solid #e74c3c', 
-                                    color: isLiked ? '#fff' : '#e74c3c', 
-                                    padding: '10px 25px', 
-                                    borderRadius: '30px', 
-                                    fontWeight: 'bold', 
-                                    cursor: 'pointer', 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '5px' 
+                                    padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.2s ease', fontSize: '14px',
+                                    background: isLiked ? '#e74c3c' : '#fff', border: '1px solid #e74c3c', color: isLiked ? '#fff' : '#e74c3c' 
                                 }}
                             >
-                                <span style={{ color: '#e74c3c', filter: isLiked ? 'brightness(0) invert(1)' : 'none' }}>❤️</span>
-                                추천 {post.poUp || post.po_up || 0}
+                                {isLiked ? '❤️' : '🤍'} 추천 {post.poUp || post.po_up || 0}
                             </button>
                         )}
-
+                        
                         {isLoggedIn && (
                             <button 
                                 className={`btn-bookmark-action ${isBookmarked ? 'active' : ''}`} 
                                 onClick={handleBookmark}
                                 style={{ 
-                                    background: isBookmarked ? '#f1c40f' : '#fff', 
-                                    border: '1px solid #f1c40f', 
-                                    color: isBookmarked ? '#fff' : '#f1c40f', 
-                                    padding: '10px 25px', 
-                                    borderRadius: '30px', 
-                                    fontWeight: 'bold', 
-                                    cursor: 'pointer' 
+                                    padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px',
+                                    background: isBookmarked ? '#f1c40f' : '#fff', border: '1px solid #f1c40f', color: isBookmarked ? '#fff' : '#f1c40f' 
                                 }}
                             >
                                 {isBookmarked ? '★ 즐겨찾기' : '☆ 즐겨찾기'}
@@ -391,45 +402,23 @@ const RecommendPostDetail = () => {
                         )}
 
                         {!isPostOwner && (
-                            <button className="btn-report-action" onClick={handleReportPost} style={{ background: '#fff', border: '1px solid #ff4d4f', color: '#ff4d4f', padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer' }}>
-                                🚨 신고
-                            </button>
+                            <button className="btn-report-action" onClick={handleReportPost} style={{ background: '#fff', border: '1px solid #ff4d4f', color: '#ff4d4f', padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>🚨 신고</button>
                         )}
 
                         {isPostOwner && (
-                            <button className="btn-edit-action" onClick={handleEditPost} style={{ background: '#fff', border: '1px solid #3498db', color: '#3498db', padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer' }}>
-                                ✏️ 수정
-                            </button>
+                            <button className="btn-edit-action" onClick={handleEditPost} style={{ background: '#fff', border: '1px solid #3498db', color: '#3498db', padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>✏️ 수정</button>
                         )}
 
                         {canManagePost && (
-                            <button className="btn-delete-action" onClick={handleDeletePost} style={{ background: '#fff', border: '1px solid #e67e22', color: '#e67e22', padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer' }}>
-                                🗑️ 삭제
-                            </button>
+                            <button className="btn-delete-action" onClick={handleDeletePost} style={{ background: '#fff', border: '1px solid #e67e22', color: '#e67e22', padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}>🗑️ 삭제</button>
                         )}
                     </div>
 
-                    {/* 🚩 자유게시판과 동일한 디자인으로 수정된 '목록으로' 버튼 */}
                     <button 
                         className="btn-list-return" 
                         onClick={() => navigate('/community/recommend')}
-                        style={{ 
-                            padding: '10px 25px', 
-                            borderRadius: '30px', 
-                            fontWeight: 'bold', 
-                            cursor: 'pointer', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: '5px', 
-                            transition: 'all 0.2s ease', 
-                            fontSize: '14px',
-                            background: '#fff', 
-                            border: '1px solid #34495e', 
-                            color: '#34495e' 
-                        }}
-                    >
-                        목록으로 
-                    </button>
+                        style={{ padding: '10px 25px', borderRadius: '30px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px', background: '#fff', border: '1px solid #34495e', color: '#34495e' }}
+                    >목록으로</button>
                 </div>
 
                 <hr className="section-divider" />

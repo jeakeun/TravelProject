@@ -5,7 +5,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.core.io.Resource;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.web.servlet.resource.PathResourceResolver;
 
+import java.io.IOException;
 import java.io.File;
 
 @Configuration
@@ -17,36 +22,43 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // 1. 경로 정규화 (역슬래시를 슬래시로 변경)
+        // 1. 업로드된 이미지(pic) 처리
         String path = uploadDir.replace("\\", "/");
-        
-        // 2. 경로 끝에 슬래시가 누락되었다면 추가
         if (!path.endsWith("/")) {
             path += "/";
         }
 
-        // 3. 서버 실행 시 업로드 폴더가 물리적으로 존재하는지 확인 및 생성
         File directory = new File(path);
         if (!directory.exists()) {
-            if (directory.mkdirs()) {
-                System.out.println("🚩 [System] 업로드 디렉토리가 생성되었습니다: " + path);
-            }
+            directory.mkdirs();
         }
 
-        // 🚩 [핵심 수정] 리눅스 환경(/home/uploads/)에 최적화된 경로 생성
-        // 리눅스는 'file:' 뒤에 바로 절대경로(/)가 붙어야 하므로 file:/home/uploads/ 형식이 됩니다.
+        // 🚩 리눅스 환경(/home/uploads/)에 최적화된 경로 생성
         String location = path.startsWith("/") ? "file:" + path : "file:///" + path;
 
         registry.addResourceHandler("/pic/**")
                 .addResourceLocations(location)
                 .setCachePeriod(3600); 
 
+        // 2. [추가] 리액트 정적 파일 및 새로고침 대응 (SPA 라우팅)
+        registry.addResourceHandler("/**")
+                .addResourceLocations("classpath:/static/")
+                .resourceChain(true)
+                .addResolver(new PathResourceResolver() {
+                    @Override
+                    protected Resource getResource(String resourcePath, Resource location) throws IOException {
+                        Resource requestedResource = location.createRelative(resourcePath);
+                        // 존재하는 리소스거나 파일 확장자가 있는 경우는 그대로 반환
+                        return (requestedResource.exists() && requestedResource.isReadable()) ? requestedResource
+                                : new ClassPathResource("/static/index.html"); // 그 외엔 index.html로 리다이렉트
+                    }
+                });
+
         System.out.println("✅ [Mapping] /pic/** URL -> " + location);
     }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        // 리액트 및 실제 서버 IP 주소에서의 API 요청 허용
         registry.addMapping("/**")
                 .allowedOriginPatterns(
                     "http://localhost:3000", 
@@ -56,6 +68,7 @@ public class WebConfig implements WebMvcConfigurer {
                 )
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
+                .exposedHeaders("Set-Cookie")
                 .allowCredentials(true)
                 .maxAge(3600); 
     }

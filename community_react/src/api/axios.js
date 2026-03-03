@@ -1,8 +1,8 @@
-// src/api/axios.js
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: '', // localhost를 실제 IP로 변경!
+  // 🚩 [수정] 빈 문자열로 설정하여 브라우저의 현재 도메인을 사용합니다.
+  baseURL: '', 
   withCredentials: true, // ✅ refreshToken 쿠키 포함
   headers: {
     "Content-Type": "application/json",
@@ -45,7 +45,7 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // 네가 만든 백엔드가 403을 주는 경우도 있어서 401/403 둘 다 처리하고 싶으면 여기 포함 가능
+    // 401/403 처리
     if ((status === 401 || status === 403) && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -65,14 +65,18 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshRes = await fetch("/auth/refresh", {
+        // 🚩 [수정] api.defaults.baseURL이 빈 값일 경우를 대비해 window.location.origin을 직접 사용합니다.
+        // 이렇게 하면 현재 브라우저에 찍힌 http://3.37.160.108 주소를 그대로 가져옵니다.
+        const host = window.location.origin;
+
+        const refreshRes = await fetch(`${host}/api/auth/refresh`, {
           method: "POST",
           credentials: "include",
         });
 
         if (!refreshRes.ok) {
-          // refresh 실패 → 서버 쿠키 삭제 + 로컬 정리
-          await fetch("/auth/logout", {
+          // refresh 실패 시 로그아웃 처리
+          await fetch(`${host}/api/auth/logout`, {
             method: "POST",
             credentials: "include",
           }).catch(() => {});

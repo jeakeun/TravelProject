@@ -6,7 +6,8 @@ import { getMemberNum } from '../../utils/user';
 import './NoticeDetail.css';
 
 const NoticeDetail = () => {
-    const { id } = useParams();
+    // 🚩 App.jsx의 :poNum과 이름을 맞춥니다.
+    const { poNum } = useParams(); 
     const navigate = useNavigate();
     const { user } = useOutletContext() || {};
     const [post, setPost] = useState(null);
@@ -18,7 +19,7 @@ const NoticeDetail = () => {
 
     const isLoggedIn = !!user;
     const currentUserNum = getMemberNum(user);
-    // 🚩 관리자 여부 확인 (mb_rol이 'ADMIN'인지 체크)
+    // 🚩 관리자 여부 확인 (mbRol 또는 mb_rol 등 서버 규격에 맞게 보완 가능)
     const isAdmin = isLoggedIn && user.mbRol === 'ADMIN';
 
     const SERVER_URL = "";
@@ -29,12 +30,13 @@ const NoticeDetail = () => {
     };
 
     const fetchDetail = useCallback(async () => {
-        if (!id || id === 'undefined' || id === 'write') return;
+        // 🚩 id 대신 poNum을 체크합니다.
+        if (!poNum || poNum === 'undefined' || poNum === 'write') return;
         
         try {
             setLoading(true);
-            // 🚩 mbNum을 쿼리 스트링으로 전달하여 본인의 추천/스크랩 여부 확인
-            const res = await axios.get(`${SERVER_URL}/api/notice/posts/${id}?mbNum=${currentUserNum || 0}`, { withCredentials: true });
+            // 🚩 API 경로에 poNum을 사용합니다.
+            const res = await axios.get(`${SERVER_URL}/api/notice/posts/${poNum}?mbNum=${currentUserNum || 0}`, { withCredentials: true });
             setPost(res.data);
             // 서버 응답에서 본인의 추천/스크랩 상태를 받아와 설정
             setIsLiked(res.data.isLikedByMe);
@@ -46,7 +48,7 @@ const NoticeDetail = () => {
         } finally {
             setLoading(false);
         }
-    }, [id, navigate, SERVER_URL, currentUserNum]);
+    }, [poNum, navigate, SERVER_URL, currentUserNum]);
 
     useEffect(() => { fetchDetail(); }, [fetchDetail]);
 
@@ -54,7 +56,8 @@ const NoticeDetail = () => {
     const handleLike = async () => {
         if (!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
-            const res = await axios.post(`${SERVER_URL}/api/notice/posts/${id}/like`, { mbNum: currentUserNum });
+            // 🚩 poNum 사용
+            const res = await axios.post(`${SERVER_URL}/api/notice/posts/${poNum}/like`, { mbNum: currentUserNum });
             setIsLiked(res.data.status === 'liked');
             // 실시간 추천 수 업데이트를 위해 상세 정보 재호출 또는 로컬 카운트 업데이트
             setPost(prev => ({ ...prev, nnUp: res.data.status === 'liked' ? prev.nnUp + 1 : prev.nnUp - 1 }));
@@ -67,9 +70,10 @@ const NoticeDetail = () => {
     const handleScrap = async () => {
         if (!isLoggedIn) return alert("로그인이 필요한 서비스입니다.");
         try {
-            const res = await axios.post(`${SERVER_URL}/api/notice/posts/${id}/scrap`, { mbNum: currentUserNum });
+            // 🚩 poNum 사용
+            const res = await axios.post(`${SERVER_URL}/api/notice/posts/${poNum}/scrap`, { mbNum: currentUserNum });
             setIsScrapped(res.data.status === 'scrapped');
-            alert(res.data.status === 'scrapped' ? "즐겨찾기에 추가되었습니다." : "즐겨찾기가 해ve되었습니다.");
+            alert(res.data.status === 'scrapped' ? "즐겨찾기에 추가되었습니다." : "즐겨찾기가 해제되었습니다.");
         } catch (err) {
             alert("즐겨찾기 처리 중 오류가 발생했습니다.");
         }
@@ -78,7 +82,8 @@ const NoticeDetail = () => {
     const handleDelete = async () => {
         if (!window.confirm("삭제하시겠습니까?")) return;
         try {
-            await axios.delete(`${SERVER_URL}/api/notice/posts/${id}`);
+            // 🚩 poNum 사용
+            await axios.delete(`${SERVER_URL}/api/notice/posts/${poNum}`);
             alert("삭제되었습니다.");
             navigate('/news/notice');
         } catch (err) {
@@ -140,7 +145,7 @@ const NoticeDetail = () => {
                             <>
                                 <button 
                                     className="btn-edit-action" 
-                                    onClick={() => navigate(`/news/notice/edit/${id}`)}
+                                    onClick={() => navigate(`/news/notice/edit/${poNum}`)}
                                 >
                                     ✏️ 수정
                                 </button>

@@ -46,6 +46,16 @@ public class AdminController {
         return ResponseEntity.ok(list);
     }
 
+    /** 관리자 알림용: 미답변 문의·미처리 신고 건수 (헤더/관리자페이지 상태 표시) */
+    @GetMapping("/notification-counts")
+    public ResponseEntity<?> getNotificationCounts(Authentication auth) {
+        if (auth == null || !auth.isAuthenticated())
+            return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
+        if (!isAdmin(auth))
+            return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
+        return ResponseEntity.ok(adminService.getNewCounts());
+    }
+
     @PutMapping("/inquiries/{ibNum}/status")
     public ResponseEntity<?> updateInquiryStatus(@PathVariable("ibNum") Integer ibNum, @RequestBody(required = false) Map<String, Object> body, Authentication auth) {
         try {

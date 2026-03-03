@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 /**
- * [카카오 로그인] 카카오 동의 후 redirect 되는 URI.
- * URL의 code를 /auth/kakao에 전달 → JWT 수신 → localStorage 저장 → 메인으로 이동.
+ * 카카오 로그인 후 redirect URI. URL의 code를 백엔드에 전달하여 JWT 발급 후 로그인 완료.
  */
 function KakaoCallback() {
   const [searchParams] = useSearchParams();
@@ -15,7 +14,6 @@ function KakaoCallback() {
     const code = searchParams.get("code");
     const errorParam = searchParams.get("error");
 
-    // 카카오 로그인 취소/거부 시 error 파라미터로 리다이렉트됨
     if (errorParam) {
       setError("카카오 로그인이 취소되었거나 실패했습니다.");
       setStatus("");
@@ -29,6 +27,7 @@ function KakaoCallback() {
     }
 
     const fromSignup = sessionStorage.getItem("kakao_signup") === "true";
+    const redirectUri = `${window.location.origin}/kakao-callback`;
 
     const doAuth = async (signup) => {
       try {
@@ -37,13 +36,23 @@ function KakaoCallback() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ code, signup }),
+          body: JSON.stringify({ code, signup, redirect_uri: redirectUri }),
         });
 
-        const data = await res.json().catch(() => ({}));
+        const raw = await res.text();
+        let data = {};
+        try {
+          data = raw ? JSON.parse(raw) : {};
+        } catch {
+          data = { message: raw };
+        }
 
         if (!res.ok) {
-          setError(typeof data === "string" ? data : data?.message || "카카오 로그인에 실패했습니다.");
+          const msg =
+            typeof data === "string"
+              ? data
+              : data?.message || data?.error || (raw && raw.length < 200 ? raw : "카카오 로그인에 실패했습니다.");
+          setError(msg);
           setStatus("");
           return;
         }

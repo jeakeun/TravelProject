@@ -16,6 +16,9 @@ public interface InquiryRepository extends JpaRepository<InquiryBox, Integer> {
 
     List<InquiryBox> findByIbMbNumOrderByIbNumDesc(Integer ibMbNum);
 
+    /** 미답변 문의 건수 (관리자 알림용) */
+    long countByIbStatus(String ibStatus);
+
     @Modifying(clearAutomatically = true)
     @Query(value = "UPDATE inquiry_box SET ib_reply = :reply, ib_status = 'Y' WHERE ib_num = :ibNum", nativeQuery = true)
     int updateReplyAndStatus(@Param("ibNum") Integer ibNum, @Param("reply") String reply);

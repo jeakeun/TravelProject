@@ -7,6 +7,7 @@ import kr.hi.travel_community.model.util.CustomUser;
 import kr.hi.travel_community.model.vo.MemberVO;
 import kr.hi.travel_community.service.RecommendPostService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +16,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/recommend")
-@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"}, allowCredentials = "true")
+@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000", "http://3.37.160.108"}, allowCredentials = "true")
 @RequiredArgsConstructor
 public class RecommendController {
 
@@ -75,7 +76,8 @@ public class RecommendController {
         Map<String, Object> postData = recommendPostService.getPostDetailWithImage(id, currentUserNum);
         
         if (postData != null) {
-            boolean isOwner = postData.get("poMbNum") != null && postData.get("poMbNum").equals(currentUserNum);
+            Object poMbNumObj = postData.get("poMbNum");
+            boolean isOwner = poMbNumObj != null && currentUserNum != null && poMbNumObj.toString().equals(currentUserNum.toString());
             boolean isAdmin = "ADMIN".equals(currentUserRole);
             
             postData.put("isOwner", isOwner);
@@ -91,8 +93,7 @@ public class RecommendController {
     }
 
     /**
-     * 🚩 게시글 생성
-     * [수정] 프론트엔드에서 title/content 혹은 poTitle/poContent 어떤 것으로 보내도 받을 수 있게 수정
+     * 🚩 게시글 생성 (비로그인 차단 및 일반 유저 허용)
      */
     @PostMapping("/posts")
     public ResponseEntity<?> createPost(
@@ -101,18 +102,30 @@ public class RecommendController {
             @RequestParam(value = "title", required = false) String title,
             @RequestParam(value = "poContent", required = false) String poContent,
             @RequestParam(value = "content", required = false) String content,
-            @RequestParam(value = "poMbNum", required = false) Integer requestMbNum,
+            @RequestParam(value = "poMbNum", required = false) Integer requestPoMbNum,
+            @RequestParam(value = "mbNum", required = false) Integer requestMbNum,
             @RequestParam(value = "images", required = false) List<MultipartFile> images) {
+        
+        // 🚩 [수정] 비로그인 상태일 경우 즉시 차단 (401 에러)
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "로그인이 필요한 서비스입니다."));
+        }
+
         try {
-            // 우선순위 결정: poTitle이 없으면 title 사용
             String finalTitle = (poTitle != null) ? poTitle : title;
             String finalContent = (poContent != null) ? poContent : content;
 
-            int mbNum = resolveMbNum(authentication, requestMbNum);
+            // 인증 정보에서 유저 번호 추출
+            Integer finalMbNum = resolveMbNum(authentication, (requestPoMbNum != null) ? requestPoMbNum : requestMbNum);
+            
+            if (finalMbNum == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "로그인이 필요한 서비스입니다."));
+            }
+
             RecommendPost post = new RecommendPost();
             post.setPoTitle(finalTitle);
             post.setPoContent(finalContent);
-            post.setPoMbNum(mbNum);
+            post.setPoMbNum(finalMbNum);
             
             recommendPostService.savePost(post, images);
             return ResponseEntity.ok("Success");
@@ -123,7 +136,6 @@ public class RecommendController {
 
     /**
      * 🚩 게시글 수정
-     * [수정] 400 Bad Request 해결: title/content 파라미터도 허용하도록 수정
      */
     @PutMapping("/posts/{id}")
     public ResponseEntity<?> updatePost(
@@ -134,7 +146,6 @@ public class RecommendController {
             @RequestParam(value = "content", required = false) String content,
             @RequestParam(value = "images", required = false) List<MultipartFile> images) {
         try {
-            // title 혹은 poTitle 중 들어온 값을 사용 (400 에러 방지)
             String finalTitle = (poTitle != null) ? poTitle : title;
             String finalContent = (poContent != null) ? poContent : content;
 
@@ -155,21 +166,41 @@ public class RecommendController {
         }
     }
 
+    /**
+     * 🚩 좋아요 기능
+     */
     @PostMapping("/posts/{id}/like")
-    public ResponseEntity<?> toggleLike(@PathVariable(value = "id") Integer id, @RequestBody Map<String, Object> data) {
-        Object mbNumObj = data.get("mbNum");
-        int mbNum = (mbNumObj != null) ? Integer.parseInt(mbNumObj.toString()) : 1;
+    public ResponseEntity<?> toggleLike(@PathVariable(value = "id") Integer id, 
+                                        @RequestBody(required = false) Map<String, Object> data,
+                                        Authentication authentication) {
+        
+        Integer mbNum = resolveMbNum(authentication, (data != null && data.get("mbNum") != null) 
+                        ? Integer.parseInt(data.get("mbNum").toString()) : null);
+
+        if (mbNum == null) return ResponseEntity.status(401).body("Login Required");
+
         String status = recommendPostService.toggleLikeStatus(id, mbNum);
         return ResponseEntity.ok(Map.of("status", status));
     }
 
+    /**
+     * 🚩 게시글 신고 기능
+     */
     @PostMapping("/posts/{id}/report")
-    public ResponseEntity<?> reportPost(@PathVariable(value = "id") Integer id, @RequestBody(required = false) Map<String, Object> body) {
+    public ResponseEntity<?> reportPost(@PathVariable(value = "id") Integer id, 
+                                        @RequestBody(required = false) Map<String, Object> body,
+                                        Authentication authentication) {
+        
+        Integer mbNum = resolveMbNum(authentication, (body != null && body.get("mbNum") != null) 
+                        ? Integer.parseInt(body.get("mbNum").toString()) : null);
+
+        if (mbNum == null) return ResponseEntity.status(401).body("Login Required");
+
         String category = body != null && body.get("category") != null ? body.get("category").toString().trim() : "";
         String reason = body != null && body.get("reason") != null ? body.get("reason").toString().trim() : "";
         String combined = (category.isEmpty() ? "" : "[" + category + "] ") + reason;
         if (combined.trim().isEmpty()) combined = "신고 사유 없음";
-        Integer mbNum = body != null && body.get("mbNum") != null ? Integer.parseInt(body.get("mbNum").toString()) : null;
+        
         try {
             recommendPostService.reportPost(id, combined, mbNum);
             return ResponseEntity.ok("Reported");
@@ -178,11 +209,15 @@ public class RecommendController {
         }
     }
 
+    /**
+     * 🚩 [수정] 인증 객체 검증 유틸리티 (비로그인 시 null 반환)
+     */
     private Integer resolveMbNum(Authentication authentication, Integer requestMbNum) {
-        if (authentication != null && authentication.getPrincipal() instanceof CustomUser) {
+        if (authentication != null && authentication.isAuthenticated() && authentication.getPrincipal() instanceof CustomUser) {
             MemberVO member = ((CustomUser) authentication.getPrincipal()).getMember();
             if (member != null) return member.getMb_num();
         }
-        return requestMbNum;
+        // 🚩 로그인 정보가 없으면 파라미터가 있어도 null 반환하여 글쓰기 원천 차단
+        return null;
     }
 }

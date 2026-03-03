@@ -34,10 +34,10 @@ public interface MemberDAO {
      */
 	boolean insertMember(MemberSignUpDTO member);
 
-	/** [카카오 로그인] mb_uid='kakao_{카카오ID}' 형식으로 기존 회원 조회. 있으면 로그인, 없으면 회원가입. */
+	/** 카카오 회원 조회 (mb_uid = 'kakao_' + kakaoId) */
 	MemberVO selectMemberByKakaoId(@Param("kakaoUid") String kakaoUid);
 
-	/** [카카오 로그인] 카카오 최초 로그인 시 신규 회원 저장. 비밀번호는 placeholder(사용 안 함). */
+	/** 카카오 회원 가입 */
 	boolean insertMemberKakao(@Param("id") String id, @Param("nickname") String nickname,
 			@Param("pw") String pw, @Param("email") String email);
 
@@ -59,6 +59,9 @@ public interface MemberDAO {
     // ✅ 프로필 사진 변경 (DB BLOB 저장)
     int updatePhotoBlobById(@Param("id") String id, @Param("photoData") byte[] photoData,
             @Param("photoType") String photoType, @Param("photoVer") int photoVer);
+
+    // ✅ 프로필 사진 삭제 (BLOB/타입 null, 버전 증가)
+    int updatePhotoDeleteById(@Param("id") String id);
 
     // 프로필 사진 조회 (이미지 서빙)
     Map<String, Object> selectPhotoByMemberId(@Param("id") String id);

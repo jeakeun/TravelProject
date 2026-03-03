@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getNickname, isAdmin } from "../utils/user";
 import ProfileImage from "./ProfileImage";
@@ -38,11 +38,20 @@ const translations = {
   }
 };
 
-function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrentLang }) {
+function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrentLang, adminNewCounts = {} }) {
   const [isLangOpen, setIsLangOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [showAlertPanel, setShowAlertPanel] = useState(true);
   const location = useLocation();
   const t = translations[currentLang] || translations["KR"];
+  const newInq = Number(adminNewCounts.newInquiries) || 0;
+  const newRep = Number(adminNewCounts.newReports) || 0;
+  const hasNewAlerts = newInq > 0 || newRep > 0;
+  const showPanel = hasNewAlerts && showAlertPanel;
+
+  useEffect(() => {
+    if (!hasNewAlerts) setShowAlertPanel(true);
+  }, [hasNewAlerts]);
 
   return (
     <div className="nav-area">
@@ -135,7 +144,9 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
                 aria-haspopup="true"
               >
                 <ProfileImage user={user} className="header-profile-photo" alt="프로필" />
-                <span className="menu-link user-name-text">{getNickname(user)}님</span>
+                <div className="user-name-and-alert">
+                  <span className="menu-link user-name-text">{getNickname(user)}님</span>
+                </div>
                 <span className="user-name-arrow">▾</span>
                 {isUserMenuOpen && (
                   <ul className="user-dropdown" onClick={(e) => e.stopPropagation()}>
@@ -144,6 +155,21 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
                       <li><Link to="/admin" className={location.pathname.startsWith("/admin") ? "active" : ""} onClick={() => setIsUserMenuOpen(false)}>{t.nav_admin}</Link></li>
                     )}
                   </ul>
+                )}
+                {isAdmin(user) && showPanel && (
+                  <div
+                    className="admin-alert-panel"
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseEnter={() => setIsUserMenuOpen(false)}
+                  >
+                    <div className="admin-alert-panel-row">
+                      <p className="admin-alert-panel-msg">접수된 문의(신고)가 있습니다.</p>
+                      <button type="button" className="admin-alert-panel-x" onClick={() => setShowAlertPanel(false)} aria-label="닫기">×</button>
+                    </div>
+                    <div className="admin-alert-panel-footer">
+                      <Link to="/admin" className="admin-alert-panel-link" onClick={() => { setShowAlertPanel(false); setIsUserMenuOpen(false); }}>관리자페이지로 이동</Link>
+                    </div>
+                  </div>
                 )}
               </div>
               <span

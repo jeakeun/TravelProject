@@ -10,6 +10,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -293,6 +294,37 @@ public class MemberController {
     }
 
     /**
+     * ✅ 프로필 사진 삭제 (로그인 사용자 본인만)
+     */
+    @DeleteMapping("/auth/profile-photo")
+    public ResponseEntity<?> deleteProfilePhoto(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUser)) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+        String id = ((CustomUser) authentication.getPrincipal()).getMember().getMb_Uid();
+        Integer photoVer = memberService.deletePhoto(id);
+        if (photoVer == null) {
+            return ResponseEntity.badRequest().body("삭제에 실패했습니다.");
+        }
+        Map<String, Object> body = new HashMap<>();
+        body.put("mb_photo_ver", photoVer);
+        return ResponseEntity.ok(body);
+    }
+
+    /**
+     * ✅ 프로필 사진 존재 여부 (마이페이지 삭제 버튼 표시용)
+     */
+    @GetMapping("/auth/profile-photo/check")
+    public ResponseEntity<?> checkProfilePhoto(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUser)) {
+            return ResponseEntity.status(401).build();
+        }
+        String id = ((CustomUser) authentication.getPrincipal()).getMember().getMb_Uid();
+        boolean hasPhoto = memberService.hasProfilePhoto(id);
+        return ResponseEntity.ok(Map.of("hasPhoto", hasPhoto));
+    }
+
+    /**
      * ✅ 프로필 사진 조회 (DB에서 BLOB 반환, JWT 인증)
      */
     @GetMapping("/auth/profile-photo")
@@ -343,7 +375,6 @@ public class MemberController {
         String id = ((CustomUser) authentication.getPrincipal()).getMember().getMb_Uid();
         String password = body != null ? (body.get("password") != null ? body.get("password") : "") : "";
         MemberVO member = memberDAO.selectMemberById(id);
-        // [카카오 로그인] 카카오 유저는 비밀번호를 쓰지 않으므로 빈 비밀번호 허용
         boolean isKakao = member != null && "kakao".equalsIgnoreCase(member.getMb_provider());
         if (!isKakao && password.isEmpty()) {
             return ResponseEntity.badRequest().body("비밀번호를 입력하세요.");
@@ -356,8 +387,7 @@ public class MemberController {
     }
 
     /**
-     * [카카오 로그인] 프론트 KakaoCallback에서 전달한 code로 토큰 교환 → 회원 조회/생성 → JWT 발급.
-     * 로그인/회원가입이 동일 엔드포인트로 처리됨 (카카오 첫 로그인 시 자동 가입).
+     * 카카오 로그인/회원가입: authorization code를 받아 토큰 교환 → 사용자 조회/생성 → JWT 발급
      */
     @PostMapping("/auth/kakao")
     public ResponseEntity<?> kakaoAuth(@RequestBody Map<String, Object> body) {
@@ -366,7 +396,14 @@ public class MemberController {
             return ResponseEntity.badRequest().body("카카오 인증 코드가 없습니다.");
         }
         boolean fromSignup = body != null && Boolean.TRUE.equals(body.get("signup"));
-        MemberVO member = memberService.kakaoLoginOrSignup(code, fromSignup);
+        String redirectUriOverride = body != null && body.get("redirect_uri") != null ? body.get("redirect_uri").toString().trim() : null;
+        MemberVO member;
+        try {
+            member = memberService.kakaoLoginOrSignup(code, fromSignup, redirectUriOverride);
+        } catch (RuntimeException e) {
+            String msg = e.getMessage() != null && !e.getMessage().isBlank() ? e.getMessage() : "카카오 로그인에 실패했습니다.";
+            return ResponseEntity.badRequest().body(msg);
+        }
         if (member == null) {
             return ResponseEntity.badRequest().body("카카오 로그인에 실패했습니다.");
         }

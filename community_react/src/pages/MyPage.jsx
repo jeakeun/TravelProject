@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { getUserId, getNickname } from "../utils/user";
+import { getUserId, getNickname, isAdmin } from "../utils/user";
 import ProfileImage from "../components/ProfileImage";
 import { getRecentViews } from "../utils/recentViews";
 import api from "../api/axios";
@@ -32,11 +32,20 @@ function MyPage() {
   const [bookmarks, setBookmarks] = useState([]);
   const [bottomTab, setBottomTab] = useState("posts");
   const [photoSaving, setPhotoSaving] = useState(false);
+  const [photoDeleting, setPhotoDeleting] = useState(false);
+  const [hasProfilePhoto, setHasProfilePhoto] = useState(false);
   const [photoVersion, setPhotoVersion] = useState(0);
   const photoInputRef = useRef(null);
   const [myReports, setMyReports] = useState([]);
   const [myInquiries, setMyInquiries] = useState([]);
   const [detailModal, setDetailModal] = useState(null);
+  const [postsPage, setPostsPage] = useState(1);
+  const [reportsPage, setReportsPage] = useState(1);
+  const [inquiriesPage, setInquiriesPage] = useState(1);
+
+  const POSTS_PER_PAGE = 3;
+  const REPORTS_PER_PAGE = 3;
+  const INQUIRIES_PER_PAGE = 3;
 
   const loadMyPosts = useCallback(async () => {
     if (!user) {
@@ -115,6 +124,17 @@ function MyPage() {
       }
     };
     fetchInquiries();
+  }, [user]);
+
+  // 프로필 사진 존재 여부 (삭제 버튼 표시용)
+  useEffect(() => {
+    if (!user) {
+      setHasProfilePhoto(false);
+      return;
+    }
+    api.get("/auth/profile-photo/check")
+      .then((res) => setHasProfilePhoto(Boolean(res.data?.hasPhoto)))
+      .catch(() => setHasProfilePhoto(false));
   }, [user]);
 
   useEffect(() => {
@@ -212,7 +232,6 @@ function MyPage() {
 
   const handleWithdraw = async () => {
     const pw = (withdrawPassword || "").trim();
-    // [카카오 로그인] 카카오 유저는 비밀번호 입력 없이 탈퇴 가능
     if (!isKakaoUser && !pw) {
       alert("비밀번호를 입력하세요.");
       return;
@@ -270,6 +289,7 @@ function MyPage() {
       if (mbPhotoVer != null) {
         const updated = { ...user, mb_photo_ver: mbPhotoVer, mbPhotoVer: mbPhotoVer };
         setUser?.(updated);
+        setHasProfilePhoto(true);
         try {
           localStorage.setItem("user", JSON.stringify(updated));
         } catch (_) {}
@@ -280,6 +300,29 @@ function MyPage() {
       alert(typeof msg === "string" ? msg : "프로필 사진 변경에 실패했습니다.");
     } finally {
       setPhotoSaving(false);
+    }
+  };
+
+  const handlePhotoDelete = async () => {
+    if (!window.confirm("프로필 사진을 삭제하시겠습니까?")) return;
+    setPhotoDeleting(true);
+    try {
+      const res = await api.delete("/auth/profile-photo");
+      const mbPhotoVer = res.data?.mb_photo_ver ?? res.data?.mbPhotoVer;
+      if (mbPhotoVer != null && setUser) {
+        const updated = { ...user, mb_photo_ver: mbPhotoVer, mbPhotoVer: mbPhotoVer };
+        setUser(updated);
+        setHasProfilePhoto(false);
+        try {
+          localStorage.setItem("user", JSON.stringify(updated));
+        } catch (_) {}
+        alert("프로필 사진이 삭제되었습니다.");
+      }
+    } catch (err) {
+      const msg = err?.response?.data ?? "프로필 사진 삭제에 실패했습니다.";
+      alert(typeof msg === "string" ? msg : "프로필 사진 삭제에 실패했습니다.");
+    } finally {
+      setPhotoDeleting(false);
     }
   };
 
@@ -349,7 +392,6 @@ function MyPage() {
     return null;
   }
 
-  // [카카오 로그인] 카카오 유저: 이메일 수정/비밀번호 영역 숨김(API 연동 데이터 보호, 비밀번호 미사용)
   const isKakaoUser = (user.mb_provider || user.mbProvider) === "kakao";
   const email = user.mb_email ?? user.mb_Email ?? "-";
 
@@ -363,6 +405,18 @@ function MyPage() {
     const matchSearch = !searchKeyword.trim() || title.toLowerCase().includes(searchKeyword.trim().toLowerCase());
     return matchBoard && matchSearch;
   });
+
+  const postsTotalPages = Math.ceil(filteredPosts.length / POSTS_PER_PAGE) || 1;
+  const postsCurrentPage = Math.min(postsPage, postsTotalPages);
+  const postsPaginated = filteredPosts.slice((postsCurrentPage - 1) * POSTS_PER_PAGE, postsCurrentPage * POSTS_PER_PAGE);
+
+  const reportsTotalPages = Math.ceil(myReports.length / REPORTS_PER_PAGE) || 1;
+  const reportsCurrentPage = Math.min(reportsPage, reportsTotalPages);
+  const reportsPaginated = myReports.slice((reportsCurrentPage - 1) * REPORTS_PER_PAGE, reportsCurrentPage * REPORTS_PER_PAGE);
+
+  const inquiriesTotalPages = Math.ceil(myInquiries.length / INQUIRIES_PER_PAGE) || 1;
+  const inquiriesCurrentPage = Math.min(inquiriesPage, inquiriesTotalPages);
+  const inquiriesPaginated = myInquiries.slice((inquiriesCurrentPage - 1) * INQUIRIES_PER_PAGE, inquiriesCurrentPage * INQUIRIES_PER_PAGE);
 
   return (
     <div className="mypage-wrapper">
@@ -388,10 +442,20 @@ function MyPage() {
             type="button"
             className="mypage-profile-photo-btn"
             onClick={handlePhotoChangeClick}
-            disabled={photoSaving}
+            disabled={photoSaving || photoDeleting}
           >
             {photoSaving ? "업로드 중..." : "프로필 사진 변경"}
           </button>
+          {hasProfilePhoto && (
+            <button
+              type="button"
+              className="mypage-profile-photo-btn mypage-profile-photo-delete-btn"
+              onClick={handlePhotoDelete}
+              disabled={photoSaving || photoDeleting}
+            >
+              {photoDeleting ? "삭제 중..." : "프로필 사진 삭제"}
+            </button>
+          )}
         </div>
         <div className="mypage-profile-info">
           <div className="mypage-info-list">
@@ -547,7 +611,6 @@ function MyPage() {
           <div className="mypage-withdraw-modal" onClick={(e) => e.stopPropagation()}>
             <h3 className="mypage-withdraw-title">회원 탈퇴</h3>
             <p className="mypage-withdraw-desc">정말 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.</p>
-            {/* [카카오 로그인] 카카오 유저는 비밀번호 없이 확인만으로 탈퇴 */}
             {!isKakaoUser && (
               <input
                 type="password"
@@ -570,40 +633,44 @@ function MyPage() {
         </div>
       )}
 
-      {/* 하단 탭: 내가 쓴 글 | 신고함 | 1:1 문의함 */}
+      {/* 하단 탭: 내가 쓴 글 | 신고함 | 1:1 문의함 (관리자는 내가 쓴 글만 표시) */}
       <section className="mypage-posts">
             <div className="mypage-posts-header">
               <div className="mypage-bottom-tabs">
                 <button
-                  className={`mypage-bottom-tab ${bottomTab === "posts" ? "active" : ""}`}
+                  className={`mypage-bottom-tab ${(bottomTab === "posts" || isAdmin(user)) ? "active" : ""}`}
                   onClick={() => setBottomTab("posts")}
                 >
                   내가 쓴 글
                 </button>
-                <button
-                  className={`mypage-bottom-tab ${bottomTab === "reports" ? "active" : ""}`}
-                  onClick={() => setBottomTab("reports")}
-                >
-                  신고함
-                  {reportsWithReply > 0 && (
-                    <span className="mypage-tab-badge" title="답변 있음">
-                      {reportsWithReply}
-                    </span>
-                  )}
-                </button>
-                <button
-                  className={`mypage-bottom-tab ${bottomTab === "inquiries" ? "active" : ""}`}
-                  onClick={() => setBottomTab("inquiries")}
-                >
-                  1:1 문의함
-                  {inquiriesWithReply > 0 && (
-                    <span className="mypage-tab-badge" title="답변 있음">
-                      {inquiriesWithReply}
-                    </span>
-                  )}
-                </button>
+                {!isAdmin(user) && (
+                  <>
+                    <button
+                      className={`mypage-bottom-tab ${bottomTab === "reports" ? "active" : ""}`}
+                      onClick={() => setBottomTab("reports")}
+                    >
+                      신고함
+                      {reportsWithReply > 0 && (
+                        <span className="mypage-tab-badge" title="답변 있음">
+                          {reportsWithReply}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      className={`mypage-bottom-tab ${bottomTab === "inquiries" ? "active" : ""}`}
+                      onClick={() => setBottomTab("inquiries")}
+                    >
+                      1:1 문의함
+                      {inquiriesWithReply > 0 && (
+                        <span className="mypage-tab-badge" title="답변 있음">
+                          {inquiriesWithReply}
+                        </span>
+                      )}
+                    </button>
+                  </>
+                )}
               </div>
-              {bottomTab === "posts" && (
+              {(bottomTab === "posts" || isAdmin(user)) && (
               <div className="mypage-posts-toolbar">
                 <input
                   type="text"
@@ -629,7 +696,7 @@ function MyPage() {
               )}
             </div>
             <div className="mypage-posts-body">
-              {bottomTab === "posts" && (loading ? (
+              {(bottomTab === "posts" || isAdmin(user)) && (loading ? (
                 <p className="mypage-posts-loading">불러오는 중...</p>
               ) : (
                 <>
@@ -640,23 +707,32 @@ function MyPage() {
                   {filteredPosts.length === 0 ? (
                     <p className="mypage-posts-empty">작성한 글이 없습니다.</p>
                   ) : (
-                    <ul className="mypage-posts-list">
-                      {filteredPosts.map((post) => (
-                        <li
-                          key={`${post.boardType}-${post.poNum || post.id}`}
-                          className="mypage-posts-item"
-                          onClick={() => goToPost(post)}
-                        >
-                          <span className="mypage-post-board">{post.boardName}</span>
-                          <span className="mypage-post-title">{post.poTitle || post.title || "-"}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <>
+                      <ul className="mypage-posts-list">
+                        {postsPaginated.map((post) => (
+                          <li
+                            key={`${post.boardType}-${post.poNum || post.id}`}
+                            className="mypage-posts-item"
+                            onClick={() => goToPost(post)}
+                          >
+                            <span className="mypage-post-board">{post.boardName}</span>
+                            <span className="mypage-post-title">{post.poTitle || post.title || "-"}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {postsTotalPages > 1 && (
+                        <div className="mypage-pagination">
+                          <button type="button" className="mypage-pagination-btn" disabled={postsCurrentPage <= 1} onClick={() => setPostsPage((p) => Math.max(1, p - 1))}>이전</button>
+                          <span className="mypage-pagination-info">{postsCurrentPage} / {postsTotalPages}</span>
+                          <button type="button" className="mypage-pagination-btn" disabled={postsCurrentPage >= postsTotalPages} onClick={() => setPostsPage((p) => Math.min(postsTotalPages, p + 1))}>다음</button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
-              ))}
+              )              )}
 
-              {bottomTab === "reports" && (
+              {!isAdmin(user) && bottomTab === "reports" && (
                 <>
                   <div className="mypage-posts-table-header">
                     <span className="mypage-posts-th-board">대상</span>
@@ -666,24 +742,33 @@ function MyPage() {
                   {myReports.length === 0 ? (
                     <p className="mypage-posts-empty">신고 내역이 없습니다.</p>
                   ) : (
-                    <ul className="mypage-posts-list">
-                      {myReports.map((r) => (
-                        <li
-                          key={r.rbNum}
-                          className="mypage-posts-item"
-                          onClick={() => openReportDetail(r)}
-                        >
-                          <span className="mypage-post-board">{r.rbName} #{r.rbId}</span>
-                          <span className="mypage-post-title">{(r.rbContent || "").slice(0, 40)}{(r.rbContent || "").length > 40 ? "..." : ""}</span>
-                          <span className="mypage-post-date">{getReportStatusLabel(r)}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <>
+                      <ul className="mypage-posts-list">
+                        {reportsPaginated.map((r) => (
+                          <li
+                            key={r.rbNum}
+                            className="mypage-posts-item"
+                            onClick={() => openReportDetail(r)}
+                          >
+                            <span className="mypage-post-board">{r.rbTargetNickname ?? `${r.rbName} #${r.rbId}`}</span>
+                            <span className="mypage-post-title">{(r.rbContent || "").slice(0, 40)}{(r.rbContent || "").length > 40 ? "..." : ""}</span>
+                            <span className="mypage-post-date">{getReportStatusLabel(r)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {reportsTotalPages > 1 && (
+                        <div className="mypage-pagination">
+                          <button type="button" className="mypage-pagination-btn" disabled={reportsCurrentPage <= 1} onClick={() => setReportsPage((p) => Math.max(1, p - 1))}>이전</button>
+                          <span className="mypage-pagination-info">{reportsCurrentPage} / {reportsTotalPages}</span>
+                          <button type="button" className="mypage-pagination-btn" disabled={reportsCurrentPage >= reportsTotalPages} onClick={() => setReportsPage((p) => Math.min(reportsTotalPages, p + 1))}>다음</button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}
 
-              {bottomTab === "inquiries" && (
+              {!isAdmin(user) && bottomTab === "inquiries" && (
                 <>
                   <div className="mypage-posts-table-header">
                     <span className="mypage-posts-th-board">제목</span>
@@ -693,19 +778,28 @@ function MyPage() {
                   {myInquiries.length === 0 ? (
                     <p className="mypage-posts-empty">문의 내역이 없습니다.</p>
                   ) : (
-                    <ul className="mypage-posts-list">
-                      {myInquiries.map((q) => (
-                        <li
-                          key={q.ibNum}
-                          className="mypage-posts-item"
-                          onClick={() => openInquiryDetail(q)}
-                        >
-                          <span className="mypage-post-board">{(q.ibTitle || "").slice(0, 15)}{(q.ibTitle || "").length > 15 ? "..." : ""}</span>
-                          <span className="mypage-post-title">{(q.ibContent || "").slice(0, 40)}{(q.ibContent || "").length > 40 ? "..." : ""}</span>
-                          <span className="mypage-post-date">{q.ibStatus === "Y" ? "답변완료" : "대기"}</span>
-                        </li>
-                      ))}
-                    </ul>
+                    <>
+                      <ul className="mypage-posts-list">
+                        {inquiriesPaginated.map((q) => (
+                          <li
+                            key={q.ibNum}
+                            className="mypage-posts-item"
+                            onClick={() => openInquiryDetail(q)}
+                          >
+                            <span className="mypage-post-board">{(q.ibTitle || "").slice(0, 15)}{(q.ibTitle || "").length > 15 ? "..." : ""}</span>
+                            <span className="mypage-post-title">{(q.ibContent || "").slice(0, 40)}{(q.ibContent || "").length > 40 ? "..." : ""}</span>
+                            <span className="mypage-post-date">{q.ibStatus === "Y" ? "답변완료" : "대기"}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {inquiriesTotalPages > 1 && (
+                        <div className="mypage-pagination">
+                          <button type="button" className="mypage-pagination-btn" disabled={inquiriesCurrentPage <= 1} onClick={() => setInquiriesPage((p) => Math.max(1, p - 1))}>이전</button>
+                          <span className="mypage-pagination-info">{inquiriesCurrentPage} / {inquiriesTotalPages}</span>
+                          <button type="button" className="mypage-pagination-btn" disabled={inquiriesCurrentPage >= inquiriesTotalPages} onClick={() => setInquiriesPage((p) => Math.min(inquiriesTotalPages, p + 1))}>다음</button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </>
               )}
@@ -720,7 +814,7 @@ function MyPage() {
             </h3>
             {detailModal.type === "report" ? (
               <div className="mypage-detail-body">
-                <p><strong>대상:</strong> {detailModal.data.rbName} #{detailModal.data.rbId}</p>
+                <p><strong>대상:</strong> {detailModal.data.rbTargetNickname ?? `${detailModal.data.rbName} #${detailModal.data.rbId}`}</p>
                 <p><strong>신고 내용:</strong></p>
                 <p className="mypage-detail-content">{detailModal.data.rbContent}</p>
                 {detailModal.data.rbReply && (
@@ -729,7 +823,7 @@ function MyPage() {
                     <p>{detailModal.data.rbReply}</p>
                   </div>
                 )}
-                <p><strong>상태:</strong> {getReportStatusLabel(detailModal.data)}</p>
+                <p><strong>상태:</strong> {(detailModal.data.rbReply && String(detailModal.data.rbReply).trim()) ? "답변완료" : detailModal.data.rbManage === "Y" ? "처리완료" : detailModal.data.rbManage === "D" ? "삭제됨" : detailModal.data.rbManage === "H" ? "보류" : "대기"}</p>
               </div>
             ) : (
               <div className="mypage-detail-body">

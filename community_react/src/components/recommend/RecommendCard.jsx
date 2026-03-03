@@ -3,9 +3,8 @@ import React from 'react';
 const RecommendCard = ({ post, isMain, rank, onClick, getImageUrl, onBookmarkToggle }) => {
     if (!post) return null;
 
-    // 🚩 [수정] 8080 포트 차단을 피하기 위해 빈 문자열("")로 설정합니다.
-    // 이렇게 하면 현재 접속 중인 80 포트를 통해 이미지를 안전하게 가져옵니다.
-    const SERVER_URL = "";
+    // 🚩 환경변수에서 서버 주소를 가져옴
+    const SERVER_URL = process.env.REACT_APP_API_URL || "";
 
     // 🚩 ID 추출: poNum을 우선순위로 사용
     const postId = post.poNum || post.po_num || post.postId;
@@ -46,13 +45,16 @@ const RecommendCard = ({ post, isMain, rank, onClick, getImageUrl, onBookmarkTog
         }
     };
 
-    // 🚩 [수정] 노란 줄 방지: SERVER_URL을 실제 경로 판단 로직에 활용
+    // 🚩 [수정] 경로 보정 로직: SERVER_URL이 없을 때 현재 도메인(localhost:3000)으로 붙는 것을 방지
     const finalImageUrl = (() => {
         const url = getImageUrl(post);
         // 기본 이미지이거나 이미 완성된 URL(http...)인 경우 그대로 반환
-        if (url.includes('placehold.co') || url.startsWith('http')) return url;
-        // 상대 경로인 경우 SERVER_URL과 결합 (노란 줄 제거용)
-        return `${SERVER_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+        if (!url || url.includes('placehold.co') || url.startsWith('http')) return url;
+        
+        // 상대 경로인 경우 SERVER_URL과 결합
+        // SERVER_URL이 설정되어 있다면 결합하고, 없다면 브라우저 기본 동작에 맡김
+        const separator = url.startsWith('/') ? '' : '/';
+        return SERVER_URL ? `${SERVER_URL}${separator}${url}` : url;
     })();
 
     return (

@@ -1,14 +1,12 @@
 # -------------------------
 # 1단계: React 빌드 (프론트엔드)
 # -------------------------
-FROM node:18 AS frontend-build
+FROM node:20 AS frontend-build
 
 WORKDIR /frontend-app
-# community_react 폴더 안의 설정파일 복사
 COPY community_react/package*.json ./
 RUN npm install
 
-# community_react 폴더의 모든 소스 복사 후 빌드
 COPY community_react/ ./
 RUN npm run build
 
@@ -16,28 +14,31 @@ RUN npm run build
 # -------------------------
 # 2단계: Spring 빌드 (백엔드)
 # -------------------------
-FROM gradle:8-jdk21 AS backend-build
+FROM gradle:8.5-jdk21 AS backend-build
 
 WORKDIR /backend-app
-# community_java 폴더의 모든 소스(gradle 포함)를 복사
 COPY community_java/ .
 
-# [중요] 1단계에서 빌드된 React 결과물을 Spring의 static 폴더로 복사
-COPY --from=frontend-build /frontend-app/build ./src/main/resources/static
+# 🚩 [수정] 빌드된 리액트 정적 파일들을 스프링의 static 폴더로 복사
+COPY --from=frontend-build /frontend-app/build/ src/main/resources/static/
 
-# 빌드 실행 (테스트 제외)
-RUN chmod +x gradlew
-RUN ./gradlew build -x test --no-daemon
+# 🚩 [수정] 권한 부여 및 bootJar 빌드
+RUN chmod +x ./gradlew
+RUN ./gradlew bootJar -x test --no-daemon
 
 
 # -------------------------
 # 3단계: 최종 실행 이미지 생성
 # -------------------------
-FROM openjdk:21-ea-jdk-slim
+# 더 안정적인 공식 런타임 이미지로 교체
+FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
 
-# 2단계에서 만들어진 jar 파일을 복사
-COPY --from=backend-build /backend-app/build/libs/*.jar app.jar
+# 🚩 [수정] 파일 매칭을 더 명확하게 하여 정확한 JAR만 복사되도록 함
+COPY --from=backend-build /backend-app/build/libs/*-SNAPSHOT.jar app.jar
 
+# 배포 환경에서 8080 포트를 사용함을 명시
 EXPOSE 8080
-ENTRYPOINT ["java", "-Xmx512m", "-jar", "app.jar"]
+
+# 메모리 설정 최적화 및 실행
+ENTRYPOINT ["java", "-Xms512m", "-Xmx512m", "-jar", "app.jar"]

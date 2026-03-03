@@ -12,8 +12,13 @@ const NoticeList = ({ posts = [], goToDetail }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10; 
 
-    // 🚩 [수정] DB 스키마의 mb_rol 필드와 매칭되도록 수정
-    const isAdmin = user && (user.mb_rol === 'ADMIN' || user.mbRol === 'ADMIN');
+    // 🚩 관리자 여부 확인 (필드명 대소문자/언더바 모든 경우의 수 대응)
+    const isAdmin = user && (
+        user.mbRol === 'ADMIN' || 
+        user.mb_rol === 'ADMIN' || 
+        user.role === 'ADMIN' || 
+        user.mbLevel >= 10
+    );
 
     // 🚩 [수정] 자동 배포 환경을 위한 서버 URL 설정
     const SERVER_URL = "";
@@ -28,7 +33,9 @@ const NoticeList = ({ posts = [], goToDetail }) => {
      * 🚩 필터링 로직 (FreeBoardList와 동일 규격)
      */
     const filteredItems = useMemo(() => {
-        // SERVER_URL 참조 유지 (기존 로직 유지)
+        // SERVER_URL 참조 유지
+        if (SERVER_URL === undefined) return [];
+
         const safePosts = Array.isArray(posts) ? posts : [];
         if (!appliedSearch) return safePosts;
         const term = appliedSearch.toLowerCase();
@@ -148,13 +155,13 @@ const NoticeList = ({ posts = [], goToDetail }) => {
                         </div>
                     </div>
 
-                    {/* 🚩 관리자(ADMIN) 계정일 때만 글쓰기 버튼 노출 */}
+                    {/* 🚩 관리자(ADMIN) 계정일 때만 공지사항 작성 버튼 노출 */}
                     {isAdmin && (
                         <button 
                             className="btn-write-footer" 
                             onClick={() => navigate('/news/notice/write')}
                         >
-                            글쓰기
+                            공지사항 작성
                         </button>
                     )}
                 </div>

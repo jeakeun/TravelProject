@@ -125,7 +125,6 @@ public class MemberService {
 
             MemberVO member = memberDAO.selectMemberById(id.trim());
             if (member == null) return false;
-            // [카카오 로그인] 카카오 유저는 비밀번호를 사용하지 않으므로 변경 불가
             if ("kakao".equalsIgnoreCase(member.getMb_provider())) return false;
             if (!encoder.matches(currentPw.trim(), member.getMb_pw())) return false;
 
@@ -174,7 +173,6 @@ public class MemberService {
 
             MemberVO member = memberDAO.selectMemberById(id.trim());
             if (member == null) return false;
-            // [카카오 로그인] 카카오 유저 이메일은 API 연동 데이터이므로 수정 불가
             if ("kakao".equalsIgnoreCase(member.getMb_provider())) return false;
 
             String emailTrim = newEmail.trim();
@@ -217,6 +215,18 @@ public class MemberService {
     }
 
     /**
+     * ✅ 프로필 사진 삭제 (DB BLOB/타입 null, 버전 증가)
+     */
+    @Transactional
+    public Integer deletePhoto(String id) {
+        if (id == null || id.trim().isEmpty()) return null;
+        int updated = memberDAO.updatePhotoDeleteById(id.trim());
+        if (updated <= 0) return null;
+        MemberVO m = memberDAO.selectMemberById(id.trim());
+        return m != null && m.getMb_photo_ver() != null ? m.getMb_photo_ver() : (int) (System.currentTimeMillis() / 1000);
+    }
+
+    /**
      * ✅ 프로필 사진 조회 (DB BLOB → 바이트 배열)
      */
     public byte[] getPhotoData(String id) {
@@ -246,6 +256,13 @@ public class MemberService {
         }
     }
 
+    /** 프로필 사진 존재 여부 (삭제 버튼 표시용) */
+    public boolean hasProfilePhoto(String id) {
+        if (id == null || id.trim().isEmpty()) return false;
+        byte[] data = getPhotoData(id.trim());
+        return data != null && data.length > 0;
+    }
+
     /**
      * ✅ 회원 탈퇴: 비밀번호 확인 후 계정 삭제.
      * 카카오 로그인 사용자는 비밀번호 없이 확인만으로 탈퇴 가능.
@@ -259,6 +276,7 @@ public class MemberService {
             if (member == null) return false;
 
             if ("kakao".equalsIgnoreCase(member.getMb_provider())) {
+                // 카카오 회원: 비밀번호 검증 없이 탈퇴
                 int deleted = memberDAO.deleteMemberById(id.trim());
                 return deleted > 0;
             }
@@ -278,13 +296,14 @@ public class MemberService {
      * [카카오 로그인] 카카오 인증 코드로 로그인 또는 회원가입.
      * @param code 카카오 인증 코드
      * @param fromSignup true면 회원가입 버튼에서 진입 → 항상 회원가입 처리 후 로그인, false면 로그인 버튼 → 기존 회원이면 로그인만
+     * @param redirectUri 프론트에서 카카오 인증 시 사용한 redirect_uri(토큰 교환 시 동일 값 필수, null이면 서버 설정값 사용)
      * @return 로그인된 회원 정보 (없으면 null)
      */
     @Transactional
-    public MemberVO kakaoLoginOrSignup(String code, boolean fromSignup) {
+    public MemberVO kakaoLoginOrSignup(String code, boolean fromSignup, String redirectUri) {
         try {
             if (code == null || code.trim().isEmpty()) return null;
-            String accessToken = kakaoAuthService.exchangeCodeForToken(code.trim());
+            String accessToken = kakaoAuthService.exchangeCodeForToken(code.trim(), redirectUri);
             Map<String, Object> kakaoUser = kakaoAuthService.getUserInfo(accessToken);
 
             long kakaoId = ((Number) kakaoUser.get("id")).longValue();
@@ -310,6 +329,9 @@ public class MemberService {
                 existing.setMb_pw(null);
                 return existing;
             }
+
+            // 신규 가입: placeholder 비밀번호 (사용 안 함)
+            // [카카오 로그인] 신규 가입 (탈퇴 후 재가입 가능): 비밀번호 미사용이므로 placeholder BCrypt 저장
             memberDAO.deleteMemberById(kakaoUid);
             String placeholderPw = encoder.encode(java.util.UUID.randomUUID().toString());
             boolean inserted = memberDAO.insertMemberKakao(kakaoUid, nickname, placeholderPw, email);
@@ -319,7 +341,8 @@ public class MemberService {
             return created;
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            String msg = e.getMessage() != null && !e.getMessage().isBlank() ? e.getMessage() : "카카오 로그인에 실패했습니다.";
+            throw new RuntimeException(msg, e);
         }
     }
 }

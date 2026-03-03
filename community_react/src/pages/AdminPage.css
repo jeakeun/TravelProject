@@ -20,33 +20,88 @@
   margin: 0 0 24px 5px;
 }
 
+.admin-status-line {
+  margin: 8px 0 16px;
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.admin-status-line strong {
+  color: #1a6b2a;
+}
+
 .admin-tabs {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   margin-bottom: 24px;
 }
 
 .admin-tab {
-  padding: 10px 24px;
-  border: 2px solid #d1d8e0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border: 2px solid #e0e6ed;
   background: #fff;
   color: #4b6584;
   font-size: 15px;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .admin-tab:hover {
   border-color: #228B22;
   color: #228B22;
+  box-shadow: 0 2px 8px rgba(34, 139, 34, 0.15);
 }
 
 .admin-tab.active {
   background: linear-gradient(135deg, #1a6b2a, #228B22);
-  border-color: #228B22;
+  border-color: #1a6b2a;
   color: #fff;
+  box-shadow: 0 3px 12px rgba(26, 107, 42, 0.35);
+}
+
+.admin-tab-label {
+  letter-spacing: -0.02em;
+}
+
+/* 상태 배지: 숫자만 강조 */
+.admin-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background: #b0bec5;
+  border-radius: 999px;
+  transition: all 0.2s ease;
+}
+
+.admin-tab-badge.has-count {
+  background: linear-gradient(145deg, #d32f2f, #b71c1c);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(183, 28, 28, 0.4);
+}
+
+.admin-tab.active .admin-tab-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  box-shadow: none;
+}
+
+.admin-tab.active .admin-tab-badge.has-count {
+  background: rgba(255, 255, 255, 0.95);
+  color: #c62828;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
 .admin-section {
@@ -102,6 +157,42 @@
   color: #888;
   text-align: center;
   padding: 40px;
+}
+
+.admin-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 12px 0;
+}
+
+.admin-pagination-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a6b2a;
+  background: #fff;
+  border: 1px solid #1a6b2a;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.admin-pagination-btn:hover:not(:disabled) {
+  background: #1a6b2a;
+  color: #fff;
+}
+
+.admin-pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-pagination-info {
+  font-size: 13px;
+  color: #555;
+  font-weight: 500;
 }
 
 .admin-table {
@@ -255,6 +346,16 @@
   color: #065f46;
 }
 
+.admin-message-badge.deleted {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.admin-message-badge.hold {
+  background: #fef3c7;
+  color: #b45309;
+}
+
 .admin-message-subject {
   font-weight: 700;
   color: #1e293b;
@@ -353,87 +454,4 @@
   cursor: not-allowed;
 }
 
-/* 신고함 - 글 형태 */
-.admin-post-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
-}
-
-.admin-post-card {
-  border: 1px solid #e0e6ed;
-  border-radius: 12px;
-  padding: 20px;
-  cursor: pointer;
-  background: #fff;
-  transition: all 0.2s;
-}
-
-.admin-post-card:hover {
-  border-color: #228B22;
-  box-shadow: 0 4px 12px rgba(34, 139, 34, 0.1);
-}
-
-.admin-post-card.expanded {
-  grid-column: 1 / -1;
-  border-color: #228B22;
-  box-shadow: 0 4px 20px rgba(34, 139, 34, 0.15);
-}
-
-.admin-post-meta {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  font-size: 13px;
-  color: #64748b;
-  margin-bottom: 10px;
-}
-
-.admin-post-badge {
-  margin-left: auto;
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  background: #fef3c7;
-  color: #b45309;
-}
-
-.admin-post-badge.done {
-  background: #d1fae5;
-  color: #065f46;
-}
-.admin-post-badge.deleted {
-  background: #fee2e2;
-  color: #b91c1c;
-}
-.admin-post-badge.hold {
-  background: #fef3c7;
-  color: #b45309;
-}
-
-.admin-post-title {
-  font-weight: 700;
-  font-size: 15px;
-  color: #1e293b;
-  margin-bottom: 8px;
-}
-
-.admin-post-content {
-  font-size: 14px;
-  color: #64748b;
-  line-height: 1.5;
-}
-
-.admin-post-detail {
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #e2e8f0;
-}
-
-.admin-post-full {
-  white-space: pre-wrap;
-  font-size: 14px;
-  line-height: 1.6;
-  color: #334155;
-  margin-bottom: 16px;
-}
+/* 신고함은 문의함과 동일한 admin-message-* 카드 형태 사용 */

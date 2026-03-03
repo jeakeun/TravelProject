@@ -1,15 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import api from "../api/axios";
 import { isAdmin } from "../utils/user";
 import "./AdminPage.css";
 
 function AdminPage() {
-  const { user } = useOutletContext() || {};
+  const { user, refreshAdminCounts } = useOutletContext() || {};
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("inquiry");
   const [inquiries, setInquiries] = useState([]);
   const [reports, setReports] = useState([]);
+  const [newCounts, setNewCounts] = useState({ newInquiries: 0, newReports: 0 });
   const [loading, setLoading] = useState(true);
   const [expandedInquiry, setExpandedInquiry] = useState(null);
   const [expandedReport, setExpandedReport] = useState(null);
@@ -18,6 +19,23 @@ function AdminPage() {
   const [savingReply, setSavingReply] = useState(false);
   const [editingInquiry, setEditingInquiry] = useState(null);
   const [editingReport, setEditingReport] = useState(null);
+  const [inquiryPage, setInquiryPage] = useState(1);
+  const [reportPage, setReportPage] = useState(1);
+
+  const INQUIRIES_PER_PAGE = 3;
+  const REPORTS_PER_PAGE = 3;
+
+  const fetchNewCounts = useCallback(() => {
+    api.get("/api/admin/notification-counts")
+      .then((res) => {
+        const d = res.data || {};
+        setNewCounts({
+          newInquiries: Number(d.newInquiries) || 0,
+          newReports: Number(d.newReports) || 0,
+        });
+      })
+      .catch(() => setNewCounts({ newInquiries: 0, newReports: 0 }));
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -37,12 +55,18 @@ function AdminPage() {
     const fetch = async () => {
       setLoading(true);
       try {
-        const [inqRes, repRes] = await Promise.all([
+        const [inqRes, repRes, countsRes] = await Promise.all([
           api.get("/api/admin/inquiries"),
           api.get("/api/admin/reports"),
+          api.get("/api/admin/notification-counts").catch(() => ({ data: { newInquiries: 0, newReports: 0 } })),
         ]);
         setInquiries(Array.isArray(inqRes.data) ? inqRes.data : []);
         setReports(Array.isArray(repRes.data) ? repRes.data : []);
+        const d = countsRes?.data || {};
+        setNewCounts({
+          newInquiries: Number(d.newInquiries) || 0,
+          newReports: Number(d.newReports) || 0,
+        });
       } catch (err) {
         console.error("관리자 데이터 로딩 실패:", err);
         if (err?.response?.status === 403) {
@@ -88,6 +112,8 @@ function AdminPage() {
       alert("답변이 저장되었습니다.");
       setExpandedInquiry(null);
       setEditingInquiry(null);
+      fetchNewCounts();
+      refreshAdminCounts?.();
     } catch (err) {
       const data = err?.response?.data;
       const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "저장 실패");
@@ -121,6 +147,8 @@ function AdminPage() {
       alert("답변이 저장되었습니다.");
       setExpandedReport(null);
       setEditingReport(null);
+      fetchNewCounts();
+      refreshAdminCounts?.();
     } catch (err) {
       const data = err?.response?.data;
       const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "저장 실패");
@@ -138,6 +166,8 @@ function AdminPage() {
       );
       alert(res?.data?.msg ?? "처리되었습니다.");
       setExpandedReport(null);
+      fetchNewCounts();
+      refreshAdminCounts?.();
     } catch (err) {
       const data = err?.response?.data;
       const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "처리 실패");
@@ -153,6 +183,14 @@ function AdminPage() {
       </div>
     );
 
+  const inquiryTotalPages = Math.ceil(inquiries.length / INQUIRIES_PER_PAGE) || 1;
+  const inquiryCurrentPage = Math.min(inquiryPage, inquiryTotalPages);
+  const inquiriesPaginated = inquiries.slice((inquiryCurrentPage - 1) * INQUIRIES_PER_PAGE, inquiryCurrentPage * INQUIRIES_PER_PAGE);
+
+  const reportTotalPages = Math.ceil(reports.length / REPORTS_PER_PAGE) || 1;
+  const reportCurrentPage = Math.min(reportPage, reportTotalPages);
+  const reportsPaginated = reports.slice((reportCurrentPage - 1) * REPORTS_PER_PAGE, reportCurrentPage * REPORTS_PER_PAGE);
+
   return (
     <div className="admin-page">
       <h1 className="admin-title">| 관리자 페이지</h1>
@@ -162,13 +200,15 @@ function AdminPage() {
           className={`admin-tab ${activeTab === "inquiry" ? "active" : ""}`}
           onClick={() => setActiveTab("inquiry")}
         >
-          1:1 문의함
+          <span className="admin-tab-label">1:1 문의함</span>
+          <span className={`admin-tab-badge ${newCounts.newInquiries > 0 ? "has-count" : ""}`}>{newCounts.newInquiries}</span>
         </button>
         <button
           className={`admin-tab ${activeTab === "report" ? "active" : ""}`}
           onClick={() => setActiveTab("report")}
         >
-          신고함
+          <span className="admin-tab-label">신고함</span>
+          <span className={`admin-tab-badge ${newCounts.newReports > 0 ? "has-count" : ""}`}>{newCounts.newReports}</span>
         </button>
       </div>
 
@@ -179,15 +219,16 @@ function AdminPage() {
           {inquiries.length === 0 ? (
             <p className="admin-empty">등록된 문의가 없습니다.</p>
           ) : (
-            <div className="admin-message-list">
-              {inquiries.map((q) => (
+            <>
+              <div className="admin-message-list">
+                {inquiriesPaginated.map((q) => (
                 <div
                   key={q.ibNum}
                   className={`admin-message-card ${expandedInquiry === q.ibNum ? "expanded" : ""}`}
                   onClick={() => !expandedInquiry || expandedInquiry === q.ibNum ? openInquiry(q) : null}
                 >
                   <div className="admin-message-header">
-                    <span className="admin-message-from">작성자 #{q.ibMbNum}</span>
+                    <span className="admin-message-from">{q.ibAuthorNickname ?? `작성자 #${q.ibMbNum}`}</span>
                     <span className="admin-message-date">{formatDate(q.ibDate)}</span>
                     <span className={`admin-message-badge ${q.ibStatus === "Y" ? "done" : ""}`}>
                       {q.ibStatus === "Y" ? "답변완료" : "대기"}
@@ -252,41 +293,49 @@ function AdminPage() {
                   )}
                 </div>
               ))}
-            </div>
+              </div>
+              {inquiryTotalPages > 1 && (
+                <div className="admin-pagination">
+                  <button type="button" className="admin-pagination-btn" disabled={inquiryCurrentPage <= 1} onClick={() => setInquiryPage((p) => Math.max(1, p - 1))}>이전</button>
+                  <span className="admin-pagination-info">{inquiryCurrentPage} / {inquiryTotalPages}</span>
+                  <button type="button" className="admin-pagination-btn" disabled={inquiryCurrentPage >= inquiryTotalPages} onClick={() => setInquiryPage((p) => Math.min(inquiryTotalPages, p + 1))}>다음</button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
 
-      {/* 신고함 - 글 형태 */}
+      {/* 신고함 - 문의함과 동일한 카드 형태 */}
       {activeTab === "report" && (
-        <div className="admin-section">
+        <div className="admin-section admin-section-inquiry">
           <h2 className="admin-section-title">신고함</h2>
           {reports.length === 0 ? (
             <p className="admin-empty">등록된 신고가 없습니다.</p>
           ) : (
-            <div className="admin-post-list">
-              {reports.map((r) => (
-                <article
+            <>
+              <div className="admin-message-list">
+                {reportsPaginated.map((r) => (
+                <div
                   key={r.rbNum}
-                  className={`admin-post-card ${expandedReport === r.rbNum ? "expanded" : ""}`}
+                  className={`admin-message-card ${expandedReport === r.rbNum ? "expanded" : ""}`}
                   onClick={() => !expandedReport || expandedReport === r.rbNum ? openReport(r) : null}
                 >
-                  <div className="admin-post-meta">
-                    <span>신고 대상: {r.rbName} #{r.rbId}</span>
-                    <span>신고자 #{r.rbMbNum}</span>
-                    <span className={`admin-post-badge ${r.rbManage === "Y" ? "done" : r.rbManage === "D" ? "deleted" : r.rbManage === "H" ? "hold" : ""}`}>
+                  <div className="admin-message-header">
+                    <span className="admin-message-from">{r.rbReporterNickname ?? `신고자 #${r.rbMbNum}`}</span>
+                    <span className={`admin-message-badge ${r.rbManage === "Y" ? "done" : r.rbManage === "D" ? "deleted" : r.rbManage === "H" ? "hold" : ""}`}>
                       {r.rbManage === "Y" ? "처리완료" : r.rbManage === "D" ? "삭제됨" : r.rbManage === "H" ? "보류" : "대기"}
                     </span>
                   </div>
-                  <div className="admin-post-title">신고 사유</div>
-                  <div className="admin-post-content">
-                    {(r.rbContent || "").slice(0, 120)}
-                    {(r.rbContent || "").length > 120 ? "..." : ""}
+                  <div className="admin-message-subject">신고 대상: {r.rbTargetNickname ?? `${r.rbName} #${r.rbId}`}</div>
+                  <div className="admin-message-preview">
+                    {(r.rbContent || "").slice(0, 80)}
+                    {(r.rbContent || "").length > 80 ? "..." : ""}
                   </div>
 
                   {expandedReport === r.rbNum && (
-                    <div className="admin-post-detail" onClick={(e) => e.stopPropagation()}>
-                      <div className="admin-post-full">{r.rbContent}</div>
+                    <div className="admin-message-detail" onClick={(e) => e.stopPropagation()}>
+                      <div className="admin-message-full">{r.rbContent}</div>
                       {r.rbReply && editingReport !== r.rbNum ? (
                         <div className="admin-reply-view">
                           <div className="admin-reply-block">
@@ -360,9 +409,17 @@ function AdminPage() {
                       )}
                     </div>
                   )}
-                </article>
+                </div>
               ))}
-            </div>
+              </div>
+              {reportTotalPages > 1 && (
+                <div className="admin-pagination">
+                  <button type="button" className="admin-pagination-btn" disabled={reportCurrentPage <= 1} onClick={() => setReportPage((p) => Math.max(1, p - 1))}>이전</button>
+                  <span className="admin-pagination-info">{reportCurrentPage} / {reportTotalPages}</span>
+                  <button type="button" className="admin-pagination-btn" disabled={reportCurrentPage >= reportTotalPages} onClick={() => setReportPage((p) => Math.min(reportTotalPages, p + 1))}>다음</button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

@@ -268,6 +268,7 @@
     align-items: center;
 }
 
+/* 🚩 랭킹 리스트 내 스탯 아이템 디자인 - 기존 그대로 유지 */
 .stat-item {
     display: flex;
     align-items: center;
@@ -276,25 +277,16 @@
     font-weight: 700;
 }
 
-.stat-item.likes::before {
-    content: "❤️";
-    font-size: 14px;
-}
-
-.stat-item.comment::before {
-    content: "💬";
-    font-size: 14px;
-}
-
 .stat-item.comment {
     color: #1890ff;
 }
 
 .stat-item.likes {
     color: #e74c3c;
+    transition: all 0.2s;
 }
 
-/* 🚩 [4. 하단 페이지네이션 및 검색 영역 - ReviewBoard와 완벽 동기화] */
+/* [4. 하단 페이지네이션 및 검색 영역] */
 .list-pagination-area {
     margin-top: 24px;
     display: flex;
@@ -310,14 +302,12 @@
     gap: 10px;
 }
 
-/* 숫자 및 화살표 버튼 공통: 완벽한 원형 */
 .page-buttons button {
     width: 40px;
     height: 40px;
     border: 1px solid #ddd;
     background: #fff;
     border-radius: 50% !important;
-    /* 둥근 모양 강제 */
     cursor: pointer;
     font-weight: 600;
     font-size: 14px;
@@ -329,21 +319,18 @@
     padding: 0;
 }
 
-/* 활성화된 버튼 (다크 네이비) */
 .page-buttons button.active {
     background: #2c3e50 !important;
     color: #fff !important;
     border-color: #2c3e50 !important;
 }
 
-/* 호버 효과 */
 .page-buttons button:hover:not(:disabled) {
     background-color: #f8f9fa;
     border-color: #2c3e50;
     color: #2c3e50;
 }
 
-/* 비활성화 상태 */
 .page-buttons button:disabled {
     cursor: default;
     opacity: 0.4;
@@ -419,7 +406,7 @@
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* [5. 상단바 및 사이드메뉴 고정] - 전역 header는 App/Main.css에서만 사용, 여기서는 .navbar만 */
+/* [5. 상단바 및 사이드메뉴 고정] */
 .navbar {
     position: fixed;
     top: 0;
