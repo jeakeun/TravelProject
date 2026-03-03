@@ -56,7 +56,10 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
   return (
     <div className="nav-area">
       <header>
-        <Link to="/" className="logo">TRAVEL</Link>
+        <Link to="/" className="logo">
+          <span className="logo-icon" aria-hidden="true" />
+          <span className="logo-text">TRAVEL</span>
+        </Link>
 
         <div className="nav-and-mega">
           <div className="nav-mega-inner">
