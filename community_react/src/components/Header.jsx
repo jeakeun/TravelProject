@@ -60,7 +60,7 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
           <span
             className="logo-icon"
             aria-hidden="true"
-            style={{ backgroundImage: "url(/assets/파비콘.png)" }}
+            style={{ backgroundImage: "url(/assets/Favicon.png)" }}
           />
           <span className="logo-text">TRAVEL</span>
         </Link>
