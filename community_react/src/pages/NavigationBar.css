@@ -10,24 +10,27 @@
   border: 1px solid #444;
   display: flex;
   flex-direction: column;
-  padding: 15px 0;
-  min-height: 450px; /* 서랍장 버튼 위치 확보를 위한 최소 높이 */
+  padding: 0;
+  min-height: 450px;
 }
 
 /* 상단 TOP 타이틀 */
 .side-nav-title {
-  color: #2d5a27;
-  font-size: 10px;
+  display: block;
+  background-color: #2d5a27;
+  color: #ffffff;
+  font-size: 11px;
   font-weight: bold;
   text-align: center;
-  margin-bottom: 15px;
-  letter-spacing: 1px;
+  padding: 15px 0;
   cursor: pointer;
   transition: all 0.3s ease;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #333;
 }
+
 .side-nav-title:hover {
-  background-color: #f0f0f0;
-  color: #2ecc71;
+  background-color: #3d7a35;
 }
 
 /* 메뉴 리스트 및 아이템 */
@@ -39,11 +42,7 @@
 
 .side-nav-item-rect {
   width: 100%;
-  border-bottom: 1px solid #333;
-}
-
-.side-nav-item-rect:last-child {
-  border-bottom: none;
+  border-bottom: 1px solid #333; /* 일반 메뉴 경계선 */
 }
 
 /* 버튼 및 링크 기본 스타일 */
@@ -77,29 +76,47 @@
 }
 
 /* -------------------------------------------------- */
-/*  하단 서랍장(Drawer) 관련 스타일 (박스 3개 대체) */
+/* 하단 서랍장(Drawer) 및 푸터 영역 - 간격 통일 수정 */
 /* -------------------------------------------------- */
 
 .side-nav-footer-rect {
-  margin-top: auto; /* 메뉴 아래로 밀어내기 */
-  border-top: 2px solid #2d5a27;
-  padding-top: 5px;
-  position: relative; /* 서랍장 위치 기준점 */
+  margin-top: 0; /* 🚩 위쪽 메뉴와 딱 붙도록 마진 제거 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
-/* 최근 본 글 버튼 전용 스타일 */
+.recent-drawer-container {
+  width: 100%;
+}
+
+/* 최근 본 글 버튼 - 일반 메뉴와 간격/선 완벽 통일 */
 .drawer-toggle-btn {
-  padding: 12px 0;
+  width: 100%;
+  padding: 15px 0; /* 🚩 일반 메뉴(side-nav-btn-rect)와 동일한 패딩 */
   outline: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  transition: background 0.3s;
+  border-bottom: 1px solid #333; /* 🚩 하단 선 통일 */
 }
 
-/* 왼쪽으로 튀어나오는 서랍장 패널 */
+.drawer-toggle-btn:hover {
+  background-color: #2d5a27;
+}
+
+/* 서랍장 패널 (기존 유지) */
 .recent-drawer-panel {
   position: absolute;
-  right: 100%; /* 사이드바 왼쪽 바깥 */
+  right: 100%;
   bottom: 0;
-  width: 220px; /* 제목을 길게 보기 위한 충분한 너비 */
-  margin-right: 15px; /* 사이드바와의 간격 */
+  width: 220px;
+  margin-right: 15px;
   background-color: #fff;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -108,7 +125,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: slideIn 0.2s ease-out; /* 나타날 때 애니메이션 */
+  animation: slideIn 0.2s ease-out;
 }
 
 @keyframes slideIn {
@@ -116,7 +133,6 @@
   to { opacity: 1; transform: translateX(0); }
 }
 
-/* 서랍장 헤더 */
 .drawer-header {
   background-color: #2d5a27;
   color: #fff;
@@ -135,7 +151,6 @@
   font-size: 14px;
 }
 
-/* 서랍장 내부 리스트 */
 .drawer-list {
   list-style: none;
   padding: 0;
@@ -157,7 +172,7 @@
   text-align: left;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis; /* 긴 제목은 ... 처리 */
+  text-overflow: ellipsis;
 }
 
 .drawer-item-link:hover {
@@ -172,26 +187,16 @@
   text-align: center;
 }
 
-.side-nav-footer-rect {
-  margin-top: auto;
-  border-top: 2px solid #2d5a27;
-  padding-top: 5px;
-  display: flex;
-  flex-direction: column; /* 세로 배치 */
-  align-items: center;
-}
-
-/* 🚩 숨김 버튼 스타일 */
+/* 🚩 숨김 버튼 스타일 - 하단 마무리 */
 .side-nav-hide-btn {
   width: 100%;
-  padding: 8px 0;
+  padding: 10px 0;
   background-color: #333;
   color: #aaa;
   border: none;
   font-size: 10px;
   cursor: pointer;
   transition: all 0.2s;
-  border-top: 1px solid #444;
 }
 
 .side-nav-hide-btn:hover {
@@ -199,7 +204,7 @@
   color: #fff;
 }
 
-/* 🚩 다시 펼치기 버튼 스타일 (숨겨졌을 때 화면 우측 중앙에 고정) */
+/* 다시 펼치기 버튼 스타일 */
 .side-nav-open-btn {
   position: fixed;
   right: 0;
@@ -211,7 +216,7 @@
   background-color: #2d5a27;
   color: white;
   border: none;
-  border-radius: 8px 0 0 8px; /* 왼쪽만 둥글게 */
+  border-radius: 8px 0 0 8px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -220,17 +225,17 @@
   font-size: 11px;
   font-weight: bold;
   box-shadow: -2px 0 5px rgba(0,0,0,0.2);
-  writing-mode: vertical-lr; /* 텍스트 세로 쓰기 */
+  writing-mode: vertical-lr;
   letter-spacing: 2px;
 }
 
 .open-icon {
   margin-top: 5px;
   font-size: 10px;
-  transform: rotate(180deg); /* 아이콘 방향 */
+  transform: rotate(180deg);
 }
 
 .side-nav-open-btn:hover {
   background-color: #3d7a35;
-  width: 35px; /* 호버 시 약간 튀어나오게 */
+  width: 35px;
 }

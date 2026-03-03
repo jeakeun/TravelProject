@@ -56,7 +56,14 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
   return (
     <div className="nav-area">
       <header>
-        <Link to="/" className="logo">TRAVEL</Link>
+        <Link to="/" className="logo">
+          <span
+            className="logo-icon"
+            aria-hidden="true"
+            style={{ backgroundImage: "url(/assets/파비콘.png)" }}
+          />
+          <span className="logo-text">TRAVEL</span>
+        </Link>
 
         <div className="nav-and-mega">
           <div className="nav-mega-inner">
