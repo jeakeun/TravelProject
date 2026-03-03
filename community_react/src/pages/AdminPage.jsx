@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import api from "../api/axios";
-import { isAdmin } from "../utils/user";
+import { isAdmin, isSubAdmin, isAdminOrSubAdmin } from "../utils/user";
 import "./AdminPage.css";
 
 function AdminPage() {
@@ -49,7 +49,7 @@ function AdminPage() {
       navigate("/", { replace: true });
       return;
     }
-    if (!isAdmin(user)) {
+    if (!isAdminOrSubAdmin(user)) {
       alert("관리자만 접근할 수 있습니다.");
       navigate("/", { replace: true });
       return;
@@ -57,43 +57,74 @@ function AdminPage() {
   }, [user, navigate]);
 
   useEffect(() => {
-    if (!user || !isAdmin(user)) return;
+    if (!user || !isAdminOrSubAdmin(user)) return;
     const fetch = async () => {
       setLoading(true);
       try {
-        const [inqRes, repRes, memRes, countsRes] = await Promise.allSettled([
-          api.get("/api/admin/inquiries"),
-          api.get("/api/admin/reports"),
-          api.get("/api/admin/members"),
-          api.get("/api/admin/notification-counts"),
-        ]);
+        if (isSubAdmin(user)) {
+          // SUB_ADMIN: 문의/신고/알림만, 회원 목록은 호출하지 않음
+          const [inqRes, repRes, countsRes] = await Promise.allSettled([
+            api.get("/api/admin/inquiries"),
+            api.get("/api/admin/reports"),
+            api.get("/api/admin/notification-counts"),
+          ]);
 
-        if (inqRes.status === "fulfilled") {
-          setInquiries(Array.isArray(inqRes.value.data) ? inqRes.value.data : []);
-        } else {
-          setInquiries([]);
-        }
+          if (inqRes.status === "fulfilled") {
+            setInquiries(Array.isArray(inqRes.value.data) ? inqRes.value.data : []);
+          } else {
+            setInquiries([]);
+          }
 
-        if (repRes.status === "fulfilled") {
-          setReports(Array.isArray(repRes.value.data) ? repRes.value.data : []);
-        } else {
-          setReports([]);
-        }
+          if (repRes.status === "fulfilled") {
+            setReports(Array.isArray(repRes.value.data) ? repRes.value.data : []);
+          } else {
+            setReports([]);
+          }
 
-        if (memRes.status === "fulfilled") {
-          const data = memRes.value.data;
-          setMembers(Array.isArray(data) ? data : []);
-        } else {
-          console.error("회원 목록 로딩 실패:", memRes.reason);
+          const countsData =
+            countsRes.status === "fulfilled" ? countsRes.value.data || {} : { newInquiries: 0, newReports: 0 };
+          setNewCounts({
+            newInquiries: Number(countsData.newInquiries) || 0,
+            newReports: Number(countsData.newReports) || 0,
+          });
+
           setMembers([]);
-        }
+        } else {
+          // ADMIN: 문의/신고/회원/알림 모두 조회
+          const [inqRes, repRes, memRes, countsRes] = await Promise.allSettled([
+            api.get("/api/admin/inquiries"),
+            api.get("/api/admin/reports"),
+            api.get("/api/admin/members"),
+            api.get("/api/admin/notification-counts"),
+          ]);
 
-        const countsData =
-          countsRes.status === "fulfilled" ? countsRes.value.data || {} : { newInquiries: 0, newReports: 0 };
-        setNewCounts({
-          newInquiries: Number(countsData.newInquiries) || 0,
-          newReports: Number(countsData.newReports) || 0,
-        });
+          if (inqRes.status === "fulfilled") {
+            setInquiries(Array.isArray(inqRes.value.data) ? inqRes.value.data : []);
+          } else {
+            setInquiries([]);
+          }
+
+          if (repRes.status === "fulfilled") {
+            setReports(Array.isArray(repRes.value.data) ? repRes.value.data : []);
+          } else {
+            setReports([]);
+          }
+
+          if (memRes.status === "fulfilled") {
+            const data = memRes.value.data;
+            setMembers(Array.isArray(data) ? data : []);
+          } else {
+            console.error("회원 목록 로딩 실패:", memRes.reason);
+            setMembers([]);
+          }
+
+          const countsData =
+            countsRes.status === "fulfilled" ? countsRes.value.data || {} : { newInquiries: 0, newReports: 0 };
+          setNewCounts({
+            newInquiries: Number(countsData.newInquiries) || 0,
+            newReports: Number(countsData.newReports) || 0,
+          });
+        }
       } catch (err) {
         console.error("관리자 데이터 로딩 실패:", err);
         if (err?.response?.status === 403) {
@@ -218,6 +249,24 @@ function AdminPage() {
     }
   };
 
+  const updateMemberRole = async (mbNum, nextRole) => {
+    if (!mbNum || !nextRole) return;
+    if (!window.confirm(`${mbNum}번 회원의 권한을 "${nextRole}"(으)로 변경하시겠습니까?`)) return;
+    try {
+      await api.put(`/api/admin/members/${mbNum}/role`, { role: nextRole });
+      setMembers((prev) =>
+        prev.map((m) =>
+          m.mbNum === mbNum ? { ...m, mbRol: nextRole } : m
+        )
+      );
+      alert("회원 권한이 변경되었습니다.");
+    } catch (err) {
+      const data = err?.response?.data;
+      const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "권한 변경 실패");
+      alert(msg);
+    }
+  };
+
   const updateMemberStatus = async (mbNum, statusCode, label) => {
     if (!mbNum || !statusCode) return;
     if (!window.confirm(`${mbNum}번 회원을 "${label}" 상태로 변경하시겠습니까?`)) return;
@@ -259,7 +308,7 @@ function AdminPage() {
     }
   };
 
-  if (!user || !isAdmin(user)) return null;
+  if (!user || !isAdminOrSubAdmin(user)) return null;
   if (loading)
     return (
       <div className="admin-page">
@@ -324,12 +373,14 @@ function AdminPage() {
           <span className="admin-tab-label">신고함</span>
           <span className={`admin-tab-badge ${newCounts.newReports > 0 ? "has-count" : ""}`}>{newCounts.newReports}</span>
         </button>
-        <button
-          className={`admin-tab ${activeTab === "member" ? "active" : ""}`}
-          onClick={() => setActiveTab("member")}
-        >
-          <span className="admin-tab-label">회원 관리</span>
-        </button>
+        {!isSubAdmin(user) && (
+          <button
+            className={`admin-tab ${activeTab === "member" ? "active" : ""}`}
+            onClick={() => setActiveTab("member")}
+          >
+            <span className="admin-tab-label">회원 관리</span>
+          </button>
+        )}
       </div>
 
       {/* 1:1 문의 - 쪽지 형태 (확대) */}
@@ -474,11 +525,15 @@ function AdminPage() {
                         </div>
                       ) : (
                         <div className="admin-reply-form">
-                          <label>{r.rbReply ? "답변 수정 (댓글 아님)" : "답변 작성 (댓글 아님)"}</label>
+                          <label>
+                            {r.rbReply
+                              ? "경고/정지 메모 및 답변 수정 (기능 없음)"
+                              : "경고/정지 메모 및 답변 작성 (기능 없음)"}
+                          </label>
                           <textarea
                             value={reportReply}
                             onChange={(e) => setReportReply(e.target.value)}
-                            placeholder="관리자 답변을 입력하세요"
+                            placeholder="예) 경고 1회, 7일 정지 예정 / 사유: 욕설\n※ 여기 적는 내용은 메모만 저장되며 실제 정지 기능은 동작하지 않습니다."
                             rows={6}
                           />
                           <div className="admin-reply-actions">
@@ -544,8 +599,8 @@ function AdminPage() {
         </div>
       )}
 
-      {/* 회원 관리 */}
-      {activeTab === "member" && (
+      {/* 회원 관리 (SUB_ADMIN 에게는 숨김) */}
+      {!isSubAdmin(user) && activeTab === "member" && (
         <div className="admin-section admin-section-inquiry">
           <div className="admin-member-header">
             <h2 className="admin-section-title">회원 관리</h2>
@@ -588,7 +643,7 @@ function AdminPage() {
                     <th style={{ width: "120px" }}>아이디</th>
                     <th style={{ width: "120px" }}>닉네임</th>
                     <th style={{ width: "180px" }}>이메일</th>
-                    <th style={{ width: "80px" }}>권한</th>
+                    <th style={{ width: "100px" }}>권한</th>
                     <th style={{ width: "80px" }}>점수</th>
                     <th style={{ width: "140px" }}>상태</th>
                   </tr>
@@ -600,7 +655,21 @@ function AdminPage() {
                       <td className="admin-td-title">{m.mbUid}</td>
                       <td className="admin-td-title">{m.mbNickname}</td>
                       <td className="admin-td-title">{m.mbEmail || "-"}</td>
-                      <td>{m.mbRol}</td>
+                      <td>
+                        <select
+                          className="admin-member-select"
+                          value={m.mbRol || "USER"}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (!value || value === m.mbRol) return;
+                            updateMemberRole(m.mbNum, value);
+                          }}
+                        >
+                          <option value="USER">USER</option>
+                          <option value="SUB_ADMIN">SUB_ADMIN</option>
+                          <option value="ADMIN">ADMIN</option>
+                        </select>
+                      </td>
                       <td>{m.mbScore}</td>
                       <td>
                         <div className="admin-member-actions">

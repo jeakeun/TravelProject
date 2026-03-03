@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { getNickname, isAdmin } from "../utils/user";
+import { getNickname, isAdmin, isAdminOrSubAdmin } from "../utils/user";
 import ProfileImage from "./ProfileImage";
 
 const translations = {
@@ -158,12 +158,12 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
                 {isUserMenuOpen && (
                   <ul className="user-dropdown" onClick={(e) => e.stopPropagation()}>
                     <li><Link to="/mypage" onClick={() => setIsUserMenuOpen(false)} className={location.pathname === "/mypage" ? "active" : ""}>{t.nav_mypage}</Link></li>
-                    {isAdmin(user) && (
+                    {isAdminOrSubAdmin(user) && (
                       <li><Link to="/admin" className={location.pathname.startsWith("/admin") ? "active" : ""} onClick={() => setIsUserMenuOpen(false)}>{t.nav_admin}</Link></li>
                     )}
                   </ul>
                 )}
-                {isAdmin(user) && showPanel && (
+                {isAdminOrSubAdmin(user) && showPanel && (
                   <div
                     className="admin-alert-panel"
                     onClick={(e) => e.stopPropagation()}

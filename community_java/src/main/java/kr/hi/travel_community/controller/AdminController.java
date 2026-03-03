@@ -26,11 +26,23 @@ public class AdminController {
         return member != null && "ADMIN".equalsIgnoreCase(member.getMb_rol());
     }
 
+    /** ADMIN 또는 SUB_ADMIN 여부 (서브관리자 포함) */
+    private boolean isAdminOrSubAdmin(Authentication auth) {
+        if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof CustomUser))
+            return false;
+        MemberVO member = ((CustomUser) auth.getPrincipal()).getMember();
+        if (member == null) return false;
+        String rol = member.getMb_rol();
+        if (rol == null) return false;
+        String r = rol.toUpperCase();
+        return "ADMIN".equals(r) || "SUB_ADMIN".equals(r);
+    }
+
     @GetMapping("/inquiries")
     public ResponseEntity<?> getInquiries(Authentication auth) {
         if (auth == null || !auth.isAuthenticated())
             return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
-        if (!isAdmin(auth))
+        if (!isAdminOrSubAdmin(auth))
             return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
         List<Map<String, Object>> list = adminService.getAllInquiries();
         return ResponseEntity.ok(list);
@@ -40,7 +52,7 @@ public class AdminController {
     public ResponseEntity<?> getReports(Authentication auth) {
         if (auth == null || !auth.isAuthenticated())
             return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
-        if (!isAdmin(auth))
+        if (!isAdminOrSubAdmin(auth))
             return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
         List<Map<String, Object>> list = adminService.getAllReports();
         return ResponseEntity.ok(list);
@@ -86,12 +98,36 @@ public class AdminController {
         return ResponseEntity.ok(Map.of("msg", "회원 상태가 변경되었습니다."));
     }
 
+    /** 회원 권한 변경 (USER / SUB_ADMIN / ADMIN) - ADMIN 전용 */
+    @PutMapping("/members/{mbNum}/role")
+    public ResponseEntity<?> updateMemberRole(@PathVariable("mbNum") Integer mbNum,
+                                              @RequestBody Map<String, Object> body,
+                                              Authentication auth) {
+        if (auth == null || !auth.isAuthenticated()) {
+            return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
+        }
+        if (!isAdmin(auth)) {
+            return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
+        }
+        Object roleObj = body != null ? body.get("role") : null;
+        String role = roleObj != null ? String.valueOf(roleObj).trim() : "";
+        if (role.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "role 값이 필요합니다."));
+        }
+        String normalized = role.toUpperCase();
+        if (!normalized.equals("USER") && !normalized.equals("SUB_ADMIN") && !normalized.equals("ADMIN")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "허용되지 않은 권한 값입니다."));
+        }
+        adminService.updateMemberRole(mbNum, normalized);
+        return ResponseEntity.ok(Map.of("msg", "회원 권한이 변경되었습니다."));
+    }
+
     /** 관리자 알림용: 미답변 문의·미처리 신고 건수 (헤더/관리자페이지 상태 표시) */
     @GetMapping("/notification-counts")
     public ResponseEntity<?> getNotificationCounts(Authentication auth) {
         if (auth == null || !auth.isAuthenticated())
             return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
-        if (!isAdmin(auth))
+        if (!isAdminOrSubAdmin(auth))
             return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
         return ResponseEntity.ok(adminService.getNewCounts());
     }
@@ -101,7 +137,7 @@ public class AdminController {
         try {
             if (auth == null || !auth.isAuthenticated())
                 return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
-            if (!isAdmin(auth))
+            if (!isAdminOrSubAdmin(auth))
                 return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
             Object statusObj = (body != null && body.containsKey("status")) ? body.get("status") : null;
             String status = statusObj != null ? String.valueOf(statusObj).trim() : "Y";
@@ -119,7 +155,7 @@ public class AdminController {
         try {
             if (auth == null || !auth.isAuthenticated())
                 return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
-            if (!isAdmin(auth))
+            if (!isAdminOrSubAdmin(auth))
                 return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
             Object replyObj = (body != null && body.containsKey("reply")) ? body.get("reply") : null;
             String reply = replyObj != null ? String.valueOf(replyObj) : "";
@@ -136,7 +172,7 @@ public class AdminController {
         try {
             if (auth == null || !auth.isAuthenticated())
                 return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
-            if (!isAdmin(auth))
+            if (!isAdminOrSubAdmin(auth))
                 return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
             Object statusObj = (body != null && body.containsKey("status")) ? body.get("status") : null;
             String status = statusObj != null ? String.valueOf(statusObj).trim() : "Y";
@@ -154,7 +190,7 @@ public class AdminController {
         try {
             if (auth == null || !auth.isAuthenticated())
                 return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
-            if (!isAdmin(auth))
+            if (!isAdminOrSubAdmin(auth))
                 return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
             Object actionObj = (body != null && body.containsKey("action")) ? body.get("action") : null;
             String action = actionObj != null ? String.valueOf(actionObj).trim() : "Y";
@@ -173,7 +209,7 @@ public class AdminController {
         try {
             if (auth == null || !auth.isAuthenticated())
                 return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
-            if (!isAdmin(auth))
+            if (!isAdminOrSubAdmin(auth))
                 return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
             Object replyObj = (body != null && body.containsKey("reply")) ? body.get("reply") : null;
             String reply = replyObj != null ? String.valueOf(replyObj) : "";
