@@ -114,7 +114,7 @@ CREATE TABLE `newsletter_post` (
     `po_title` varchar(100) NOT NULL,
     `po_content` LONGTEXT NOT NULL,
     `po_img` varchar(1000) NULL,
-    `po_date?` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    `po_date` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
     `po_view` int NOT NULL DEFAULT 0,
     `po_up` int NOT NULL DEFAULT 0,
     `po_down` int NOT NULL DEFAULT 0,
@@ -238,6 +238,7 @@ CREATE TABLE `inquiry_box` (
     `ib_reply` text NULL,
     `ib_date` datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
     `ib_status` char(1) NOT NULL DEFAULT 'N',
+    `ib_seen` char(1) NOT NULL DEFAULT 'N',
     `ib_mb_num` int NOT NULL,
     FOREIGN KEY (`ib_mb_num`) REFERENCES `member` (`mb_num`)
 );
@@ -247,6 +248,7 @@ CREATE TABLE `report_box` (
     `rb_content` text NOT NULL,
     `rb_reply` text NULL,
     `rb_manage` char(1) DEFAULT 'N',
+    `rb_seen` char(1) DEFAULT 'N',
     `rb_id` int NOT NULL,
     `rb_name` varchar(30) NOT NULL,
     `rb_mb_num` int NOT NULL,
