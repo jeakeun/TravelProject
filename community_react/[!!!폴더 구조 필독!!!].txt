@@ -1,8 +1,7 @@
 project/
 │
 ├─ public/
-│   ├─ index.html            <- React 루트 HTML, 절대 삭제하지 말 것
-│   └─ favicon.ico / assets  <- 브라우저에 직접 노출되는 이미지, 폰트 등
+│   └─ index.html            <- React 루트 HTML, 절대 삭제하지 말 것
 │
 ├─ src/
 │   ├─ assets/               <- 이미지, 아이콘, CSS 모듈 등
