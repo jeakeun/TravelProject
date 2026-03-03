@@ -109,27 +109,12 @@ public class MemberController {
         body.put("member", member);
         body.put("accessToken", accessToken);
 
-        // ✅ rememberMe false면 refreshToken 쿠키 삭제 내려주기
-        if (!remember) {
-            ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
-                    .httpOnly(true)
-                    .secure(false)      // 로컬 http: false / 배포 https: true
-                    .sameSite("Lax")
-                    .path("/")
-                    .maxAge(0)
-                    .build();
-
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
-                    .body(body);
-        }
-
-        // ✅ rememberMe true면 refreshToken 쿠키 발급
+        // ✅ 로그인 시 항상 refreshToken 쿠키 발급 (자동 로그인/토큰 재발급용)
         String refreshToken = jwtTokenProvider.createRefreshToken(member.getMb_Uid());
 
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
-                .secure(false)
+                .secure(false)          // 로컬 http 환경. https 배포 시 true로 변경 고려
                 .sameSite("Lax")
                 .path("/")
                 .maxAge(Duration.ofDays(14))
