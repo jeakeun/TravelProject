@@ -44,4 +44,7 @@ public class Member {
     @Builder.Default
     @Column(name = "mb_agree", nullable = false, length = 1)
     private String mbAgree = "N";
+
+    @Column(name = "mb_provider", length = 20)
+    private String mbProvider;
 }

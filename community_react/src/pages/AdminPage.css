@@ -220,6 +220,105 @@
   background: #fafbfc;
 }
 
+/* 회원 관리 전용 너비 조정 (필요 시) */
+.admin-member-table th,
+.admin-member-table td {
+  font-size: 13px;
+}
+
+/* 회원 관리: 컬럼 간 텍스트 구분은 헤더에 '|'로 처리 (추가 선 없음) */
+
+.admin-member-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.admin-member-filters {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-member-search {
+  width: 220px;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.admin-member-status-filter {
+  min-width: 120px;
+  padding: 6px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+}
+
+.admin-member-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.admin-btn-small {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+}
+
+.admin-btn-small:hover:not(:disabled) {
+  background: #f0f4f8;
+}
+
+.admin-btn-small:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-btn-small.admin-btn-danger {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.admin-btn-small.admin-btn-danger:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
+.admin-btn-small.admin-btn-restore {
+  border-color: #1a6b2a;
+  color: #1a6b2a;
+}
+
+.admin-btn-small.admin-btn-restore:hover:not(:disabled) {
+  background: #e1f3e4;
+}
+
+.admin-member-select {
+  min-width: 110px;
+  padding: 4px 6px;
+  font-size: 11px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+  text-align: center;
+}
+
+.admin-member-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .admin-td-title {
   max-width: 120px;
   overflow: hidden;
@@ -236,6 +335,12 @@
   white-space: nowrap;
   text-align: left !important;
   padding-left: 12px !important;
+}
+
+/* 회원 관리 테이블에서는 아이디/닉네임/이메일을 가운데 정렬 */
+.admin-member-table .admin-td-title {
+  text-align: center !important;
+  padding-left: 0 !important;
 }
 
 .admin-btn-process {

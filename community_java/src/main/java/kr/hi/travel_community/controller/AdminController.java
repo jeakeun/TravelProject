@@ -46,6 +46,46 @@ public class AdminController {
         return ResponseEntity.ok(list);
     }
 
+    @GetMapping("/members")
+    public ResponseEntity<?> getMembers(Authentication auth) {
+        if (auth == null || !auth.isAuthenticated()) {
+            return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
+        }
+        if (!isAdmin(auth)) {
+            return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
+        }
+        List<Map<String, Object>> list = adminService.getAllMembers();
+        return ResponseEntity.ok(list);
+    }
+
+    /** 회원 정지/해제 상태 변경 */
+    @PutMapping("/members/{mbNum}/status")
+    public ResponseEntity<?> updateMemberStatus(@PathVariable("mbNum") Integer mbNum,
+                                                @RequestBody Map<String, Object> body,
+                                                Authentication auth) {
+        if (auth == null || !auth.isAuthenticated()) {
+            return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
+        }
+        if (!isAdmin(auth)) {
+            return ResponseEntity.status(403).body(Map.of("error", "관리자 권한이 필요합니다."));
+        }
+        Object statusObj = body != null ? body.get("status") : null;
+        String status = statusObj != null ? String.valueOf(statusObj).trim() : "";
+        if (status.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "status 값이 필요합니다."));
+        }
+        // 허용 코드만 처리
+        if (!status.equals("ACTIVE") &&
+                !status.equals("BAN_7D") &&
+                !status.equals("BAN_30D") &&
+                !status.equals("BAN_6M") &&
+                !status.equals("BAN_PERM")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "허용되지 않은 상태 값입니다."));
+        }
+        adminService.updateMemberStatus(mbNum, status);
+        return ResponseEntity.ok(Map.of("msg", "회원 상태가 변경되었습니다."));
+    }
+
     /** 관리자 알림용: 미답변 문의·미처리 신고 건수 (헤더/관리자페이지 상태 표시) */
     @GetMapping("/notification-counts")
     public ResponseEntity<?> getNotificationCounts(Authentication auth) {

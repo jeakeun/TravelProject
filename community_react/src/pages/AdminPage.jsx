@@ -10,6 +10,7 @@ function AdminPage() {
   const [activeTab, setActiveTab] = useState("inquiry");
   const [inquiries, setInquiries] = useState([]);
   const [reports, setReports] = useState([]);
+  const [members, setMembers] = useState([]);
   const [newCounts, setNewCounts] = useState({ newInquiries: 0, newReports: 0 });
   const [loading, setLoading] = useState(true);
   const [expandedInquiry, setExpandedInquiry] = useState(null);
@@ -21,9 +22,14 @@ function AdminPage() {
   const [editingReport, setEditingReport] = useState(null);
   const [inquiryPage, setInquiryPage] = useState(1);
   const [reportPage, setReportPage] = useState(1);
+  const [memberPage, setMemberPage] = useState(1);
+  const [updatingMember, setUpdatingMember] = useState(null);
+  const [memberQuery, setMemberQuery] = useState("");
+  const [memberStatusFilter, setMemberStatusFilter] = useState("ALL");
 
   const INQUIRIES_PER_PAGE = 3;
   const REPORTS_PER_PAGE = 3;
+  const MEMBERS_PER_PAGE = 3;
 
   const fetchNewCounts = useCallback(() => {
     api.get("/api/admin/notification-counts")
@@ -55,17 +61,38 @@ function AdminPage() {
     const fetch = async () => {
       setLoading(true);
       try {
-        const [inqRes, repRes, countsRes] = await Promise.all([
+        const [inqRes, repRes, memRes, countsRes] = await Promise.allSettled([
           api.get("/api/admin/inquiries"),
           api.get("/api/admin/reports"),
-          api.get("/api/admin/notification-counts").catch(() => ({ data: { newInquiries: 0, newReports: 0 } })),
+          api.get("/api/admin/members"),
+          api.get("/api/admin/notification-counts"),
         ]);
-        setInquiries(Array.isArray(inqRes.data) ? inqRes.data : []);
-        setReports(Array.isArray(repRes.data) ? repRes.data : []);
-        const d = countsRes?.data || {};
+
+        if (inqRes.status === "fulfilled") {
+          setInquiries(Array.isArray(inqRes.value.data) ? inqRes.value.data : []);
+        } else {
+          setInquiries([]);
+        }
+
+        if (repRes.status === "fulfilled") {
+          setReports(Array.isArray(repRes.value.data) ? repRes.value.data : []);
+        } else {
+          setReports([]);
+        }
+
+        if (memRes.status === "fulfilled") {
+          const data = memRes.value.data;
+          setMembers(Array.isArray(data) ? data : []);
+        } else {
+          console.error("회원 목록 로딩 실패:", memRes.reason);
+          setMembers([]);
+        }
+
+        const countsData =
+          countsRes.status === "fulfilled" ? countsRes.value.data || {} : { newInquiries: 0, newReports: 0 };
         setNewCounts({
-          newInquiries: Number(d.newInquiries) || 0,
-          newReports: Number(d.newReports) || 0,
+          newInquiries: Number(countsData.newInquiries) || 0,
+          newReports: Number(countsData.newReports) || 0,
         });
       } catch (err) {
         console.error("관리자 데이터 로딩 실패:", err);
@@ -75,6 +102,7 @@ function AdminPage() {
         }
         setInquiries([]);
         setReports([]);
+        setMembers([]);
       } finally {
         setLoading(false);
       }
@@ -175,6 +203,62 @@ function AdminPage() {
     }
   };
 
+  const mapStatusLabel = (status) => {
+    switch (status) {
+      case "BANNED_7D":
+        return "1주일 정지";
+      case "BANNED_30D":
+        return "한달 정지";
+      case "BANNED_6M":
+        return "6개월 정지";
+      case "BANNED_PERM":
+        return "영구정지";
+      default:
+        return "정상";
+    }
+  };
+
+  const updateMemberStatus = async (mbNum, statusCode, label) => {
+    if (!mbNum || !statusCode) return;
+    if (!window.confirm(`${mbNum}번 회원을 "${label}" 상태로 변경하시겠습니까?`)) return;
+    setUpdatingMember(mbNum);
+    try {
+      await api.put(`/api/admin/members/${mbNum}/status`, { status: statusCode });
+      setMembers((prev) =>
+        prev.map((m) => {
+          if (m.mbNum !== mbNum) return m;
+          let nextStatus = m.mbStatus;
+          switch (statusCode) {
+            case "BAN_7D":
+              nextStatus = "BANNED_7D";
+              break;
+            case "BAN_30D":
+              nextStatus = "BANNED_30D";
+              break;
+            case "BAN_6M":
+              nextStatus = "BANNED_6M";
+              break;
+            case "BAN_PERM":
+              nextStatus = "BANNED_PERM";
+              break;
+            case "ACTIVE":
+            default:
+              nextStatus = "ACTIVE";
+              break;
+          }
+          return { ...m, mbStatus: nextStatus };
+        })
+      );
+      alert("회원 상태가 변경되었습니다.");
+    } catch (err) {
+      const data = err?.response?.data;
+      const msg = typeof data === "string" ? data : (data?.error ?? data?.message ?? "변경 실패");
+      alert(msg);
+    } finally {
+      setUpdatingMember(null);
+    }
+  };
+
   if (!user || !isAdmin(user)) return null;
   if (loading)
     return (
@@ -190,6 +274,36 @@ function AdminPage() {
   const reportTotalPages = Math.ceil(reports.length / REPORTS_PER_PAGE) || 1;
   const reportCurrentPage = Math.min(reportPage, reportTotalPages);
   const reportsPaginated = reports.slice((reportCurrentPage - 1) * REPORTS_PER_PAGE, reportCurrentPage * REPORTS_PER_PAGE);
+
+  const normalizedQuery = memberQuery.trim().toLowerCase();
+  const filteredMembers = members.filter((m) => {
+    const statusOk =
+      memberStatusFilter === "ALL" ||
+      (memberStatusFilter === "ACTIVE" &&
+        (!m.mbStatus || m.mbStatus === "ACTIVE")) ||
+      m.mbStatus === memberStatusFilter;
+
+    if (!statusOk) return false;
+
+    if (!normalizedQuery) return true;
+
+    const id = (m.mbUid || "").toLowerCase();
+    const nickname = (m.mbNickname || "").toLowerCase();
+    const email = (m.mbEmail || "").toLowerCase();
+
+    return (
+      id.includes(normalizedQuery) ||
+      nickname.includes(normalizedQuery) ||
+      email.includes(normalizedQuery)
+    );
+  });
+
+  const memberTotalPages = Math.ceil(filteredMembers.length / MEMBERS_PER_PAGE) || 1;
+  const memberCurrentPage = Math.min(memberPage, memberTotalPages);
+  const membersPaginated = filteredMembers.slice(
+    (memberCurrentPage - 1) * MEMBERS_PER_PAGE,
+    memberCurrentPage * MEMBERS_PER_PAGE
+  );
 
   return (
     <div className="admin-page">
@@ -209,6 +323,12 @@ function AdminPage() {
         >
           <span className="admin-tab-label">신고함</span>
           <span className={`admin-tab-badge ${newCounts.newReports > 0 ? "has-count" : ""}`}>{newCounts.newReports}</span>
+        </button>
+        <button
+          className={`admin-tab ${activeTab === "member" ? "active" : ""}`}
+          onClick={() => setActiveTab("member")}
+        >
+          <span className="admin-tab-label">회원 관리</span>
         </button>
       </div>
 
@@ -417,6 +537,144 @@ function AdminPage() {
                   <button type="button" className="admin-pagination-btn" disabled={reportCurrentPage <= 1} onClick={() => setReportPage((p) => Math.max(1, p - 1))}>이전</button>
                   <span className="admin-pagination-info">{reportCurrentPage} / {reportTotalPages}</span>
                   <button type="button" className="admin-pagination-btn" disabled={reportCurrentPage >= reportTotalPages} onClick={() => setReportPage((p) => Math.min(reportTotalPages, p + 1))}>다음</button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* 회원 관리 */}
+      {activeTab === "member" && (
+        <div className="admin-section admin-section-inquiry">
+          <div className="admin-member-header">
+            <h2 className="admin-section-title">회원 관리</h2>
+            <div className="admin-member-filters">
+              <input
+                type="text"
+                className="admin-member-search"
+                placeholder="아이디 / 닉네임 / 이메일 검색"
+                value={memberQuery}
+                onChange={(e) => {
+                  setMemberPage(1);
+                  setMemberQuery(e.target.value);
+                }}
+              />
+              <select
+                className="admin-member-status-filter"
+                value={memberStatusFilter}
+                onChange={(e) => {
+                  setMemberPage(1);
+                  setMemberStatusFilter(e.target.value);
+                }}
+              >
+                <option value="ALL">전체</option>
+                <option value="ACTIVE">정상</option>
+                <option value="BANNED_7D">1주일 정지</option>
+                <option value="BANNED_30D">한달 정지</option>
+                <option value="BANNED_6M">6개월 정지</option>
+                <option value="BANNED_PERM">영구정지</option>
+              </select>
+            </div>
+          </div>
+          {members.length === 0 ? (
+            <p className="admin-empty">등록된 회원이 없습니다.</p>
+          ) : (
+            <>
+              <table className="admin-table admin-member-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: "60px" }}>번호</th>
+                    <th style={{ width: "120px" }}>아이디</th>
+                    <th style={{ width: "120px" }}>닉네임</th>
+                    <th style={{ width: "180px" }}>이메일</th>
+                    <th style={{ width: "80px" }}>권한</th>
+                    <th style={{ width: "80px" }}>점수</th>
+                    <th style={{ width: "140px" }}>상태</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {membersPaginated.map((m) => (
+                    <tr key={m.mbNum}>
+                      <td>{m.mbNum}</td>
+                      <td className="admin-td-title">{m.mbUid}</td>
+                      <td className="admin-td-title">{m.mbNickname}</td>
+                      <td className="admin-td-title">{m.mbEmail || "-"}</td>
+                      <td>{m.mbRol}</td>
+                      <td>{m.mbScore}</td>
+                      <td>
+                        <div className="admin-member-actions">
+                          <select
+                            className="admin-member-select"
+                            value={
+                              m.mbStatus === "ACTIVE" || !m.mbStatus ? "" : m.mbStatus
+                            }
+                            disabled={updatingMember === m.mbNum}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              if (!value) return;
+                              let label = "";
+                              switch (value) {
+                                case "BAN_7D":
+                                  label = "1주일 정지";
+                                  break;
+                                case "BAN_30D":
+                                  label = "한달 정지";
+                                  break;
+                                case "BAN_6M":
+                                  label = "6개월 정지";
+                                  break;
+                                case "BAN_PERM":
+                                  label = "영구정지";
+                                  break;
+                                case "ACTIVE":
+                                  label = "정지 해제";
+                                  break;
+                                default:
+                                  break;
+                              }
+                              if (!label) return;
+                              updateMemberStatus(m.mbNum, value, label);
+                            }}
+                          >
+                            <option value="">
+                              {m.mbStatus === "ACTIVE" || !m.mbStatus
+                                ? "정상"
+                                : mapStatusLabel(m.mbStatus)}
+                            </option>
+                            <option value="BAN_7D">1주일 정지</option>
+                            <option value="BAN_30D">한달 정지</option>
+                            <option value="BAN_6M">6개월 정지</option>
+                            <option value="BAN_PERM">영구정지</option>
+                            <option value="ACTIVE">정지 해제</option>
+                          </select>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {memberTotalPages > 1 && (
+                <div className="admin-pagination">
+                  <button
+                    type="button"
+                    className="admin-pagination-btn"
+                    disabled={memberCurrentPage <= 1}
+                    onClick={() => setMemberPage((p) => Math.max(1, p - 1))}
+                  >
+                    이전
+                  </button>
+                  <span className="admin-pagination-info">
+                    {memberCurrentPage} / {memberTotalPages}
+                  </span>
+                  <button
+                    type="button"
+                    className="admin-pagination-btn"
+                    disabled={memberCurrentPage >= memberTotalPages}
+                    onClick={() => setMemberPage((p) => Math.min(memberTotalPages, p + 1))}
+                  >
+                    다음
+                  </button>
                 </div>
               )}
             </>
