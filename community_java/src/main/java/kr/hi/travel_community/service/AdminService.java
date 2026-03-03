@@ -99,6 +99,22 @@ public class AdminService {
         memberRepository.save(m);
     }
 
+    /** 회원 권한 변경 (USER / SUB_ADMIN / ADMIN) */
+    @Transactional
+    public void updateMemberRole(Integer mbNum, String roleCode) {
+        if (mbNum == null || roleCode == null) return;
+        Member m = memberRepository.findById(mbNum).orElse(null);
+        if (m == null) return;
+
+        String normalized = roleCode.toUpperCase();
+        // 허용되는 권한만 처리
+        if (!normalized.equals("USER") && !normalized.equals("SUB_ADMIN") && !normalized.equals("ADMIN")) {
+            return;
+        }
+        m.setMbRol(normalized);
+        memberRepository.save(m);
+    }
+
     @Transactional
     public void updateInquiryStatus(Integer ibNum, String status) {
         inquiryRepository.updateStatus(ibNum, status != null ? status : "Y");

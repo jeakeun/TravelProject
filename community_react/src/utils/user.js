@@ -32,3 +32,18 @@ export function isAdmin(userOrMember) {
   return String(rol).toUpperCase() === 'ADMIN' || score >= 10;
 }
 
+/** SUB_ADMIN 역할 여부 (점수와 무관, 순수 롤 체크) */
+export function isSubAdmin(userOrMember) {
+  if (!userOrMember || typeof userOrMember !== 'object') return false;
+  const rol = userOrMember.mb_rol ?? userOrMember.mbRol ?? '';
+  return String(rol).toUpperCase() === 'SUB_ADMIN';
+}
+
+/** ADMIN 또는 SUB_ADMIN 여부 (서브관리자 포함, 점수는 무시) */
+export function isAdminOrSubAdmin(userOrMember) {
+  if (!userOrMember || typeof userOrMember !== 'object') return false;
+  const rol = userOrMember.mb_rol ?? userOrMember.mbRol ?? '';
+  const r = String(rol).toUpperCase();
+  return r === 'ADMIN' || r === 'SUB_ADMIN';
+}
+
