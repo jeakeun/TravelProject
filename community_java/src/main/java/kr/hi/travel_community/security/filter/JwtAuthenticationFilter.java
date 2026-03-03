@@ -18,6 +18,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kr.hi.travel_community.security.jwt.JwtTokenProvider;
 import kr.hi.travel_community.service.MemberDetailService;
+import kr.hi.travel_community.model.util.CustomUser;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -99,6 +100,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (userDetails == null) {
                 filterChain.doFilter(request, response);
                 return;
+            }
+
+            // ✅ 정지된 회원(BANNED_*)이면 인증 세팅하지 않고 통과 → 토큰이 있어도 로그인 효과 없음
+            if (userDetails instanceof CustomUser customUser) {
+                String role = customUser.getMember().getMb_rol();
+                if (role != null && (role.startsWith("BANNED_") || "BANNED_PERM".equalsIgnoreCase(role))) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
             }
 
             Authentication auth = new UsernamePasswordAuthenticationToken(

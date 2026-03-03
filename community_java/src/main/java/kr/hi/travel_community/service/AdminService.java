@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +54,49 @@ public class AdminService {
         m.put("newInquiries", inquiryRepository.countByIbStatus("N"));
         m.put("newReports", reportRepository.countNewReports());
         return m;
+    }
+
+    /** 관리자 페이지용: 전체 회원 목록 (최근 가입순) */
+    public List<Map<String, Object>> getAllMembers() {
+        return memberRepository.findAll(Sort.by(Sort.Direction.DESC, "mbNum")).stream()
+                .map(this::toMemberMap)
+                .collect(Collectors.toList());
+    }
+
+    /** 회원 상태 변경 (정지/해제 등) - 기존 DB 컬럼만 사용 (mb_rol) */
+    @Transactional
+    public void updateMemberStatus(Integer mbNum, String statusCode) {
+        if (mbNum == null || statusCode == null) return;
+        Member m = memberRepository.findById(mbNum).orElse(null);
+        if (m == null) return;
+
+        String role = m.getMbRol() != null ? m.getMbRol() : "USER";
+
+        // ACTIVE: 정지 해제 → 일반 사용자로 복귀 (관리자는 그대로 유지)
+        if ("ACTIVE".equals(statusCode)) {
+            if (!"ADMIN".equalsIgnoreCase(role)) {
+                m.setMbRol("USER");
+            }
+        } else {
+            // 정지 상태는 mb_rol 에 코드로 저장 (예: BANNED_7D)
+            switch (statusCode) {
+                case "BAN_7D":
+                    m.setMbRol("BANNED_7D");
+                    break;
+                case "BAN_30D":
+                    m.setMbRol("BANNED_30D");
+                    break;
+                case "BAN_6M":
+                    m.setMbRol("BANNED_6M");
+                    break;
+                case "BAN_PERM":
+                    m.setMbRol("BANNED_PERM");
+                    break;
+                default:
+                    break;
+            }
+        }
+        memberRepository.save(m);
     }
 
     @Transactional
@@ -139,6 +183,29 @@ public class AdminService {
         m.put("rbMbNum", rb.getRbMbNum());
         m.put("rbTargetNickname", resolveReportTargetNickname(rb));
         m.put("rbReporterNickname", resolveMemberNickname(rb.getRbMbNum()));
+        return m;
+    }
+
+    /** 관리자 페이지용: 회원 정보를 프론트에서 쓰기 좋게 매핑 */
+    private Map<String, Object> toMemberMap(Member member) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("mbNum", member.getMbNum());
+        m.put("mbUid", member.getMbUid());
+        m.put("mbNickname", member.getMbNickname());
+        m.put("mbEmail", member.getMbEmail());
+        m.put("mbRol", member.getMbRol());
+        m.put("mbScore", member.getMbScore());
+        m.put("mbAgree", member.getMbAgree());
+        m.put("mbProvider", member.getMbProvider());
+
+        String role = member.getMbRol() != null ? member.getMbRol() : "USER";
+        String status;
+        if (role.startsWith("BANNED_") || "BANNED_PERM".equals(role)) {
+            status = role;
+        } else {
+            status = "ACTIVE";
+        }
+        m.put("mbStatus", status);
         return m;
     }
 

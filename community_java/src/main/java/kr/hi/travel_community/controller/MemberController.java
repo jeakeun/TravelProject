@@ -100,6 +100,14 @@ public class MemberController {
             return ResponseEntity.badRequest().body("아이디 또는 비밀번호가 일치하지 않습니다.");
         }
 
+        // ✅ 정지된 회원 여부 확인 (mb_rol 에 BANNED_* 코드 저장)
+        String role = member.getMb_rol();
+        if (role != null && (role.startsWith("BANNED_") || "BANNED_PERM".equalsIgnoreCase(role))) {
+            String message = buildBanMessage(role);
+            return ResponseEntity.status(403).body(message);
+        }
+
+        // 비밀번호는 응답에서 제거
         member.setMb_pw(null);
 
         // ✅ access token 발급
@@ -152,6 +160,14 @@ public class MemberController {
             if (member == null) {
                 return deleteRefreshCookieAnd401("계정을 찾을 수 없습니다.");
             }
+
+            // ✅ 정지된 회원이면 자동 로그인 차단 + refresh 쿠키 삭제
+            String role = member.getMb_rol();
+            if (role != null && (role.startsWith("BANNED_") || "BANNED_PERM".equalsIgnoreCase(role))) {
+                String message = buildBanMessage(role);
+                return deleteRefreshCookieAnd401(message);
+            }
+
             member.setMb_pw(null);
 
             // ✅ 새 accessToken 발급
@@ -393,6 +409,13 @@ public class MemberController {
             return ResponseEntity.badRequest().body("카카오 로그인에 실패했습니다.");
         }
 
+        // ✅ 카카오 로그인/회원가입 시에도 정지된 회원이면 차단
+        String role = member.getMb_rol();
+        if (role != null && (role.startsWith("BANNED_") || "BANNED_PERM".equalsIgnoreCase(role))) {
+            String message = buildBanMessage(role);
+            return ResponseEntity.status(403).body(message);
+        }
+
         String accessToken = jwtTokenProvider.createAccessToken(member.getMb_Uid());
         String refreshToken = jwtTokenProvider.createRefreshToken(member.getMb_Uid());
 
@@ -444,5 +467,17 @@ public class MemberController {
         return ResponseEntity.status(401)
                 .header(HttpHeaders.SET_COOKIE, deleteCookie.toString())
                 .body(message);
+    }
+
+    // ✅ mb_rol 값(BANNED_*)에 따라 한글 안내 문구 생성
+    private String buildBanMessage(String role) {
+        if (role == null) return "정지된 계정입니다. 관리자에게 문의하세요.";
+        return switch (role) {
+            case "BANNED_7D" -> "해당 계정은 1주일 정지 상태입니다. 관리자에게 문의하세요.";
+            case "BANNED_30D" -> "해당 계정은 한달 정지 상태입니다. 관리자에게 문의하세요.";
+            case "BANNED_6M" -> "해당 계정은 6개월 정지 상태입니다. 관리자에게 문의하세요.";
+            case "BANNED_PERM" -> "해당 계정은 영구 정지 상태입니다. 관리자에게 문의하세요.";
+            default -> "정지된 계정입니다. 관리자에게 문의하세요.";
+        };
     }
 }
