@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getNickname, isAdmin } from "../utils/user";
 import ProfileImage from "./ProfileImage";
-import FaviconLogo from "../assets/favicon/Favicon.png";
 
 const translations = {
   KR: {
@@ -61,7 +60,7 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
           <span
             className="logo-icon"
             aria-hidden="true"
-            style={{ backgroundImage: `url(${FaviconLogo})` }}
+            style={{ backgroundImage: "url(/assets/Favicon.png)" }}
           />
           <span className="logo-text">TRAVEL</span>
         </Link>
