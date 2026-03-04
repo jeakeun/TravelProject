@@ -35,7 +35,7 @@ import MyPage from './pages/MyPage';
 import KakaoCallback from './pages/KakaoCallback';
 import AdminPage from './pages/AdminPage';
 import InquiryPage from './pages/InquiryPage';
-import { getUserId, isAdmin } from './utils/user';
+import { getUserId, isAdmin, isAdminOrSubAdmin } from './utils/user';
 import api from './api/axios';
 
 // 🚩 RankingList 임포트 추가
@@ -260,7 +260,7 @@ function App() {
   const location = useLocation();
 
   const refreshAdminCounts = useCallback(() => {
-    if (!user || !isAdmin(user)) return;
+    if (!user || !isAdminOrSubAdmin(user)) return;
     api.get("/api/admin/notification-counts")
       .then((res) => {
         const d = res.data || {};
@@ -399,7 +399,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!user || !isAdmin(user)) {
+    if (!user || !isAdminOrSubAdmin(user)) {
       setAdminNewCounts({ newInquiries: 0, newReports: 0 });
       return;
     }
