@@ -265,8 +265,8 @@ function App() {
       .then((res) => {
         const d = res.data || {};
         setAdminNewCounts({
-          newInquiries: Number(d.newInquiries ?? d.new_inquiries) || 0,
-          newReports: Number(d.newReports ?? d.new_reports) || 0
+          newInquiries: Number(d.newInquiries) || 0,
+          newReports: Number(d.newReports) || 0
         });
       })
       .catch(() => setAdminNewCounts({ newInquiries: 0, newReports: 0 }));
@@ -407,25 +407,19 @@ function App() {
       .then((res) => {
         const d = res.data || {};
         setAdminNewCounts({
-          newInquiries: Number(d.newInquiries ?? d.new_inquiries) || 0,
-          newReports: Number(d.newReports ?? d.new_reports) || 0
+          newInquiries: Number(d.newInquiries) || 0,
+          newReports: Number(d.newReports) || 0
         });
       })
       .catch(() => setAdminNewCounts({ newInquiries: 0, newReports: 0 }));
   }, [user]);
 
-  // 관리자(ADMIN/SUB_ADMIN): 새 문의/신고가 있으면 곧바로 알림이 뜨도록 3초마다 건수 갱신 + 탭 포커스 시 즉시 갱신
+  // 관리자(ADMIN/SUB_ADMIN) 로그인 중에는 주기적으로 새 문의·신고 건수 갱신 (실시간 알림에 가깝게)
   useEffect(() => {
     if (!user || !isAdminOrSubAdmin(user)) return;
-    refreshAdminCounts();
-    const intervalMs = 3000; // 3초마다
+    const intervalMs = 20000; // 20초마다
     const tid = setInterval(refreshAdminCounts, intervalMs);
-    const onFocus = () => refreshAdminCounts();
-    window.addEventListener("focus", onFocus);
-    return () => {
-      clearInterval(tid);
-      window.removeEventListener("focus", onFocus);
-    };
+    return () => clearInterval(tid);
   }, [user, refreshAdminCounts]);
 
   const handleLogin = useCallback((userData) => {
