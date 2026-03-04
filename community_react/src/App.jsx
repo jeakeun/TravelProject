@@ -261,7 +261,9 @@ function App() {
 
   const refreshAdminCounts = useCallback(() => {
     if (!user || !isAdminOrSubAdmin(user)) return;
-    api.get("/api/admin/notification-counts")
+    // 캐시 방지: 매 요청마다 다른 URL + no-cache 헤더로 항상 최신 건수 조회
+    const url = `/api/admin/notification-counts?t=${Date.now()}`;
+    api.get(url, { headers: { "Cache-Control": "no-cache", Pragma: "no-cache" } })
       .then((res) => {
         const d = res.data || {};
         setAdminNewCounts({
@@ -269,7 +271,7 @@ function App() {
           newReports: Number(d.newReports ?? d.new_reports) || 0
         });
       })
-      .catch(() => setAdminNewCounts({ newInquiries: 0, newReports: 0 }));
+      .catch(() => setAdminNewCounts((prev) => prev)); // 실패 시 0으로 덮지 않음
   }, [user]);
 
   // 🚩 수정됨: 데이터 갱신 로직 보완
@@ -403,7 +405,8 @@ function App() {
       setAdminNewCounts({ newInquiries: 0, newReports: 0 });
       return;
     }
-    api.get("/api/admin/notification-counts")
+    const url = `/api/admin/notification-counts?t=${Date.now()}`;
+    api.get(url, { headers: { "Cache-Control": "no-cache", Pragma: "no-cache" } })
       .then((res) => {
         const d = res.data || {};
         setAdminNewCounts({
@@ -414,19 +417,30 @@ function App() {
       .catch(() => setAdminNewCounts({ newInquiries: 0, newReports: 0 }));
   }, [user]);
 
-  // 관리자(ADMIN/SUB_ADMIN): 새 문의/신고가 있으면 곧바로 알림이 뜨도록 3초마다 건수 갱신 + 탭 포커스 시 즉시 갱신
+  // 관리자(ADMIN/SUB_ADMIN): 2초마다 건수 갱신 + 탭 포커스 시 즉시 갱신 (캐시 없이 항상 최신값)
   useEffect(() => {
     if (!user || !isAdminOrSubAdmin(user)) return;
-    refreshAdminCounts();
-    const intervalMs = 3000; // 3초마다
-    const tid = setInterval(refreshAdminCounts, intervalMs);
-    const onFocus = () => refreshAdminCounts();
+    const fetchCounts = () => {
+      const url = `/api/admin/notification-counts?t=${Date.now()}`;
+      api.get(url, { headers: { "Cache-Control": "no-cache", Pragma: "no-cache" } })
+        .then((res) => {
+          const d = res.data || {};
+          setAdminNewCounts({
+            newInquiries: Number(d.newInquiries ?? d.new_inquiries) || 0,
+            newReports: Number(d.newReports ?? d.new_reports) || 0
+          });
+        })
+        .catch(() => {});
+    };
+    fetchCounts();
+    const tid = setInterval(fetchCounts, 2000); // 2초마다
+    const onFocus = () => fetchCounts();
     window.addEventListener("focus", onFocus);
     return () => {
       clearInterval(tid);
       window.removeEventListener("focus", onFocus);
     };
-  }, [user, refreshAdminCounts]);
+  }, [user]);
 
   const handleLogin = useCallback((userData) => {
     const member = userData?.member ?? userData;
