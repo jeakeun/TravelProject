@@ -414,6 +414,14 @@ function App() {
       .catch(() => setAdminNewCounts({ newInquiries: 0, newReports: 0 }));
   }, [user]);
 
+  // 관리자(ADMIN/SUB_ADMIN) 로그인 중에는 주기적으로 새 문의·신고 건수 갱신 (실시간 알림에 가깝게)
+  useEffect(() => {
+    if (!user || !isAdminOrSubAdmin(user)) return;
+    const intervalMs = 20000; // 20초마다
+    const tid = setInterval(refreshAdminCounts, intervalMs);
+    return () => clearInterval(tid);
+  }, [user, refreshAdminCounts]);
+
   const handleLogin = useCallback((userData) => {
     const member = userData?.member ?? userData;
     const accessToken = userData?.accessToken;
