@@ -49,8 +49,9 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
   const hasNewAlerts = newInq > 0 || newRep > 0;
   const showPanel = hasNewAlerts && showAlertPanel;
 
+  // 새 문의/신고가 있으면 알림 패널 표시 (닫았어도 다시 보이게)
   useEffect(() => {
-    if (!hasNewAlerts) setShowAlertPanel(true);
+    if (hasNewAlerts) setShowAlertPanel(true);
   }, [hasNewAlerts]);
 
   return (
