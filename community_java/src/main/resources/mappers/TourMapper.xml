@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.hi.travel_community.mapper.TourMapper">
+
+    <insert id="insertTour" parameterType="kr.hi.travel_community.model.dto.ItemDto">
+        INSERT INTO tour_info (
+            contentid, title, addr1, addr2, firstimage, firstimage2, contenttypeid, mapx, mapy, mlevel, tel, zipcode
+        ) VALUES (
+            #{contentid}, #{title}, #{addr1}, #{addr2}, #{firstimage}, #{firstimage2}, #{contenttypeid}, #{mapx}, #{mapy}, #{mlevel}, #{tel}, #{zipcode}
+        )
+        ON DUPLICATE KEY UPDATE title = #{title}, addr1 = #{addr1}
+    </insert>
+    
+    <select id="selectTourList" resultType="kr.hi.travel_community.model.dto.ItemDto">
+	    SELECT 
+	        contentid, title, addr1, addr2, firstimage, firstimage2, 
+	        contenttypeid, mapx, mapy, mlevel, tel, zipcode
+	    FROM tour_info
+	    ORDER BY contentid DESC
+	    LIMIT 50
+	</select>
+
+</mapper>
