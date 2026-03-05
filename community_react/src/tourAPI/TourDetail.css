@@ -1,0 +1,83 @@
+/* 컨테이너 설정 */
+.tour-detail-container {
+    padding: 20px;
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+}
+
+.tour-title {
+    font-size: 2rem;
+    margin-top: 0;
+    margin-bottom: 10px;
+}
+
+.tour-address {
+    color: #666;
+    margin-bottom: 25px;
+}
+
+/* 이미지 영역 */
+.tour-image-container {
+    width: 100%;
+    height: 400px;
+    overflow: hidden;
+    border-radius: 15px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.tour-image-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.section-title {
+    margin-top: 30px;
+    margin-bottom: 15px;
+}
+
+/* 지도 영역 */
+.kakao-map {
+    width: 100%;
+    height: 400px;
+    background-color: #eee;
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
+
+/* 🚩 뒤로가기 버튼 스타일 (오른쪽 정렬) */
+.button-group {
+    display: flex;
+    justify-content: flex-end; /* 오른쪽 끝으로 밀기 */
+    margin-top: 30px;
+    margin-bottom: 50px;
+}
+
+.back-button {
+    padding: 12px 28px;
+    background-color: #2e7d32; /* 사이트 로고와 어울리는 진한 녹색 */
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.back-button:hover {
+    background-color: #1b5e20;
+    transform: translateY(-2px); /* 살짝 떠오르는 효과 */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* 로딩 상태 */
+.loading-state {
+    padding: 100px;
+    text-align: center;
+    font-size: 1.2rem;
+    color: #888;
+}
