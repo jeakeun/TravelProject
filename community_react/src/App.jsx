@@ -139,7 +139,9 @@ function CommunityContainer({ posts, setPosts, loadPosts, loading }) {
 
   const destinationMenu = useMemo(() => ({
     '국내여행': '/domestic',
-    '해외여행': '/foreigncountry'
+    '해외여행': '/foreigncountry',
+    // 추가 여행지목록 
+    '여행지목록': '/domestic/api-list'
   }), []);
 
   const communityMenu = useMemo(() => ({

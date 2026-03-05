@@ -6,7 +6,7 @@ import ProfileImage from "./ProfileImage";
 const translations = {
   KR: {
     nav_news: "새소식", nav_dest: "여행지", nav_board: "여행게시판", nav_cs: "고객센터", nav_mypage: "마이페이지", nav_admin: "관리자페이지",
-    dest_domestic: "국내여행", dest_overseas: "해외여행",dest_api: "실시간 여행 추천",
+    dest_domestic: "국내여행", dest_overseas: "해외여행",dest_api: "여행 추천",
     user_login: "로그인", user_signup: "회원가입",
     menu_news_title: "새소식", news_notice: "공지사항", news_event: "이벤트", news_letter: "뉴스레터",
     menu_board_title: "여행게시판", board_rec: "여행 추천게시판", board_free: "자유게시판", board_map: "여행지도",
@@ -14,7 +14,7 @@ const translations = {
   },
   EN: {
     nav_news: "News", nav_dest: "Destination", nav_board: "Board", nav_cs: "CS", nav_mypage: "My Page", nav_admin: "Admin",
-    dest_domestic: "Domestic", dest_overseas: "Overseas",dest_api: "Live Recommendations",
+    dest_domestic: "Domestic", dest_overseas: "Overseas",dest_api: "Recommendations",
     user_login: "Login", user_signup: "Sign Up",
     menu_news_title: "News", news_notice: "Notice", news_event: "Event", news_letter: "Newsletter",
     menu_board_title: "Travel Board", board_rec: "Recommendation", board_free: "Free Board", board_map: "Travel Map",

@@ -26,7 +26,7 @@ const TourList = () => {
 // 🚩 수정 포인트: tours가 배열인지 확인하는 조건부 렌더링 추가
 return (
     <div className="tour-container">
-        <h1 className="title">🇰🇷 대한민국 구석구석</h1>
+        <h1 className="title">여행지목록</h1>
         <div className="tour-grid">
             {/* tours가 존재하고 배열일 때만 map을 실행하도록 보호 */}
             {Array.isArray(tours) && tours.length > 0 ? (
