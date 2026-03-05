@@ -16,6 +16,9 @@ import PostWrite from './components/PostWrite';
 // 네이게이션바
 import NavigationBar from './pages/NavigationBar';
 
+// api리스트
+import TourDataList from './tourAPI/TourList';
+
 import FreeBoard from './components/freeboard/FreeBoardList'; 
 import FreeBoardDetail from './components/freeboard/FreeBoardDetail';
 import RecommendMain from './components/recommend/RecommendMain';
@@ -221,6 +224,8 @@ function CommunityContainer({ posts, setPosts, loadPosts, loading }) {
                   ? <MainList photos={posts} setPhotos={setPosts} activeMenu="국내여행" onAreaClick={selectedArea} />
                   : <MainList photos={posts} setPhotos={setPosts} activeMenu="해외여행" goToDetail={(id) => navigate(`/community/freeboard/${id}`)} />
               } />
+              {/* 🚩 [추가] 공공데이터 관광지 리스트 경로 연결 */}
+              <Route path="api-list" element={<TourDataList />} />
             </Routes>
           </div>
 

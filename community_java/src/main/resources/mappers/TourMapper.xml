@@ -10,5 +10,14 @@
         )
         ON DUPLICATE KEY UPDATE title = #{title}, addr1 = #{addr1}
     </insert>
+    
+    <select id="selectTourList" resultType="kr.hi.travel_community.model.dto.ItemDto">
+	    SELECT 
+	        contentid, title, addr1, addr2, firstimage, firstimage2, 
+	        contenttypeid, mapx, mapy, mlevel, tel, zipcode
+	    FROM tour_info
+	    ORDER BY contentid DESC
+	    LIMIT 50
+	</select>
 
 </mapper>

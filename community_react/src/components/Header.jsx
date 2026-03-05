@@ -6,7 +6,7 @@ import ProfileImage from "./ProfileImage";
 const translations = {
   KR: {
     nav_news: "새소식", nav_dest: "여행지", nav_board: "여행게시판", nav_cs: "고객센터", nav_mypage: "마이페이지", nav_admin: "관리자페이지",
-    dest_domestic: "국내여행", dest_overseas: "해외여행",
+    dest_domestic: "국내여행", dest_overseas: "해외여행",dest_api: "실시간 여행 추천",
     user_login: "로그인", user_signup: "회원가입",
     menu_news_title: "새소식", news_notice: "공지사항", news_event: "이벤트", news_letter: "뉴스레터",
     menu_board_title: "여행게시판", board_rec: "여행 추천게시판", board_free: "자유게시판", board_map: "여행지도",
@@ -14,7 +14,7 @@ const translations = {
   },
   EN: {
     nav_news: "News", nav_dest: "Destination", nav_board: "Board", nav_cs: "CS", nav_mypage: "My Page", nav_admin: "Admin",
-    dest_domestic: "Domestic", dest_overseas: "Overseas",
+    dest_domestic: "Domestic", dest_overseas: "Overseas",dest_api: "Live Recommendations",
     user_login: "Login", user_signup: "Sign Up",
     menu_news_title: "News", news_notice: "Notice", news_event: "Event", news_letter: "Newsletter",
     menu_board_title: "Travel Board", board_rec: "Recommendation", board_free: "Free Board", board_map: "Travel Map",
@@ -22,7 +22,7 @@ const translations = {
   },
   JP: {
     nav_news: "ニュース", nav_dest: "旅行先", nav_board: "掲示板", nav_cs: "サポート", nav_mypage: "マイページ", nav_admin: "管理者",
-    dest_domestic: "国内", dest_overseas: "海外",
+    dest_domestic: "国内", dest_overseas: "海外",dest_api: "リアルタイム旅行推薦",
     user_login: "ログイン", user_signup: "会員登録",
     menu_news_title: "ニュース", news_notice: "お知らせ", news_event: "イベント", news_letter: "ニュースレター",
     menu_board_title: "旅行掲示板", board_rec: "おすすめ掲示板", board_free: "自由掲示板", board_map: "旅行地図",
@@ -30,7 +30,7 @@ const translations = {
   },
   CH: {
     nav_news: "新消息", nav_dest: "目的地", nav_board: "旅游论坛", nav_cs: "客服中心", nav_mypage: "个人主页", nav_admin: "管理员",
-    dest_domestic: "国内", dest_overseas: "海外",
+    dest_domestic: "国内", dest_overseas: "海外",dest_api: "实时旅游推荐",
     user_login: "登录", user_signup: "注册",
     menu_news_title: "新消息", news_notice: "公告事项", news_event: "活动详情", news_letter: "新闻邮件",
     menu_board_title: "旅游论坛", board_rec: "推荐论坛", board_free: "自由论坛", board_map: "旅游地图",
@@ -94,6 +94,12 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
                   <li>
                     <Link to="/foreigncountry">
                       {t.dest_overseas}
+                    </Link>
+                  </li>
+                  {/* 🚩 [추가] 공공데이터 기반 실시간 여행지 추천 메뉴 */}
+                  <li>
+                    <Link to="/domestic/api-list">
+                      {t.dest_api}
                     </Link>
                   </li>
                 </ul>
