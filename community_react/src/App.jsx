@@ -18,6 +18,7 @@ import NavigationBar from './pages/NavigationBar';
 
 // api리스트
 import TourDataList from './tourAPI/TourList';
+import TourDetail from './tourAPI/TourDetail';
 
 import FreeBoard from './components/freeboard/FreeBoardList'; 
 import FreeBoardDetail from './components/freeboard/FreeBoardDetail';
@@ -226,6 +227,8 @@ function CommunityContainer({ posts, setPosts, loadPosts, loading }) {
               } />
               {/* 🚩 [추가] 공공데이터 관광지 리스트 경로 연결 */}
               <Route path="api-list" element={<TourDataList />} />
+
+              <Route path="api-list/:contentid" element={<TourDetail />} />
             </Routes>
           </div>
 
