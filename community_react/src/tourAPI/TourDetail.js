@@ -8,31 +8,49 @@ const TourDetail = () => {
     const [tour, setTour] = useState(null);
 
     useEffect(() => {
-        // 서버에서 다시 데이터를 가져와서 해당 ID의 상세 정보를 찾습니다.
-        axios.get('/api/tour/list')
-            .then(res => {
-                const found = res.data.find(item => String(item.contentid) === contentid);
-                setTour(found);
-            })
-            .catch(err => console.error("상세 정보 로딩 실패:", err));
-    }, [contentid]);
+    // 서버에서 다시 데이터를 가져와서 해당 ID의 상세 정보를 찾습니다.
+    axios.get('/api/tour/list')
+        .then(res => {
+            // 🚩 수정 포인트 1: 양쪽 모두 String()으로 감싸서 문자열/숫자 타입 불일치 방지
+            // 🚩 수정 포인트 2: res.data가 배열인지 확인 후 find 실행
+            if (Array.isArray(res.data)) {
+                const found = res.data.find(item => String(item.contentid) === String(contentid));
+                
+                if (found) {
+                    setTour(found);
+                } else {
+                    console.warn(`ID ${contentid}에 해당하는 관광지를 찾을 수 없습니다.`);
+                }
+            }
+        })
+        .catch(err => console.error("상세 정보 로딩 실패:", err));
+  		}	, [contentid]);
 
-    useEffect(() => {
-        // 🚩 데이터가 있고, 카카오 객체가 로드되었을 때 지도를 그립니다.
-        if (tour && tour.mapx && tour.mapy && window.kakao) {
-            const container = document.getElementById('map'); 
-            const options = {
-                center: new window.kakao.maps.LatLng(tour.mapy, tour.mapx), // 위도, 경도 순서
-                level: 3 
-            };
-            const map = new window.kakao.maps.Map(container, options);
+		 useEffect(() => {
+			// 🚩 데이터가 있고, 카카오 객체 및 지도 라이브러리가 로드되었을 때만 실행
+			if (tour && tour.mapx && tour.mapy && window.kakao && window.kakao.maps) {
+					const container = document.getElementById('map'); 
+					
+					// 🚩 수정 포인트: tour.mapy(위도), tour.mapx(경도)를 parseFloat으로 감싸서 숫자로 변환
+					const lat = parseFloat(tour.mapy);
+					const lng = parseFloat(tour.mapx);
 
-            // 마커 표시
-            const markerPosition = new window.kakao.maps.LatLng(tour.mapy, tour.mapx);
-            const marker = new window.kakao.maps.Marker({ position: markerPosition });
-            marker.setMap(map);
-        }
-    }, [tour]);
+					const options = {
+							center: new window.kakao.maps.LatLng(lat, lng), // 변환된 좌표 사용
+							level: 3 
+					};
+					
+					// 지도 생성
+					const map = new window.kakao.maps.Map(container, options);
+
+					// 마커 표시
+					const markerPosition = new window.kakao.maps.LatLng(lat, lng);
+					const marker = new window.kakao.maps.Marker({ 
+							position: markerPosition 
+					});
+					marker.setMap(map);
+			}
+		}, [tour]); // tour 데이터가 변경될 때마다(데이터를 불러온 직후) 실행됨
 
     if (!tour) return <div style={{ padding: '50px', textAlign: 'center' }}>로딩 중...</div>;
 
