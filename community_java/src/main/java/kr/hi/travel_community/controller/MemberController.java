@@ -67,6 +67,14 @@ public class MemberController {
         return ResponseEntity.badRequest().body("이미 사용 중인 아이디 또는 이메일입니다.");
     }
 
+    /**
+     * 로그인
+     * - 요청: { id, pw, rememberMe }
+     * - 성공 시:
+     *   · accessToken 발급 (응답 body)
+     *   · refreshToken 쿠키 발급(항상) → 자동로그인/토큰 재발급 흐름에 사용
+     * - 정지(BANNED_*) 회원이면 403으로 차단
+     */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequestDTO user) {
 

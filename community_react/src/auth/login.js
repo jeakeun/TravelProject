@@ -6,6 +6,13 @@ function Login({ onClose, onLogin, onOpenSignup, onOpenFindPw }) {
   const [pw, setPw] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
+  /**
+   * 로그인 submit 흐름
+   * - 입력값 trim/검증
+   * - POST `/login` 호출 (credentials include)
+   * - 서버가 `{ member, accessToken }` 반환 + refreshToken 쿠키 발급
+   * - onLogin 콜백으로 프론트 전역 상태(localStorage/user) 갱신
+   */
   const submitHandler = async (e) => {
     e.preventDefault();
 
@@ -115,6 +122,12 @@ function Login({ onClose, onLogin, onOpenSignup, onOpenFindPw }) {
             <button
               type="button"
               className="btn-kakao"
+              /**
+               * 카카오 OAuth 시작(Authorization Code 흐름)
+               * - kakao 로그인 시작 전에 `kakao_signup` 값을 저장해서
+               *   콜백에서 "로그인 vs 회원가입" 여부를 구분
+               * - Kakao는 redirect로 `/kakao-callback?code=...`로 다시 보냄
+               */
               onClick={() => {
                 if (window.Kakao?.Auth?.authorize) {
                   sessionStorage.setItem("kakao_signup", "false");

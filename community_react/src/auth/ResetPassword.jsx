@@ -5,6 +5,12 @@ function ResetPassword({ onClose, onBackToFindPw, userId }) {
   const [newPw, setNewPw] = useState("");
   const [newPw2, setNewPw2] = useState("");
 
+  /**
+   * 비밀번호 찾기 Step 2 흐름
+   * - 새 비밀번호/확인 검증
+   * - POST `/auth/reset-password`로 id + newPw 전달
+   * - 성공 시 안내 후 모달 닫기
+   */
   const submitHandler = async (e) => {
     e.preventDefault();
 

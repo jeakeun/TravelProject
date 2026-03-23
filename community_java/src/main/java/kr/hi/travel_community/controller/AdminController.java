@@ -38,6 +38,11 @@ public class AdminController {
         return "ADMIN".equals(r) || "SUB_ADMIN".equals(r);
     }
 
+    /**
+     * 관리자/서브관리자: 1:1 문의함 목록 조회
+     * - 인증 필요 + role: ADMIN/SUB_ADMIN
+     * - 프론트 AdminPage의 "1:1 문의함" 탭 데이터로 사용
+     */
     @GetMapping("/inquiries")
     public ResponseEntity<?> getInquiries(Authentication auth) {
         if (auth == null || !auth.isAuthenticated())
@@ -48,6 +53,11 @@ public class AdminController {
         return ResponseEntity.ok(list);
     }
 
+    /**
+     * 관리자/서브관리자: 신고함 목록 조회
+     * - 인증 필요 + role: ADMIN/SUB_ADMIN
+     * - 프론트 AdminPage의 "신고함" 탭 데이터로 사용
+     */
     @GetMapping("/reports")
     public ResponseEntity<?> getReports(Authentication auth) {
         if (auth == null || !auth.isAuthenticated())
@@ -58,6 +68,10 @@ public class AdminController {
         return ResponseEntity.ok(list);
     }
 
+    /**
+     * ADMIN 전용: 회원 목록 조회
+     * - 프론트에서 SUB_ADMIN은 회원관리 탭을 숨기며, API도 403 처리로 방어
+     */
     @GetMapping("/members")
     public ResponseEntity<?> getMembers(Authentication auth) {
         if (auth == null || !auth.isAuthenticated()) {
@@ -122,7 +136,11 @@ public class AdminController {
         return ResponseEntity.ok(Map.of("msg", "회원 권한이 변경되었습니다."));
     }
 
-    /** 관리자 알림용: 미답변 문의·미처리 신고 건수 (헤더/관리자페이지 상태 표시) */
+    /**
+     * 관리자 알림용: 미답변 문의·미처리 신고 건수
+     * - 헤더(Admin alert panel)와 관리자 페이지 배지에 표시
+     * - ADMIN/SUB_ADMIN 모두 접근 가능
+     */
     @GetMapping("/notification-counts")
     public ResponseEntity<?> getNotificationCounts(Authentication auth) {
         if (auth == null || !auth.isAuthenticated())
@@ -132,6 +150,10 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getNewCounts());
     }
 
+    /**
+     * 관리자/서브관리자: 문의 처리 상태 변경
+     * - ib_status 컬럼을 업데이트하고 처리완료 메시지를 반환
+     */
     @PutMapping("/inquiries/{ibNum}/status")
     public ResponseEntity<?> updateInquiryStatus(@PathVariable("ibNum") Integer ibNum, @RequestBody(required = false) Map<String, Object> body, Authentication auth) {
         try {
@@ -150,6 +172,10 @@ public class AdminController {
         }
     }
 
+    /**
+     * 관리자/서브관리자: 문의 답변 저장
+     * - ib_reply를 저장하고 프론트가 ibStatus를 처리완료로 반영하도록 유도
+     */
     @PutMapping("/inquiries/{ibNum}/reply")
     public ResponseEntity<?> updateInquiryReply(@PathVariable("ibNum") Integer ibNum, @RequestBody(required = false) Map<String, Object> body, Authentication auth) {
         try {
@@ -167,6 +193,10 @@ public class AdminController {
         }
     }
 
+    /**
+     * 관리자/서브관리자: 신고 처리 상태 변경
+     * - rb_manage(처리 결과) 등을 업데이트
+     */
     @PutMapping("/reports/{rbNum}/status")
     public ResponseEntity<?> updateReportStatus(@PathVariable("rbNum") Integer rbNum, @RequestBody(required = false) Map<String, Object> body, Authentication auth) {
         try {
@@ -185,6 +215,10 @@ public class AdminController {
         }
     }
 
+    /**
+     * 관리자/서브관리자: 신고 “처리 동작” 수행
+     * - action 값(Y/D/H 등)을 받아 서비스에서 rb_manage 처리
+     */
     @PutMapping("/reports/{rbNum}/process")
     public ResponseEntity<?> processReport(@PathVariable("rbNum") Integer rbNum, @RequestBody(required = false) Map<String, Object> body, Authentication auth) {
         try {
@@ -204,6 +238,10 @@ public class AdminController {
         }
     }
 
+    /**
+     * 관리자/서브관리자: 신고 답변/메모 저장
+     * - rb_reply를 저장하고 화면에 즉시 반영
+     */
     @PutMapping("/reports/{rbNum}/reply")
     public ResponseEntity<?> updateReportReply(@PathVariable("rbNum") Integer rbNum, @RequestBody(required = false) Map<String, Object> body, Authentication auth) {
         try {

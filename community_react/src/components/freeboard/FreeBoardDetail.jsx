@@ -37,6 +37,13 @@ const FreeBoardDetail = () => {
     const isNumericId = id && !isNaN(Number(id)) && id !== "write";
 
     const fixImagePaths = (content) => {
+        /**
+         * 게시글 본문(HTML)에 들어있는 이미지 경로 보정
+         * - 백엔드가 `<img src="/pic/...">` 형태로 내려주면,
+         *   프론트에서 현재 origin 기준으로 `/pic/` 상대 경로가 깨질 수 있음
+         * - SERVER_URL/pic로 바꿔서 실제 파일 서빙 경로에 맞추기 위한 처리
+         * - 만약 서버에 실제 파일이 없으면(업로드 후 삭제/경로 불일치) /pic 요청은 404가 날 수 있음
+         */
         if (!content) return "";
         let fixedContent = content.replace(/src=["'](?:\/)?pic\//g, `src="${SERVER_URL}/pic/`);
         return fixedContent;

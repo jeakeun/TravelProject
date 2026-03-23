@@ -50,6 +50,11 @@ public class InquiryController {
         return ResponseEntity.ok(Map.of("msg", "문의가 접수되었습니다."));
     }
 
+    /**
+     * 마이페이지 "문의함": 내가 작성한 1:1 문의 목록 조회
+     * - 인증 필요 (CustomUser principal)
+     * - ib_reply/ib_seen/ib_status 등을 Map으로 가공해 프론트에 전달
+     */
     @GetMapping("/my")
     public ResponseEntity<?> getMyInquiries(Authentication auth) {
         if (auth == null || !auth.isAuthenticated() || !(auth.getPrincipal() instanceof CustomUser)) {
@@ -74,6 +79,10 @@ public class InquiryController {
         return ResponseEntity.ok(list);
     }
 
+    /**
+     * 문의 알림 확인(Seen 처리)
+     * - `/api/inquiry/my/{ibNum}/seen` 호출 시 해당 문의의 ib_seen을 업데이트
+     */
     @PutMapping("/my/{ibNum}/seen")
     @Transactional
     public ResponseEntity<?> markInquirySeen(@PathVariable Integer ibNum, Authentication auth) {

@@ -182,6 +182,11 @@ function Header({ user, onLogout, openLogin, openSignup, currentLang, setCurrent
               <span
                 className="menu-link"
                 style={{ cursor: "pointer" }}
+                /**
+                 * 로그아웃 UI 클릭
+                 * - 실제 로그아웃 요청은 App.jsx의 `handleLogout`이 수행
+                 *   (로컬 user 제거 + POST `/auth/logout`으로 refreshToken 쿠키 삭제)
+                 */
                 onClick={() => onLogout && onLogout()}
               >
                 로그아웃

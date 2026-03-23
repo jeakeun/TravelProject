@@ -14,6 +14,7 @@
 | **2** | 대안과 비교, 선택 이유 |
 | **3** | 프로젝트 발표·실무에서 나올 만한 질문 |
 | **4** | 시스템 구조·주요 데이터·API |
+| **4.5** | 발표용 — 메뉴/라우팅·캡처·코드·왜 그렇게 했는지 |
 | **5** | 로컬 실행 방법·환경 변수 |
 | **6** | 발표 시 해결했던 문제(트러블슈팅) |
 | **7** | 데모 시나리오 제안 |
@@ -403,6 +404,81 @@
 - **마이페이지:** `GET /api/mypage/posts`, `GET /api/mypage/reports`, 문의 내역 등.
 - **관리자:** `GET /api/admin/inquiries`, `GET /api/admin/reports`, `GET /api/admin/notification-counts`, 답변/처리 `PUT`·`PUT status` 등.
 - **문의:** `POST /api/inquiry`, `GET /api/inquiry/my` 등.
+
+---
+
+### 4.4 발표용 — 메뉴 구조/라우팅·캡처·코드·왜 그렇게 했는지
+
+PPT에 넣을 **캡처 위치**, **코드 요약**, **왜 그렇게 했는지**를 한 번에 정리한 섹션입니다.
+
+#### 4.4.1 메뉴 구조 / 라우팅 / 페이지 흐름
+
+**캡처하기 좋은 위치**
+
+| 구분 | 어디서 캡처 | 설명 |
+|------|-------------|------|
+| **캡처 1** | 브라우저 `http://localhost:3000/` | 상단 헤더에 있는 전체 메뉴가 한 번에 보이도록 (국내여행, 해외여행, 커뮤니티, 뉴스, 고객센터, 마이페이지, 관리자페이지 등) |
+| **캡처 2** | VSCode에서 `community_react/src/App.jsx` 열기 | 최상위 `<Routes>` ~ 하위 `<Route>` 정의 부분이 한 화면에 보이도록 |
+
+**라우팅 코드 구조 (요약)**  
+- `App.jsx`: `<Routes>` → `<Route element={<GlobalLayout ... />}>` 안에 `path="/"`, `path="/domestic/*"`, `path="/community/*"`, `path="/news/event"`, `path="/cscenter/faq"`, `path="/mypage"`, `path="/admin"`, `path="/inquiry"` 등으로 각 메뉴와 1:1 매핑.  
+- **발표 포인트:** GlobalLayout으로 공통 레이아웃·헤더·모달 관리, `/domestic/*`, `/community/*`처럼 `/*`로 서브라우팅(목록/글쓰기/상세/수정) 표현.
+
+**왜 그렇게 했는지 / 사용한 방법·필요한 것**
+
+| 항목 | 왜 그렇게 했는지 | 사용한 방법·필요한 것 |
+|------|------------------|------------------------|
+| GlobalLayout으로 감쌈 | 헤더·푸터·로그인/회원가입 모달을 모든 페이지에서 공통으로 쓰기 위해. 새 메뉴 추가 시 Route만 추가하면 됨. | react-router-dom Route `element`에 레이아웃 지정 |
+| path에 `/*` 사용 | 안에서 서브 경로(목록/글쓰기/상세/수정)를 쓰려고. CommunityContainer 안에 중첩 `<Routes>`로 recommend, recommend/:id 등 정의. | `path="/community/*"`, 자식 Route에서 `path="recommend"`, `path="recommend/:id"` 등 |
+| PostWrite를 boardType 하나로 | 추천/자유/이벤트/뉴스레터/공지/FAQ가 모두 제목+내용+이미지 구조라 하나의 폼으로 처리. boardType만 바꿔 같은 API를 다른 게시판에 호출. | `boardType="recommend"` \| `"freeboard"` \| `"event"` 등, PostWrite 내부에서 분기 |
+| 필요한 것 | - | react-router-dom (Routes, Route, Outlet, useNavigate, useOutletContext) |
+
+---
+
+#### 4.4.2 React 컴포넌트 + axios(API) + 상태관리 (MyPage 예시)
+
+**캡처하기 좋은 위치**
+
+| 구분 | 어디서 캡처 | 설명 |
+|------|-------------|------|
+| **캡처 3** | 브라우저 `http://localhost:3000/mypage` (로그인 후) | 상단 프로필(닉네임/이메일/프로필 사진)과 하단 탭(내가 쓴 글 / 신고함 / 문의함) + 목록 + 페이지네이션이 보이도록 |
+| **캡처 4** | VSCode에서 `community_react/src/pages/MyPage.jsx` 열기 | 위쪽 import / useState / useEffect / useCallback 부분이 한 화면에 나오도록 |
+
+**코드 요약**  
+- **상태:** `myPosts`, `loading`, `bookmarks`, `bottomTab`, `myReports`, `myInquiries`, `postsPage`, `reportsPage`, `inquiriesPage` 등 여러 `useState`로 분리. `POSTS_PER_PAGE = 3` 등으로 페이지당 3개씩 표시.  
+- **API 호출:** `loadMyPosts = useCallback(async () => { ... api.get("/api/mypage/posts") ... setMyPosts(combined) }, [user])`, `useEffect(() => loadMyPosts(), [loadMyPosts])`. 신고/문의는 `api.get("/api/mypage/reports")`, `api.get("/api/inquiry/my")` 후 각각 `setMyReports`, `setMyInquiries`.  
+- **정규화:** `norm(p)`로 `po_num` ↔ `poNum` 등 필드명 통일 후 정렬·상태 저장.
+
+**왜 그렇게 했는지 / 사용한 방법·필요한 것**
+
+| 항목 | 왜 그렇게 했는지 | 사용한 방법·필요한 것 |
+|------|------------------|------------------------|
+| useState를 목록/탭마다 나눔 | 역할별로 나누면 유지보수·디버깅이 쉬움. myPosts / myReports / myInquiries를 따로 두어 각각 로딩·표시. | useState 여러 개로 분리 |
+| useCallback으로 loadMyPosts 감쌈 | useEffect 의존성에 넣었기 때문에, 매 렌더마다 새 함수면 useEffect가 계속 실행됨. user가 바뀔 때만 새 함수 생성해 불필요한 재요청 방지. | useCallback(fn, [user]) |
+| useEffect에서 api.get 호출 | 페이지가 열릴 때 한 번만 서버에서 데이터를 가져오면 됨. if (!user) return으로 비로그인 시 에러·빈 호출 방지. | useEffect(() => { fetch... }, [user]) |
+| api(axios 인스턴스) 사용 | baseURL, withCredentials, 인터셉터를 한 곳에서 설정. 만료된 accessToken이면 refresh로 갱신 후 재요청. | src/api/axios.js에서 create + interceptors |
+| norm(p)로 필드명 통일 | 백엔드 스네이크·프론트 카멜 혼용 시 한쪽으로 통일해 컴포넌트에서 다루기 쉽게. | po_num → poNum 등 매핑 |
+| 페이지당 3개 | 발표에서 페이지네이션 구현 보여주기 좋고, 한 화면에 목록이 너무 길어지지 않게. | 상수 정의 후 slice로 표시 |
+| 필요한 것 | - | axios, useState, useEffect, useCallback (React 훅) |
+
+---
+
+#### 4.4.3 백엔드·관리자 알림·인증·DB (왜 그렇게 했는지 요약)
+
+| 구분 | 왜 그렇게 했는지 | 사용한 방법·필요한 것 |
+|------|------------------|------------------------|
+| **Controller만 요청/응답** | HTTP·권한을 한 곳에서 처리하면 Service는 순수 비즈니스 로직만 담당 가능. | @RestController, ResponseEntity, Authentication |
+| **Service에서 Map/List 반환** | 화면에 "권한·상태 라벨" 등 DB와 다른 값으로 보여줘야 해서. Entity 그대로가 아닌 DTO처럼 Map으로 가공. | AdminService.getAllMembers() 등에서 Map 가공 |
+| **회원 정지/해제를 mb_rol만** | 서버 DB에 mb_status, mb_ban_until 컬럼이 없어 스키마 변경 없이 구현. mb_rol에 BANNED_7D, BANNED_30D, BANNED_PERM 등으로 "역할+정지" 표현. | AdminService.updateMemberStatus → mb_rol 업데이트 |
+| **SUB_ADMIN** | 문의/신고만 처리하고 회원 목록·정지·권한 변경은 제한. 회원 API는 isAdmin(auth), 문의/신고/알림은 isAdminOrSubAdmin(auth). | isAdmin(auth), isAdminOrSubAdmin(auth) 분기 |
+| **관리자 알림 2초 폴링** | WebSocket 없이 HTTP만으로. 2초마다 /api/admin/notification-counts 호출해 헤더에 새 건수 표시. | setInterval(..., 2000), fetchCounts() |
+| **?t=Date.now()** | GET 응답 캐시로 숫자가 안 바뀌는 문제를 줄이려고. | /api/admin/notification-counts?t=Date.now() |
+| **API 실패 시 prev 유지** | 네트워크 오류 시 기존 알림 숫자를 0으로 덮어쓰지 않기 위해. | .catch(() => setAdminNewCounts(prev => prev)) |
+| **accessToken·refreshToken** | Access는 짧은 수명·편의로 상태/localStorage, Refresh는 보안을 위해 HttpOnly 쿠키. 401 시 /auth/refresh로 갱신 후 재요청. | JwtTokenProvider, withCredentials, 인터셉터 |
+| **BANNED_* 로그인 차단** | 정지 회원이 토큰만으로 API 쓰는 것 방지. MemberController에서 mb_rol 확인 후 403 + 메시지. | login/refresh/kakaoAuth 시 BANNED_* 체크 |
+| **JPA + MyBatis** | 단순 CRUD·연관은 JPA, 복잡한 조건·집계는 MyBatis XML. Member에 mb_status/mb_ban_until 없이 mb_rol만 사용(운영 DB 반영). | @Repository (JPA), @Mapper (MyBatis), Service에서 BANNED_* 해석 |
+
+※ 상세 코드·전체 표는 `docs/TravelProject-발표정리.md` 참고.
 
 ---
 

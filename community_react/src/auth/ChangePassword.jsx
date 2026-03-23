@@ -6,6 +6,12 @@ function ChangePassword({ onClose, userId }) {
   const [newPw, setNewPw] = useState("");
   const [newPw2, setNewPw2] = useState("");
 
+  /**
+   * 로그인 사용자 비밀번호 변경 흐름
+   * - 현재 비밀번호 + 새 비밀번호(+확인) 검증
+   * - POST `/auth/change-password` (credentials include: refresh 쿠키 동봉)
+   * - 성공 시 안내 후 모달 닫기
+   */
   const submitHandler = async (e) => {
     e.preventDefault();
 

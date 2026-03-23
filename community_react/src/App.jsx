@@ -77,6 +77,10 @@ function GlobalLayout({
 }) {
   return (
     <div className="App">
+      {/*
+        GlobalLayout: 모든 페이지에서 공통으로 쓰는 "헤더/내비게이션/로그인/마이페이지/변경 비밀번호 모달" 레이어.
+        Outlet으로 자식 라우트가 렌더될 때, user/refreshAdminCounts 같은 값을 전달한다.
+      */}
       <Header 
         user={user} 
         onLogout={onLogout} 
@@ -259,6 +263,11 @@ function App() {
 
   const location = useLocation();
 
+  /**
+   * 관리자 알림 건수 리프레시 함수(공유)
+   * - AdminPage에서 답변/처리 후 호출해 최신 건수로 갱신
+   * - Header에서 `adminNewCounts`가 바뀌면 알림 패널이 표시/갱신됨
+   */
   const refreshAdminCounts = useCallback(() => {
     if (!user || !isAdminOrSubAdmin(user)) return;
     api.get("/api/admin/notification-counts")
@@ -376,6 +385,12 @@ function App() {
       return;
     }
 
+    /**
+     * 앱 시작(초기 마운트) 시 자동 로그인 복구
+     * - localStorage에 user가 없으면 refreshToken 쿠키로 POST `/auth/refresh`
+     * - 서버가 새 accessToken + member를 내려주면 localStorage/state를 복구
+     * - (쿠키가 없으면) 서버에서 401이 발생할 수 있으나, 동작 자체는 비로그인 유지로 정상 처리
+     */
     const checkAuth = async () => {
       try {
         setLoading(true);
@@ -403,6 +418,13 @@ function App() {
       setAdminNewCounts({ newInquiries: 0, newReports: 0 });
       return;
     }
+
+    /**
+     * 관리자 알림(헤더 패널) 갱신
+     * - ADMIN/SUB_ADMIN 로그인 시 `/api/admin/notification-counts` 호출
+     * - 헤더에 "미답변 문의/미처리 신고" 건수 표시
+     * - refreshAdminCounts에서 동일 엔드포인트를 재조회
+     */
     api.get("/api/admin/notification-counts")
       .then((res) => {
         const d = res.data || {};
@@ -415,6 +437,12 @@ function App() {
   }, [user]);
 
   const handleLogin = useCallback((userData) => {
+    /**
+     * 로그인 성공 처리(서버 → 프론트 상태 동기화)
+     * - userData.member: 사용자 정보
+     * - userData.accessToken: 요청 인증에 사용할 토큰
+     * - state(user) + localStorage를 갱신한 뒤 로그인 모달을 닫음
+     */
     const member = userData?.member ?? userData;
     const accessToken = userData?.accessToken;
     setUser(member);
@@ -424,6 +452,12 @@ function App() {
   }, []);
 
   const handleLogout = useCallback(() => {
+    /**
+     * 로그아웃 처리
+     * - 프론트 state/user/localStorage 삭제
+     * - refreshToken 쿠키를 서버에서 삭제하기 위해 POST `/auth/logout` 호출
+     * - 실패하더라도(네트워크 등) 최소한 로컬 상태는 해제하도록 예외를 삼킴
+     */
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('accessToken');

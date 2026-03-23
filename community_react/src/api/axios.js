@@ -9,7 +9,11 @@ const api = axios.create({
   },
 });
 
-// ✅ 요청마다 accessToken 자동 첨부
+/**
+ * 요청 인터셉터
+ * - 매 요청마다 localStorage의 `accessToken`을 Authorization 헤더로 부착
+ * - withCredentials: true 이므로 refreshToken 쿠키도 같은 요청에 포함(자동 전송)
+ */
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("accessToken");
@@ -21,7 +25,12 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ✅ 401이면 refresh로 재발급 → 원래 요청 재시도
+/**
+ * 응답 인터셉터(401/403 처리)
+ * - 401(토큰 만료) 또는 403(권한) 발생 시 refreshToken으로 accessToken을 재발급하고
+ *   원래 실패한 요청을 재시도
+ * - refresh 요청이 중복으로 여러 번 발생하지 않게 큐(pendingQueue)로 제어
+ */
 let isRefreshing = false;
 let pendingQueue = [];
 
@@ -39,7 +48,7 @@ api.interceptors.response.use(
     const originalRequest = error.config;
     const status = error?.response?.status;
 
-    // ✅ refresh/ logout 자체는 인터셉터로 재시도하지 않게 막기(무한루프 방지)
+    // refresh/ logout 자체는 인터셉터에서 재시도하지 않게 막음(무한루프 방지)
     const reqUrl = originalRequest?.url || "";
     if (reqUrl.includes("/auth/refresh") || reqUrl.includes("/auth/logout")) {
       return Promise.reject(error);

@@ -59,6 +59,12 @@ public class MypageController {
     private final CommentRepository commentRepository;
     private final MemberRepository memberRepository;
 
+    /**
+     * 마이페이지: 내가 쓴 글 목록
+     * - 인증된 사용자 기반으로 member.mb_num을 얻고
+     * - 추천/후기/자유 게시판에서 "작성자 글"을 조회해 합친 뒤 반환
+     * - 프론트에서는 boardType/boardName을 기반으로 화면 렌더링
+     */
     @GetMapping("/posts")
     public ResponseEntity<?> getMyPosts(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()
@@ -119,6 +125,11 @@ public class MypageController {
         return ResponseEntity.ok(combined);
     }
 
+    /**
+     * 마이페이지: 즐겨찾기(북마크) 미리보기
+     * - BookMark 테이블에서 최근 BM을 조회
+     * - bm_po_type에 따라 원문 게시물 제목(resolvePostTitle)만 채워 응답
+     */
     @GetMapping("/bookmarks")
     public ResponseEntity<?> getBookmarks(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()
@@ -148,6 +159,11 @@ public class MypageController {
         return ResponseEntity.ok(result);
     }
 
+    /**
+     * 마이페이지: 신고 내역
+     * - report_box에서 rb_mb_num(신고 대상 받는 사용자)을 기준으로 조회
+     * - rbTargetNickname을 별도 조회로 채워 프론트에서 닉네임 표시 가능하게 함
+     */
     @GetMapping("/reports")
     public ResponseEntity<?> getMyReports(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()
@@ -176,6 +192,11 @@ public class MypageController {
         return ResponseEntity.ok(result);
     }
 
+    /**
+     * 마이페이지: 신고 알림 "확인됨(seen)" 처리
+     * - `/api/mypage/reports/{rbNum}/seen`
+     * - reportRepository.markSeen로 rb_seen을 업데이트
+     */
     @PutMapping("/reports/{rbNum}/seen")
     @Transactional
     public ResponseEntity<?> markReportSeen(@PathVariable Integer rbNum, Authentication authentication) {

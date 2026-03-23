@@ -47,6 +47,13 @@ function MyPage() {
   const REPORTS_PER_PAGE = 3;
   const INQUIRIES_PER_PAGE = 3;
 
+  /**
+   * 내가 쓴 글 로딩 (마이페이지)
+   * - 인증된 user 기준으로 백엔드가 `/api/mypage/posts`에서
+   *   추천/후기/자유 게시판의 “내 글만” 합쳐서 반환
+   * - 프론트에서는 응답 필드명을 po_num/poNum 등을 맞추고
+   *   날짜 기준으로 정렬한 뒤 myPosts 상태에 저장
+   */
   const loadMyPosts = useCallback(async () => {
     if (!user) {
       setLoading(false);
@@ -79,10 +86,19 @@ function MyPage() {
     }
   }, [user]);
 
+  /**
+   * myPosts 로딩 트리거
+   * - user가 준비된 이후(로그인 이후)에 1회 로딩
+   */
   useEffect(() => {
     loadMyPosts();
   }, [loadMyPosts]);
 
+  /**
+   * 북마크 미리보기 로딩
+   * - `/api/mypage/bookmarks`는 백엔드에서 상위 일부만 내려주므로
+   *   프론트에서는 추가로 slice(상단 몇 개만 표시)
+   */
   useEffect(() => {
     if (!user) {
       setBookmarks([]);
@@ -100,6 +116,11 @@ function MyPage() {
     fetchBookmarks();
   }, [user?.mb_num ?? user?.mbNum]);
 
+  /**
+   * 내가 받은/남긴 신고 내역 로딩
+   * - `/api/mypage/reports`에서 신고 목록 + 대상 닉네임 등을 함께 내려줌
+   * - 실패 시 빈 배열로 안전하게 처리
+   */
   useEffect(() => {
     if (!user) return;
     const fetchReports = async () => {
@@ -113,6 +134,11 @@ function MyPage() {
     fetchReports();
   }, [user]);
 
+  /**
+   * 내가 작성한 1:1 문의 로딩
+   * - `/api/inquiry/my`는 로그인 사용자의 문의 목록을 내려줌
+   * - 마이페이지에서 “문의함” 탭 데이터로 사용
+   */
   useEffect(() => {
     if (!user) return;
     const fetchInquiries = async () => {
@@ -126,7 +152,10 @@ function MyPage() {
     fetchInquiries();
   }, [user]);
 
-  // 프로필 사진 존재 여부 (삭제 버튼 표시용)
+  /**
+   * 프로필 사진 존재 여부 확인 (삭제 버튼 표시용)
+   * - `/auth/profile-photo/check`에서 hasPhoto를 받아 UI 분기
+   */
   useEffect(() => {
     if (!user) {
       setHasProfilePhoto(false);
@@ -191,6 +220,12 @@ function MyPage() {
     !/^[Yy]$/.test(q.ibSeen ?? "");
 
   const openReportDetail = async (r) => {
+    /**
+     * 신고 상세 열기 + seen 처리
+     * - 상세 모달을 열고,
+     * - rbReply가 존재하지만 아직 seen이 아니면 `/api/mypage/reports/{rbNum}/seen` 호출
+     * - 성공 시 myReports 상태에서 rbSeen을 "Y"로 갱신
+     */
     setDetailModal({ type: "report", data: r });
     if (isReportUnseen(r)) {
       try {
@@ -206,6 +241,12 @@ function MyPage() {
   };
 
   const openInquiryDetail = async (q) => {
+    /**
+     * 문의 상세 열기 + seen 처리
+     * - 상세 모달을 열고,
+     * - ibReply/ibStatus 조건이 충족되는데 seen이 아니면 `/api/inquiry/my/{ibNum}/seen` 호출
+     * - 성공 시 myInquiries 상태에서 ibSeen을 "Y"로 갱신
+     */
     setDetailModal({ type: "inquiry", data: q });
     if (isInquiryUnseen(q)) {
       try {
@@ -230,6 +271,12 @@ function MyPage() {
     setEditEmailValue("");
   };
 
+  /**
+   * 회원 탈퇴 로직
+   * - 로컬 가입(local) 사용자는 비밀번호 확인이 필요
+   * - 카카오 가입(kakao) 사용자는 비밀번호 없이 탈퇴가 가능하도록 서버에서 처리
+   * - 프론트는 /auth/withdraw 호출 후 성공 시 onLogout + 메인 이동
+   */
   const handleWithdraw = async () => {
     const pw = (withdrawPassword || "").trim();
     if (!isKakaoUser && !pw) {
@@ -265,10 +312,19 @@ function MyPage() {
   };
 
 
+  /**
+   * 프로필 사진 변경 버튼 클릭 시 숨겨진 file input을 강제 오픈
+   */
   const handlePhotoChangeClick = () => {
     photoInputRef.current?.click();
   };
 
+  /**
+   * 프로필 사진 업로드
+   * - 유효한 이미지 타입 검증(jpeg/jpg/png/gif/webp)
+   * - POST `/auth/update-photo`로 BLOB 업로드
+   * - 응답의 mb_photo_ver로 local user state를 갱신(캐시 무효화/버전 관리)
+   */
   const handlePhotoFileChange = async (e) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -303,6 +359,11 @@ function MyPage() {
     }
   };
 
+  /**
+   * 프로필 사진 삭제
+   * - DELETE `/auth/profile-photo`
+   * - 성공 시 hasProfilePhoto=false 및 user의 photo 버전 갱신
+   */
   const handlePhotoDelete = async () => {
     if (!window.confirm("프로필 사진을 삭제하시겠습니까?")) return;
     setPhotoDeleting(true);
@@ -326,6 +387,12 @@ function MyPage() {
     }
   };
 
+  /**
+   * 닉네임 저장
+   * - 입력 유효성 검사(길이/문자 규칙)
+   * - POST `/auth/update-nickname`으로 변경
+   * - 성공 시 localStorage/user 및 UI 편집 상태 갱신
+   */
   const saveNickname = async () => {
     const trimmed = (editNicknameValue || "").trim();
     if (!trimmed) {
@@ -361,6 +428,11 @@ function MyPage() {
     }
   };
 
+  /**
+   * 이메일 저장
+   * - POST `/auth/update-email`으로 변경
+   * - 성공 시 localStorage/user 및 UI 편집 상태 갱신
+   */
   const saveEmail = async () => {
     const trimmed = (editEmailValue || "").trim();
     if (!trimmed) {
@@ -406,6 +478,11 @@ function MyPage() {
     return matchBoard && matchSearch;
   });
 
+  /**
+   * 마이페이지 페이지네이션
+   * - 백엔드에서 전체 목록을 받은 뒤(practice: `/api/mypage/posts` 등)
+   * - 프론트에서 slice로 1페이지당 3개(POSTS_PER_PAGE/REPORTS_PER_PAGE/INQUIRIES_PER_PAGE)씩 표시
+   */
   const postsTotalPages = Math.ceil(filteredPosts.length / POSTS_PER_PAGE) || 1;
   const postsCurrentPage = Math.min(postsPage, postsTotalPages);
   const postsPaginated = filteredPosts.slice((postsCurrentPage - 1) * POSTS_PER_PAGE, postsCurrentPage * POSTS_PER_PAGE);
@@ -750,6 +827,7 @@ function MyPage() {
                             className="mypage-posts-item"
                             onClick={() => openReportDetail(r)}
                           >
+                            {/* 신고 대상 표기: rbTargetNickname이 있으면 닉네임, 없으면 rbName + rbId fallback */}
                             <span className="mypage-post-board">{r.rbTargetNickname ?? `${r.rbName} #${r.rbId}`}</span>
                             <span className="mypage-post-title">{(r.rbContent || "").slice(0, 40)}{(r.rbContent || "").length > 40 ? "..." : ""}</span>
                             <span className="mypage-post-date">{getReportStatusLabel(r)}</span>
@@ -814,6 +892,7 @@ function MyPage() {
             </h3>
             {detailModal.type === "report" ? (
               <div className="mypage-detail-body">
+                {/* 신고 대상 상세 표기: backend이 rbTargetNickname을 함께 내려주는 경우 닉네임 표시 */}
                 <p><strong>대상:</strong> {detailModal.data.rbTargetNickname ?? `${detailModal.data.rbName} #${detailModal.data.rbId}`}</p>
                 <p><strong>신고 내용:</strong></p>
                 <p className="mypage-detail-content">{detailModal.data.rbContent}</p>

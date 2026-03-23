@@ -31,6 +31,11 @@ function AdminPage() {
   const REPORTS_PER_PAGE = 3;
   const MEMBERS_PER_PAGE = 3;
 
+  /**
+   * 관리자 헤더 알림용 건수 조회
+   * - `/api/admin/notification-counts`에서 미답변 문의/미처리 신고 수를 받아 newCounts 갱신
+   * - Header와 AdminPage 양쪽에서 동일 상태(shared context)로 활용됨
+   */
   const fetchNewCounts = useCallback(() => {
     api.get("/api/admin/notification-counts")
       .then((res) => {
@@ -43,6 +48,11 @@ function AdminPage() {
       .catch(() => setNewCounts({ newInquiries: 0, newReports: 0 }));
   }, []);
 
+  /**
+   * 로그인/권한 기본 가드
+   * - user가 없으면 메인으로 리다이렉트
+   * - ADMIN/SUB_ADMIN이 아니면 접근 차단
+   */
   useEffect(() => {
     if (!user) {
       alert("로그인이 필요한 서비스입니다.");
@@ -56,6 +66,12 @@ function AdminPage() {
     }
   }, [user, navigate]);
 
+  /**
+   * AdminPage 데이터 로딩
+   * - SUB_ADMIN: 문의/신고/알림만 조회하고 `/api/admin/members`는 호출하지 않음
+   * - ADMIN: 문의/신고/회원/알림 모두 조회
+   * - Promise.allSettled로 일부 API 실패 시에도 화면이 깨지지 않게 방어
+   */
   useEffect(() => {
     if (!user || !isAdminOrSubAdmin(user)) return;
     const fetch = async () => {
@@ -154,6 +170,12 @@ function AdminPage() {
     setExpandedReport(null);
   };
 
+  /**
+   * 문의 답변 저장
+   * - POST된 reply를 서버에 저장하고(Backend: /api/admin/inquiries/{ibNum}/reply)
+   * - ibStatus를 "Y"(처리완료)로 갱신
+   * - 처리 후 새 건수(newCounts)와 헤더 알림도 재조회
+   */
   const saveInquiryReply = async () => {
     if (!expandedInquiry) return;
     setSavingReply(true);
@@ -189,6 +211,12 @@ function AdminPage() {
     setExpandedInquiry(null);
   };
 
+  /**
+   * 신고 답변/메모 저장
+   * - rbReply를 저장하고 rbManage 값을 reply 내용 여부에 따라 갱신
+   *   (프로젝트 정책상 실제 제재 기능은 미구현/메모 중심)
+   * - 처리 후 새 건수와 헤더 알림을 재조회
+   */
   const saveReportReply = async () => {
     if (!expandedReport) return;
     setSavingReply(true);
@@ -218,6 +246,12 @@ function AdminPage() {
   };
 
   const handleReportProcess = async (rbNum, action) => {
+    /**
+     * 신고 “처리 상태” 변경
+     * - Backend: `/api/admin/reports/{rbNum}/process`
+     * - action: Y(처리완료) / D(삭제처리) / H(보류) 등으로 관리
+     * - 성공 시 reports 배열의 rbManage를 즉시 업데이트하고 새 건수 갱신
+     */
     try {
       const res = await api.put(`/api/admin/reports/${rbNum}/process`, { action });
       setReports((prev) =>
@@ -249,6 +283,11 @@ function AdminPage() {
     }
   };
 
+  /**
+   * 회원 권한 변경 (ADMIN 전용)
+   * - Backend: PUT `/api/admin/members/{mbNum}/role`
+   * - nextRole 값을 USER/SUB_ADMIN/ADMIN 중 하나로 제한
+   */
   const updateMemberRole = async (mbNum, nextRole) => {
     if (!mbNum || !nextRole) return;
     if (!window.confirm(`${mbNum}번 회원의 권한을 "${nextRole}"(으)로 변경하시겠습니까?`)) return;
@@ -267,6 +306,12 @@ function AdminPage() {
     }
   };
 
+  /**
+   * 회원 정지/해제 상태 변경 (ADMIN 전용)
+   * - Backend: PUT `/api/admin/members/{mbNum}/status`
+   * - 프론트는 선택 값(BAN_7D/BAN_30D/BAN_6M/BAN_PERM/ACTIVE)을
+   *   서버와 동일한 코드 규칙으로 전달
+   */
   const updateMemberStatus = async (mbNum, statusCode, label) => {
     if (!mbNum || !statusCode) return;
     if (!window.confirm(`${mbNum}번 회원을 "${label}" 상태로 변경하시겠습니까?`)) return;
@@ -316,6 +361,11 @@ function AdminPage() {
       </div>
     );
 
+  /**
+   * 관리자페이지 페이지네이션
+   * - 문의/신고/회원 목록을 전체로 받은 뒤
+   * - 프론트에서 slice로 페이지당 3개씩(각 *_PER_PAGE) 보여줌
+   */
   const inquiryTotalPages = Math.ceil(inquiries.length / INQUIRIES_PER_PAGE) || 1;
   const inquiryCurrentPage = Math.min(inquiryPage, inquiryTotalPages);
   const inquiriesPaginated = inquiries.slice((inquiryCurrentPage - 1) * INQUIRIES_PER_PAGE, inquiryCurrentPage * INQUIRIES_PER_PAGE);
@@ -324,6 +374,11 @@ function AdminPage() {
   const reportCurrentPage = Math.min(reportPage, reportTotalPages);
   const reportsPaginated = reports.slice((reportCurrentPage - 1) * REPORTS_PER_PAGE, reportCurrentPage * REPORTS_PER_PAGE);
 
+  /**
+   * 회원 관리 검색/필터
+   * - memberQuery: 아이디/닉네임/이메일 포함 검색
+   * - memberStatusFilter: ACTIVE(BANNED 제외) 또는 BANNED_* 상태 필터
+   */
   const normalizedQuery = memberQuery.trim().toLowerCase();
   const filteredMembers = members.filter((m) => {
     const statusOk =
@@ -399,6 +454,7 @@ function AdminPage() {
                   onClick={() => !expandedInquiry || expandedInquiry === q.ibNum ? openInquiry(q) : null}
                 >
                   <div className="admin-message-header">
+                    {/* 작성자 닉네임: backend이 ibAuthorNickname을 내려주며, 없을 경우 ibMbNum 기반 fallback */}
                     <span className="admin-message-from">{q.ibAuthorNickname ?? `작성자 #${q.ibMbNum}`}</span>
                     <span className="admin-message-date">{formatDate(q.ibDate)}</span>
                     <span className={`admin-message-badge ${q.ibStatus === "Y" ? "done" : ""}`}>
@@ -493,11 +549,13 @@ function AdminPage() {
                   onClick={() => !expandedReport || expandedReport === r.rbNum ? openReport(r) : null}
                 >
                   <div className="admin-message-header">
+                    {/* 신고자 닉네임: backend이 rbReporterNickname을 내려주며, 없을 경우 rbMbNum 기반 fallback */}
                     <span className="admin-message-from">{r.rbReporterNickname ?? `신고자 #${r.rbMbNum}`}</span>
                     <span className={`admin-message-badge ${r.rbManage === "Y" ? "done" : r.rbManage === "D" ? "deleted" : r.rbManage === "H" ? "hold" : ""}`}>
                       {r.rbManage === "Y" ? "처리완료" : r.rbManage === "D" ? "삭제됨" : r.rbManage === "H" ? "보류" : "대기"}
                     </span>
                   </div>
+                  {/* 신고 대상: rbTargetNickname이 있으면 닉네임, 없으면 rbName + rbId fallback */}
                   <div className="admin-message-subject">신고 대상: {r.rbTargetNickname ?? `${r.rbName} #${r.rbId}`}</div>
                   <div className="admin-message-preview">
                     {(r.rbContent || "").slice(0, 80)}

@@ -11,6 +11,13 @@ function KakaoCallback() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    /**
+     * Kakao redirect 콜백 처리
+     * - URL params: `code`(정상) 또는 `error`(실패)
+     * - sessionStorage `kakao_signup` 값으로 로그인 vs 회원가입 시나리오 분기
+     * - POST `/auth/kakao`로 authorization code를 전달 (credentials include: refresh 쿠키 수신)
+     * - 응답에서 { member, accessToken }를 받아 localStorage에 저장 후 `/`로 이동
+     */
     const code = searchParams.get("code");
     const errorParam = searchParams.get("error");
 
@@ -32,6 +39,11 @@ function KakaoCallback() {
     const doAuth = async (signup) => {
       try {
         sessionStorage.removeItem("kakao_signup");
+        /**
+         * 백엔드에 code 전달 → 토큰 교환 → JWT 발급
+         * - body: { code, signup, redirect_uri }
+         * - 서버가 refreshToken 쿠키도 같이 발급하므로 credentials include 유지
+         */
         const res = await fetch("/auth/kakao", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

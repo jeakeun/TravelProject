@@ -23,6 +23,12 @@ function Signup({ onClose, currentLang = "KR" }) {
   const submitHandler = async (e) => {
     e.preventDefault();
 
+    /**
+     * 회원가입 submit 흐름
+     * - id/pw/pw2/email/agreement 입력 검증
+     * - POST `/signup` 호출
+     * - 서버 응답(성공/실패 메시지) 표시 후 모달 닫기
+     */
     if (!id.trim()) {
       alert(t.id_required);
       return;
@@ -131,6 +137,12 @@ function Signup({ onClose, currentLang = "KR" }) {
               type="button"
               className="btn-kakao"
               onClick={() => {
+                /**
+                 * 카카오 회원가입 OAuth 시작
+                 * - redirect URI: `/kakao-callback`
+                 * - sessionStorage의 `kakao_signup=true`로
+                 *   콜백에서 “회원가입 시나리오”를 선택하도록 유도
+                 */
                 if (window.Kakao?.Auth?.authorize) {
                   sessionStorage.setItem("kakao_signup", "true");
                   window.Kakao.Auth.authorize({
