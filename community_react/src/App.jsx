@@ -228,7 +228,7 @@ function CommunityContainer({ posts, loadPosts, loading }) {
               <Route path="faq" element={<FAQList posts={posts} goToDetail={(id) => navigate(`/cscenter/faq/${id}`)} />} />
               <Route path="faq/:id" element={<FAQDetail />} />
               <Route path="faq/write" element={<PostWrite activeMenu="자주 묻는 질문" boardType="faq" refreshPosts={loadPosts} />} />
-              <Route path="userguide" element={<div className="user-guide-content" style={{padding: '20px'}}><h2>이용 가이드</h2><p>초등학생도 쓸 수 있게 만들어 놓은 페이지인데 이딴 메뉴가 필요한교?</p></div>} />
+              <Route path="userguide" element={<div className="user-guide-content" style={{padding: '20px'}}><h2>이용 가이드</h2><p></p></div>} />
               <Route path="/" element={<Navigate to="faq" replace />} />
             </>
           )}

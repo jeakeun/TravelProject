@@ -235,7 +235,7 @@ function MainList({ photos = [], setPhotos, activeMenu, setActiveMenu, menuItems
             ) : (
               
               <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '100px 0', color: '#888', fontSize: '18px', fontWeight: 'bold' }}>
-                {activeMenu.trim() === '해외여행' ? "돈 많아요? 국내에도 갈데 많은데 뭐하러 해외까지 알아보시나요?." : "등록된 게시글이 없습니다."}
+                {activeMenu.trim() === '해외여행' ? "." : "등록된 게시글이 없습니다."}
               </div>
             )}
           </div>
